@@ -9,13 +9,28 @@ const Home = () => (
       <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
         Zustand / Zod / SWR のサンプルページを用意しました。
       </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/sample"
-          className="inline-flex items-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
-          サンプルページを見る
-        </Link>
+
+      <div className="flex gap-4">
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/sample"
+            className="inline-flex items-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            サンプルページを見る
+          </Link>
+          <Link
+            href="/sign-up"
+            className="inline-flex items-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            Sign Up
+          </Link>
+          <Link
+            href="/sign-in"
+            className="inline-flex items-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            Sign In
+          </Link>
+        </div>
       </div>
     </main>
   </div>
