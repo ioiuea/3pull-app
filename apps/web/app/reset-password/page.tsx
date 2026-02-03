@@ -20,7 +20,7 @@ const ResetPasswordPage = () => {
               width={50}
             />
           </div>
-          Better Auth Starter
+          3pull Starter
         </Link>
         <Suspense fallback={<div className="text-center text-sm">Loading…</div>}>
           <ResetPasswordForm />

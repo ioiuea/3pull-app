@@ -3,9 +3,10 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/drizzle/drizzle";
 import { member, organization } from "@/drizzle/schema";
+import type { Organization } from "@/drizzle/schema";
 import { getCurrentUser } from "./users";
 
-export async function getOrganizations() {
+export async function getOrganizations(): Promise<Organization[]> {
   const { currentUser } = await getCurrentUser();
 
   const members = await db.query.member.findMany({

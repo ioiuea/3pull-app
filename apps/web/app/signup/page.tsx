@@ -19,7 +19,7 @@ export default function SignupPage() {
               width={50}
             />
           </div>
-          Better Auth Starter
+          3pull Starter
         </Link>
         <SignupForm />
       </div>
