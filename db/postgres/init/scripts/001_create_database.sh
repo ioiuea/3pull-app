@@ -26,8 +26,6 @@ fi
 # Azure Database for PostgreSQL など、PG* 環境変数で接続する前提で実行します。
 # PGDATABASE で指定されたデータベースが無ければ作成（あれば何もしない）
 
-shadow_db_name="${PGDATABASE}-shadow"
-
 create_database() {
   local db_name="$1"
   if [[ -z "$db_name" ]]; then
@@ -45,7 +43,6 @@ SQL
 }
 
 create_database "$PGDATABASE"
-create_database "$shadow_db_name"
 
 # 指定データベースの存在を確認してメッセージ表示
 echo "[info] Verifying database existence"
@@ -61,18 +58,6 @@ else
 fi
 echo "----------------------------------------------"
 
-pause
-SHADOW_DB_EXISTS=$(psql --username "$PGUSER" --dbname "postgres" -tAc \
-  "SELECT 1 FROM pg_database WHERE datname = '${shadow_db_name}';" || true)
-
-echo "----------------------------------------------"
-if [[ "$SHADOW_DB_EXISTS" == "1" ]]; then
-  echo "✅ Shadow database '${shadow_db_name}' is present (created or already existed)."
-else
-  echo "❌ Failed to verify creation of shadow database '${shadow_db_name}'."
-fi
-echo "----------------------------------------------"
-
 echo "[verify] Listing databases"
 pause
 psql --username "$PGUSER" --dbname "postgres" -x -c "\l+"
@@ -84,7 +69,3 @@ psql --username "$PGUSER" --dbname "$PGDATABASE" -x -c "SELECT current_database(
 echo "[verify] Server connection info"
 pause
 psql --username "$PGUSER" --dbname "postgres" -x -c "SELECT inet_server_addr(), inet_server_port(), version();"
-
-echo "[verify] Shadow database existence"
-pause
-psql --username "$PGUSER" --dbname "postgres" -x -c "SELECT datname FROM pg_database WHERE datname = '${shadow_db_name}';"

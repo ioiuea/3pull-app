@@ -20,6 +20,27 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Database Migrations (Drizzle)
+
+Schema source: `apps/web/drizzle/schema.ts`  
+Migration output: `apps/web/drizzle/migrations/`
+
+Generate a migration file:
+
+```bash
+npx drizzle-kit generate --name add_auth_models
+```
+
+Apply the migration to the database:
+
+```bash
+psql "$DATABASE_URL" -f apps/web/drizzle/migrations/0000_add_auth_models.sql
+```
+
+Notes:
+- `generate` creates SQL files only; it does not modify the database.
+- `push` updates the database directly and does **not** read migration files.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

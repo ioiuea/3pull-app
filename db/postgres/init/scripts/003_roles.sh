@@ -84,6 +84,9 @@ END
 DO \$\$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+    -- auth スキーマのオーナー変更
+    ALTER SCHEMA auth OWNER TO ${WEB_APP_DB_USER};
+
     -- auth スキーマの利用/作成
     GRANT USAGE, CREATE ON SCHEMA auth TO ${WEB_APP_DB_USER};
 
@@ -107,6 +110,9 @@ END
 DO \$\$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'core') THEN
+    -- core スキーマのオーナー変更
+    ALTER SCHEMA core OWNER TO ${API_APP_DB_USER};
+
     -- core スキーマの利用/作成
     GRANT USAGE, CREATE ON SCHEMA core TO ${API_APP_DB_USER};
 

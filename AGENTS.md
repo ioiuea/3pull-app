@@ -14,7 +14,7 @@
 ### 1-2. ディレクトリ責務
 
 - `apps/`
-  - `apps/web` : フロントエンド（Next.js / Auth.js / Prisma）
+  - `apps/web` : フロントエンド（Next.js / Auth.js / Drizzle）
   - `apps/api` : バックエンド（FastAPI / SQLAlchemy + Alembic）
 - `db/`
   - Postgres 初期化スクリプト群。DB/スキーマ/ロールの作成・初期設定。
@@ -55,14 +55,14 @@
 
 - `db/postgres/init/*.sh`  
   - DB 作成・スキーマ作成・ロール・権限・search_path 設定などを行うシェルスクリプト群。
-  - 変更時は **マイグレーション方針と矛盾しないか** を確認してください（Alembic / Prisma の責務を壊さない）。
+  - 変更時は **マイグレーション方針と矛盾しないか** を確認してください（Alembic / Drizzle の責務を壊さない）。
 
 ### 5-3. スキーマ分離と管理責務
 
 - `auth` スキーマ（認証系）
-  - 管理者: `apps/web/prisma`
-  - マイグレーション: `apps/web/prisma/migrations/`
-  - ORM: Prisma
+  - 管理者: `apps/web/drizzle`
+  - マイグレーション: `apps/web/drizzle/migrations/`
+  - ORM: Drizzle
 - `core` スキーマ（業務系）
   - 管理者: `apps/api/alembic`
   - マイグレーション: `apps/api/alembic/versions/`
@@ -87,23 +87,23 @@
 - i18n : 現状は未導入（`app/[lang]/...` や `dictionaries/` は未配置）
 - UI : `shadcn/ui` を `components/ui/` 配下に集約
 - 状態管理 : `store/` で Zustand を使用
-- 認証 : Auth.js + Prisma (`auth` スキーマ)
-- Prisma : `apps/web/prisma/`（`schema.prisma` + `migrations/`）
+- 認証 : Auth.js + Drizzle (`auth` スキーマ)
+- Drizzle : `apps/web/drizzle/`（`schema.ts`）+ `apps/web/drizzle.config.ts` + `apps/web/drizzle/migrations/`
 
 ### 6-2. ディレクトリの主な役割
 
 - `app/` : ページルート（SSR）／言語別ルーティング／Auth route
 - `features/` : CSR ベースの機能モジュール
 - `components/` : 再利用コンポーネント
-- `lib/` : アプリ固有ライブラリ（例: Prisma クライアントラッパ）
+- `lib/` : アプリ固有ライブラリ（例: DB クライアントラッパ）
 - `utils/` : 汎用ユーティリティ
 - `store/` : Zustand ストア
-- `prisma/` : Prisma スキーマ・マイグレーション
-- 認証プロバイダ（Credentials / Microsoft Entra ID / GitHub）の有効化設定とクライアント情報は `apps/web/features/settings/auth` から管理され、Prisma の `auth_provider_configs` に保存されます。`.env` 内の `AUTH_*` 変数は初期値としてのみ利用してください（UI から更新した設定が優先されます）。
+- `drizzle/` : Drizzle スキーマ（`schema.ts`）
+- 認証プロバイダ（Credentials / Microsoft Entra ID / GitHub）の有効化設定とクライアント情報は `apps/web/features/settings/auth` から管理され、DB の `auth_provider_configs` に保存されます。`.env` 内の `AUTH_*` 変数は初期値としてのみ利用してください（UI から更新した設定が優先されます）。
 
 > **AGENT へ**:  
 > - ページ起点の UI は `app/`、機能単位の再利用可能 UI ロジックは `features/` に置く方針です。  
-> - DB スキーマの変更が必要な場合は、`schema.prisma` と Prisma migration をセットで扱ってください。
+> - DB スキーマの変更が必要な場合は、`apps/web/drizzle/schema.ts` と Drizzle migration をセットで扱ってください。
 
 ### 6-7. app ルータとクライアントコンポーネント配置ルール
 
