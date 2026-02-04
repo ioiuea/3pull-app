@@ -25,16 +25,19 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
 });
 
-export function ForgotPasswordForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+type Dictionary = typeof import("@/dictionaries/en.json");
+
+type ForgotPasswordClientProps = {
+  dict: Dictionary;
+};
+
+export const ForgotPasswordClient = ({ dict }: ForgotPasswordClientProps) => {
+  const { forgotPassword } = dict;
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,13 +65,11 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Forgot Password</CardTitle>
-          <CardDescription>
-            Enter your email to reset your password
-          </CardDescription>
+          <CardTitle className="text-xl">{forgotPassword.title}</CardTitle>
+          <CardDescription>{forgotPassword.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -80,9 +81,12 @@ export function ForgotPasswordForm({
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>{forgotPassword.emailLabel}</FormLabel>
                         <FormControl>
-                          <Input placeholder="m@example.com" {...field} />
+                          <Input
+                            placeholder={forgotPassword.emailPlaceholder}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -93,14 +97,14 @@ export function ForgotPasswordForm({
                   {isLoading ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Reset Password"
+                    forgotPassword.submitCta
                   )}
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
+                {forgotPassword.noAccount}{" "}
                 <Link className="underline underline-offset-4" href="/signup">
-                  Sign up
+                  {forgotPassword.signupLink}
                 </Link>
               </div>
             </form>
@@ -108,10 +112,12 @@ export function ForgotPasswordForm({
         </CardContent>
       </Card>
       <div className="text-balance text-center text-muted-foreground text-xs *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
-        By clicking continue, you agree to our{" "}
-        <Link href="#">Terms of Service</Link> and{" "}
-        <Link href="#">Privacy Policy</Link>.
+        {forgotPassword.agreePrefix}
+        <Link href="/terms">{forgotPassword.termsOfService}</Link>
+        {forgotPassword.agreeLinkSeparator}
+        <Link href="/privacy">{forgotPassword.privacyPolicy}</Link>
+        {forgotPassword.agreeSuffix}
       </div>
     </div>
   );
-}
+};

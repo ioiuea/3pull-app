@@ -27,17 +27,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+
+type Dictionary = typeof import("@/dictionaries/en.json");
+
+type ResetPasswordClientProps = {
+  dict: Dictionary;
+};
 
 const formSchema = z.object({
   password: z.string().min(8),
   confirmPassword: z.string().min(8),
 });
 
-export function ResetPasswordForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export const ResetPasswordClient = ({ dict }: ResetPasswordClientProps) => {
+  const { resetPassword } = dict;
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -78,11 +81,11 @@ export function ResetPasswordForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Reset Password</CardTitle>
-          <CardDescription>Enter your new password</CardDescription>
+          <CardTitle className="text-xl">{resetPassword.title}</CardTitle>
+          <CardDescription>{resetPassword.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -94,7 +97,7 @@ export function ResetPasswordForm({
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>{resetPassword.passwordLabel}</FormLabel>
                         <FormControl>
                           <Input {...field} type="password" />
                         </FormControl>
@@ -109,7 +112,7 @@ export function ResetPasswordForm({
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel>{resetPassword.confirmPasswordLabel}</FormLabel>
                         <FormControl>
                           <Input {...field} type="password" />
                         </FormControl>
@@ -122,14 +125,14 @@ export function ResetPasswordForm({
                   {isLoading ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Reset Password"
+                    resetPassword.submitCta
                   )}
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
+                {resetPassword.noAccount}{" "}
                 <Link className="underline underline-offset-4" href="/signup">
-                  Sign up
+                  {resetPassword.signupLink}
                 </Link>
               </div>
             </form>
@@ -137,10 +140,12 @@ export function ResetPasswordForm({
         </CardContent>
       </Card>
       <div className="text-balance text-center text-muted-foreground text-xs *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
-        By clicking continue, you agree to our{" "}
-        <Link href="#">Terms of Service</Link> and{" "}
-        <Link href="#">Privacy Policy</Link>.
+        {resetPassword.agreePrefix}
+        <Link href="/terms">{resetPassword.termsOfService}</Link>
+        {resetPassword.agreeLinkSeparator}
+        <Link href="/privacy">{resetPassword.privacyPolicy}</Link>
+        {resetPassword.agreeSuffix}
       </div>
     </div>
   );
-}
+};

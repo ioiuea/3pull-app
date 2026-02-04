@@ -8,7 +8,7 @@ type TermsPageProps = {
 const TermsPage = async ({ params }: TermsPageProps) => {
   const { lang } = await params;
   const dict = await getDictionary(lang);
-  const { legal } = dict;
+  const { terms } = dict;
 
   return (
     <main className="container mx-auto max-w-2xl space-y-6 px-6 py-10">
@@ -19,15 +19,15 @@ const TermsPage = async ({ params }: TermsPageProps) => {
       </div>
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">
-          {legal.termsTitle}
+          {terms.title}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {legal.lastUpdatedLabel}: {legal.lastUpdatedValue}
+          {terms.lastUpdatedLabel}: {terms.lastUpdatedValue}
         </p>
       </header>
       <section className="space-y-4 text-sm text-muted-foreground">
-        <p>{legal.termsIntro}</p>
-        <p>{legal.termsBody}</p>
+        <p>{terms.intro}</p>
+        <p>{terms.body}</p>
       </section>
     </main>
   );

@@ -25,20 +25,22 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 import { signUp } from "@/server/users";
+
+type Dictionary = typeof import("@/dictionaries/en.json");
+
+type SignupClientProps = {
+  dict: Dictionary;
+};
 
 const formSchema = z.object({
   username: z.string().min(3),
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 });
 
-export function SignupForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export const SignupClient = ({ dict }: SignupClientProps) => {
+  const { signup } = dict;
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
@@ -50,13 +52,6 @@ export function SignupForm({
       password: "",
     },
   });
-
-  const signInWithMicrosoft = async () => {
-    await authClient.signIn.social({
-      provider: "microsoft",
-      callbackURL: "/dashboard",
-    });
-  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -80,49 +75,16 @@ export function SignupForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Signup with your Microsoft account</CardDescription>
+          <CardTitle className="text-xl">{signup.welcome}</CardTitle>
+          <CardDescription>{signup.signupWithEmailDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid gap-6">
-                <div className="flex flex-col gap-4">
-                  <Button
-                    className="w-full"
-                    onClick={signInWithMicrosoft}
-                    type="button"
-                    variant="outline"
-                  >
-                    {/* <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <title>Microsoft</title>
-                      <path
-                        d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                        fill="currentColor"
-                      />
-                    </svg> */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="1em"
-                      height="1em"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M2 3h9v9H2zm9 19H2v-9h9zM21 3v9h-9V3zm0 19h-9v-9h9z"
-                      ></path>
-                    </svg>
-                    Signup with Microsoft
-                  </Button>
-                </div>
-                <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-border after:border-t">
-                  <span className="relative z-10 bg-card px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
                 <div className="grid gap-6">
                   <div className="grid gap-3">
                     <FormField
@@ -130,9 +92,12 @@ export function SignupForm({
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>{signup.usernameLabel}</FormLabel>
                           <FormControl>
-                            <Input placeholder="shadcn" {...field} />
+                            <Input
+                              placeholder={signup.usernamePlaceholder}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -144,9 +109,12 @@ export function SignupForm({
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>{signup.emailLabel}</FormLabel>
                           <FormControl>
-                            <Input placeholder="m@example.com" {...field} />
+                            <Input
+                              placeholder={signup.emailPlaceholder}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -160,10 +128,10 @@ export function SignupForm({
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <FormLabel>{signup.passwordLabel}</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="********"
+                                placeholder={signup.passwordPlaceholder}
                                 {...field}
                                 type="password"
                               />
@@ -176,7 +144,7 @@ export function SignupForm({
                         className="ml-auto text-sm underline-offset-4 hover:underline"
                         href="/forgot-password"
                       >
-                        Forgot your password?
+                        {signup.forgotPassword}
                       </Link>
                     </div>
                   </div>
@@ -184,14 +152,14 @@ export function SignupForm({
                     {isLoading ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
-                      "Signup"
+                      signup.signupCta
                     )}
                   </Button>
                 </div>
                 <div className="text-center text-sm">
-                  Already have an account?{" "}
+                  {signup.alreadyHaveAccount}{" "}
                   <Link className="underline underline-offset-4" href="/login">
-                    Login
+                    {signup.loginLink}
                   </Link>
                 </div>
               </div>
@@ -200,10 +168,12 @@ export function SignupForm({
         </CardContent>
       </Card>
       <div className="text-balance text-center text-muted-foreground text-xs *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
-        By clicking continue, you agree to our{" "}
-        <Link href="#">Terms of Service</Link> and{" "}
-        <Link href="#">Privacy Policy</Link>.
+        {signup.agreePrefix}
+        <Link href="/terms">{signup.termsOfService}</Link>
+        {signup.agreeLinkSeparator}
+        <Link href="/privacy">{signup.privacyPolicy}</Link>
+        {signup.agreeSuffix}
       </div>
     </div>
   );
-}
+};

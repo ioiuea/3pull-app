@@ -101,7 +101,7 @@ const SampleClient = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/40 to-muted/70 px-6 py-12 text-foreground">
+    <div className="min-h-screen bg-linear-to-br from-background via-muted/40 to-muted/70 px-6 py-12 text-foreground">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

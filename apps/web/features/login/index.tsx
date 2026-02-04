@@ -36,7 +36,7 @@ type LoginClientProps = {
 };
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 });
 
@@ -182,7 +182,7 @@ export const LoginClient = ({ dict }: LoginClientProps) => {
                 <div className="text-center text-sm">
                   {login.noAccount}{" "}
                   <Link className="underline underline-offset-4" href="/signup">
-                    Sign up
+                    {login.signupLink}
                   </Link>
                 </div>
               </div>
