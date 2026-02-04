@@ -1,4 +1,4 @@
-import type { Locale } from "@/lib/dictionaries";
+import { type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 
 type TermsPageProps = {

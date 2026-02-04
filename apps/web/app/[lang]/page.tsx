@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getDictionary, type Locale } from "@/lib/dictionaries";
+import { getDictionary } from "@/lib/dictionaries";
+import { type Locale } from "@/lib/i18n";
 
 const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
 

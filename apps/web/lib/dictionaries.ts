@@ -11,9 +11,6 @@ const dictionaries = {
   ja: () => import("@/dictionaries/ja.json").then((module) => module.default),
 } as const;
 
-export type { Locale } from "@/lib/i18n";
-export { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/i18n";
-
 /**
  * 指定ロケールの辞書を取得する。
  * @param locale - サポートされるロケール
