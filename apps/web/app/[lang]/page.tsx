@@ -1,16 +1,26 @@
-import Image from "next/image";
-import Link from "next/link";
+// import Image from "next/image";
+// import Link from "next/link";
 import { ModeSwitcher } from "@/components/mode-switcher";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
+import { getDictionary, type Locale } from "@/lib/dictionaries";
 
-export default function Home() {
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ lang: Locale }>;
+}) {
+  const { lang } = await params;
+  console.log(lang);
+
+  const dict = await getDictionary(lang);
+
   return (
     <>
       <header className="absolute top-0 right-0 flex items-center justify-end p-4">
         <ModeSwitcher />
       </header>
       <div className="flex h-screen flex-col items-center justify-center gap-5 px-5 text-center">
-        <Image
+        {/* <Image
           alt="Better Auth"
           className="rounded-lg dark:invert"
           height={100}
@@ -31,7 +41,9 @@ export default function Home() {
           <Link href="/signup">
             <Button>Signup</Button>
           </Link>
-        </div>
+        </div> */}
+        メインホームページ
+        <button>{dict.products.cart}</button>
       </div>
     </>
   );
