@@ -2,7 +2,9 @@ import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 import { match as matchLocale } from "@formatjs/intl-localematcher";
 import Negotiator from "negotiator";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/dictionaries";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/i18n";
+
+const LOCALE_COOKIE = "locale";
 
 /**
  * 判定: URL パスにロケール (言語コード) プレフィックスが付いているかを判定します。
@@ -83,13 +85,29 @@ function detectLocale(req: NextRequest): string {
  * ```
  */
 function isPublic(pathname: string): boolean {
+  // ロケールプレフィックス（/ja や /en）を取り除き、常に「実際のページパス」に揃える。
+  const normalizedPath = SUPPORTED_LOCALES.reduce((current, locale) => {
+    if (current === `/${locale}`) {
+      return "/";
+    }
+    if (current.startsWith(`/${locale}/`)) {
+      return current.slice(locale.length + 1);
+    }
+    return current;
+  }, pathname);
+
   return (
-    pathname.endsWith("/login") ||
-    pathname.includes("/login/") ||
-    pathname.endsWith("/signup") ||
-    pathname.includes("/signup/") ||
-    pathname.endsWith("/forgot-password") ||
-    pathname.includes("/forgot-password/")
+    normalizedPath === "/" ||
+    normalizedPath === "/login" ||
+    normalizedPath.startsWith("/login/") ||
+    normalizedPath === "/terms" ||
+    normalizedPath.startsWith("/terms/") ||
+    normalizedPath === "/privacy" ||
+    normalizedPath.startsWith("/privacy/") ||
+    normalizedPath === "/signup" ||
+    normalizedPath.startsWith("/signup/") ||
+    normalizedPath === "/forgot-password" ||
+    normalizedPath.startsWith("/forgot-password/")
   );
 }
 
@@ -124,23 +142,30 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const locale = detectLocale(req);
+  const urlLocale = hasLocalePrefix(pathname) ? pathname.split("/")[1] : null;
 
   // --- 1) i18n: ロケール付与（例: /foo → /ja/foo） ---
   if (!hasLocalePrefix(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = `/${locale}${pathname}`;
 
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.cookies.set(LOCALE_COOKIE, locale, { path: "/" });
+    return response;
   }
 
   // --- 2) 認可: 公開パス以外は sessionCookie で判定 ---
   if (!isPublic(pathname)) {
     if (!sessionCookie) {
-      return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
+      return NextResponse.redirect(new URL(`/${locale}`, req.url));
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (urlLocale && SUPPORTED_LOCALES.includes(urlLocale as never)) {
+    response.cookies.set(LOCALE_COOKIE, urlLocale, { path: "/" });
+  }
+  return response;
 }
 
 /**

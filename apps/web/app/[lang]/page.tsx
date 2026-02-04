@@ -1,50 +1,36 @@
-// import Image from "next/image";
-// import Link from "next/link";
-import { ModeSwitcher } from "@/components/mode-switcher";
-// import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { getDictionary, type Locale } from "@/lib/dictionaries";
 
-export default async function Home({
-  params,
-}: {
-  params: Promise<{ lang: Locale }>;
-}) {
-  const { lang } = await params;
-  console.log(lang);
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
 
+const HomePage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
+  const { lang } = await params;
   const dict = await getDictionary(lang);
+  const { home } = dict;
 
   return (
     <>
-      <header className="absolute top-0 right-0 flex items-center justify-end p-4">
-        <ModeSwitcher />
-      </header>
       <div className="flex h-screen flex-col items-center justify-center gap-5 px-5 text-center">
-        {/* <Image
-          alt="Better Auth"
+        <Image
+          alt="Product Logo"
           className="rounded-lg dark:invert"
           height={100}
-          src="/better-auth-starter.png"
+          src="/3pull.png"
           width={100}
         />
 
-        <h1 className="font-bold text-4xl">3pull Starter</h1>
+        <h1 className="font-bold text-4xl">{appName}</h1>
 
-        <p className="text-lg">
-          This is a starter project.
-        </p>
+        <p className="text-lg">{home.description}</p>
 
-        <div className="flex gap-2">
-          <Link href="/login">
-            <Button>Login</Button>
-          </Link>
-          <Link href="/signup">
-            <Button>Signup</Button>
-          </Link>
-        </div> */}
-        メインホームページ
-        <button>{dict.products.cart}</button>
+        <Link href="/login">
+          <Button>Login</Button>
+        </Link>
       </div>
     </>
   );
-}
+};
+
+export default HomePage;

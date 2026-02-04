@@ -1,5 +1,28 @@
 {
-  "products": {
-    "cart": "Add to Cart"
+  "home": {
+    "description": "This is a starter project."
+  },
+  "login": {
+    "welcomeBack": "Welcome back",
+    "loginWithMicrosoftAccount": "Login with your Microsoft account",
+    "loginWithMicrosoft": "Login with Microsoft",
+    "orContinueWith": "Or continue with",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "Don't have an account?",
+    "agreePrefix": "By clicking continue, you agree to the ",
+    "agreeLinkSeparator": " and ",
+    "agreeSuffix": ".",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
+  },
+  "legal": {
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "termsIntro": "This is a sample Terms of Service page. Replace it with your actual terms.",
+    "termsBody": "By using the service, you agree to follow applicable laws and use the service responsibly.",
+    "privacyIntro": "This is a sample Privacy Policy page. Replace it with your actual policy.",
+    "privacyBody": "We collect only the data necessary to provide the service and do not sell personal information.",
+    "lastUpdatedLabel": "Last updated",
+    "lastUpdatedValue": "January 1, 2026"
   }
 }

@@ -1,5 +1,28 @@
 {
-  "products": {
-    "cart": "カートに追加"
+  "home": {
+    "description": "スタータープロジェクト"
+  },
+  "login": {
+    "welcomeBack": "おかえりなさい",
+    "loginWithMicrosoftAccount": "Microsoft アカウントでログイン",
+    "loginWithMicrosoft": "Microsoft でログイン",
+    "orContinueWith": "または次で続行",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "noAccount": "アカウントをお持ちでないですか？",
+    "agreePrefix": "",
+    "agreeLinkSeparator": "と",
+    "agreeSuffix": "に同意します。",
+    "termsOfService": "利用規約",
+    "privacyPolicy": "プライバシーポリシー"
+  },
+  "legal": {
+    "termsTitle": "利用規約",
+    "privacyTitle": "プライバシーポリシー",
+    "termsIntro": "これはサンプルの利用規約ページです。実際の内容に置き換えてください。",
+    "termsBody": "本サービスの利用にあたり、法令を遵守し、適切にご利用ください。",
+    "privacyIntro": "これはサンプルのプライバシーポリシーページです。実際の内容に置き換えてください。",
+    "privacyBody": "当社はサービス提供に必要な範囲で情報を取得し、個人情報を販売しません。",
+    "lastUpdatedLabel": "最終更新日",
+    "lastUpdatedValue": "2026年1月1日"
   }
 }
