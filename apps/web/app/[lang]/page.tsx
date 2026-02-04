@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/const/app";
 import { getDictionary } from "@/lib/dictionaries";
 import { type Locale } from "@/lib/i18n";
-
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
 
 const HomePage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
   const { lang } = await params;
@@ -22,7 +21,7 @@ const HomePage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
           width={100}
         />
 
-        <h1 className="font-bold text-4xl">{appName}</h1>
+        <h1 className="font-bold text-4xl">{APP_NAME}</h1>
 
         <p className="text-lg">{home.description}</p>
 

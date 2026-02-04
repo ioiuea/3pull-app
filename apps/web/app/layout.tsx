@@ -6,6 +6,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ModeSwitcher } from "@/components/mode-switcher";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { APP_DESCRIPTION, APP_NAME } from "@/const/app";
 import { getLang } from "@/lib/dictionaries";
 
 const geistSans = Geist({
@@ -18,13 +19,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
-const appDescription =
-  process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? "Simple starter";
-
 export const metadata: Metadata = {
-  title: appName,
-  description: appDescription,
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
 const RootLayout = async ({

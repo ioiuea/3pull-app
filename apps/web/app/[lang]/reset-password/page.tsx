@@ -1,11 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
+import { APP_NAME } from "@/const/app";
 import { ResetPasswordClient } from "@/features/reset-password";
 import { getDictionary } from "@/lib/dictionaries";
 import { type Locale } from "@/lib/i18n";
-
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
 
 const ResetPasswordPage = async ({
   params,
@@ -31,7 +30,7 @@ const ResetPasswordPage = async ({
               width={50}
             />
           </div>
-          {appName}
+          {APP_NAME}
         </Link>
         <Suspense
           fallback={<div className="text-center text-sm">Loading…</div>}

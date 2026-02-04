@@ -1,9 +1,8 @@
 import Image from "next/image";
+import { APP_NAME } from "@/const/app";
 import { LoginClient } from "@/features/login";
 import { getDictionary } from "@/lib/dictionaries";
 import { type Locale } from "@/lib/i18n";
-
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
 
 const LoginPage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
   const { lang } = await params;
@@ -22,7 +21,7 @@ const LoginPage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
               width={50}
             />
           </div>
-          {appName}
+          {APP_NAME}
         </div>
         <LoginClient dict={dict} />
       </div>

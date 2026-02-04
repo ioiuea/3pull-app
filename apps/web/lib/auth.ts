@@ -6,6 +6,7 @@ import { Resend } from "resend";
 import OrganizationInvitationEmail from "@/components/emails/organization-invitation";
 import ForgotPasswordEmail from "@/components/emails/reset-password";
 import VerifyEmail from "@/components/emails/verify-email";
+import { APP_URL } from "@/const/app";
 import { db } from "@/drizzle/drizzle";
 import { schema } from "@/drizzle/schema";
 import { getActiveOrganization } from "@/server/organizations";
@@ -72,7 +73,7 @@ export const auth = betterAuth({
   plugins: [
     organization({
       sendInvitationEmail: async (data) => {
-        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/accept-invitation/${data.id}`;
+        const inviteLink = `${APP_URL}/api/accept-invitation/${data.id}`;
 
         await resend.emails.send({
           from: `${process.env.EMAIL_SENDER_NAME} <${process.env.EMAIL_SENDER_ADDRESS}>`,

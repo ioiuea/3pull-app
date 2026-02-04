@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { APP_NAME } from "@/const/app";
 import { ForgotPasswordClient } from "@/features/forgot-password";
 import { getDictionary } from "@/lib/dictionaries";
 import { type Locale } from "@/lib/i18n";
-
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "3pull";
 
 const ForgotPasswordPage = async ({
   params,
@@ -30,7 +29,7 @@ const ForgotPasswordPage = async ({
               width={50}
             />
           </div>
-          {appName}
+          {APP_NAME}
         </Link>
         <ForgotPasswordClient dict={dict} />
       </div>

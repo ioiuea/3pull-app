@@ -2,6 +2,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 import { match as matchLocale } from "@formatjs/intl-localematcher";
 import Negotiator from "negotiator";
+import { PUBLIC_PATHS } from "@/const/public-routes";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/i18n";
 
 const LOCALE_COOKIE = "locale";
@@ -96,19 +97,12 @@ function isPublic(pathname: string): boolean {
     return current;
   }, pathname);
 
-  return (
-    normalizedPath === "/" ||
-    normalizedPath === "/login" ||
-    normalizedPath.startsWith("/login/") ||
-    normalizedPath === "/terms" ||
-    normalizedPath.startsWith("/terms/") ||
-    normalizedPath === "/privacy" ||
-    normalizedPath.startsWith("/privacy/") ||
-    normalizedPath === "/signup" ||
-    normalizedPath.startsWith("/signup/") ||
-    normalizedPath === "/forgot-password" ||
-    normalizedPath.startsWith("/forgot-password/")
-  );
+  return PUBLIC_PATHS.some((path) => {
+    if (path === "/") {
+      return normalizedPath === "/";
+    }
+    return normalizedPath === path || normalizedPath.startsWith(`${path}/`);
+  });
 }
 
 /**
