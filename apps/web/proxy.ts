@@ -12,7 +12,7 @@ const LOCALE_COOKIE = "locale";
  *
  * @remarks
  * サポートされるロケール（`SUPPORTED_LOCALES`）のいずれかで始まっている場合に true を返します。
- * 例えば `/ja` または `/en/dashboard` のようなパスが対象です。
+ * 例えば `/ja` または `/en/organization` のようなパスが対象です。
  *
  * i18n対応サイトでは、ロケールが指定されていないリクエストを検出し、
  * `detectLocale` による言語推定を行う前段階のフィルタとして利用します。
@@ -23,8 +23,8 @@ const LOCALE_COOKIE = "locale";
  * @example
  * ```ts
  * hasLocalePrefix("/ja") // true
- * hasLocalePrefix("/en/dashboard") // true
- * hasLocalePrefix("/dashboard") // false
+ * hasLocalePrefix("/en/organization") // true
+ * hasLocalePrefix("/organization") // false
  * ```
  */
 function hasLocalePrefix(pathname: string): boolean {
@@ -75,14 +75,14 @@ function detectLocale(req: NextRequest): string {
  *
  * 上記に該当しないパスは保護対象（認証必須）とみなされます。
  *
- * @param pathname - 現在リクエスト中の URL パス（例: `/ja/dashboard`）
+ * @param pathname - 現在リクエスト中の URL パス（例: `/ja/organization`）
  * @returns 公開パスなら true、保護パスなら false を返します。
  *
  * @example
  * ```ts
  * isPublic("/login");          // true
  * isPublic("/ja/login");       // true
- * isPublic("/ja/dashboard");    // false
+ * isPublic("/ja/organization");    // false
  * ```
  */
 function isPublic(pathname: string): boolean {
@@ -115,8 +115,8 @@ function isPublic(pathname: string): boolean {
  *
  * 1. **i18n ロケール付与**
  *    - リクエストパスにロケールプレフィックス（例: `/ja`）が含まれない場合、
- *      ブラウザの `Accept-Language` から適切なロケールを推定し、
- *      そのロケールを付加してリダイレクトします。
+ *      次の優先順位でロケールを決定し、付加してリダイレクトします。
+ *      1) URL プレフィックス 2) cookie の `locale` 3) `Accept-Language`
  *
  * 2. **認可チェック（Edge 互換版）**
  *    - 公開ルート（`isPublic()`）以外のアクセスでは、`getToken()` を使用して
@@ -135,8 +135,14 @@ export async function proxy(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
 
-  const locale = detectLocale(req);
+  // 優先順位でロケールを決定: 1) URLプレフィックス 2) cookie 3) ブラウザ言語
   const urlLocale = hasLocalePrefix(pathname) ? pathname.split("/")[1] : null;
+  const cookieLocale = req.cookies.get(LOCALE_COOKIE)?.value ?? null;
+  const normalizedCookieLocale =
+    cookieLocale && SUPPORTED_LOCALES.includes(cookieLocale as never)
+      ? cookieLocale
+      : null;
+  const locale = urlLocale ?? normalizedCookieLocale ?? detectLocale(req);
 
   // --- 1) i18n: ロケール付与（例: /foo → /ja/foo） ---
   if (!hasLocalePrefix(pathname)) {
@@ -144,6 +150,7 @@ export async function proxy(req: NextRequest) {
     url.pathname = `/${locale}${pathname}`;
 
     const response = NextResponse.redirect(url);
+    // URLにロケールが無い場合は、決定したロケールへ誘導しcookieも更新する
     response.cookies.set(LOCALE_COOKIE, locale, { path: "/" });
     return response;
   }
@@ -151,12 +158,14 @@ export async function proxy(req: NextRequest) {
   // --- 2) 認可: 公開パス以外は sessionCookie で判定 ---
   if (!isPublic(pathname)) {
     if (!sessionCookie) {
-      return NextResponse.redirect(new URL(`/${locale}`, req.url));
+      // 認証が必要なページは、同じロケールのトップへ転送
+      return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
     }
   }
 
   const response = NextResponse.next();
   if (urlLocale && SUPPORTED_LOCALES.includes(urlLocale as never)) {
+    // URLに明示されたロケールをcookieへ保存（以後の優先順位2で利用）
     response.cookies.set(LOCALE_COOKIE, urlLocale, { path: "/" });
   }
   return response;

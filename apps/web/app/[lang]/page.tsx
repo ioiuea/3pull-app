@@ -25,9 +25,14 @@ const HomePage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
 
         <p className="text-lg">{home.description}</p>
 
-        <Link href="/login">
-          <Button>Login</Button>
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button asChild>
+            <Link href={`/${lang}/organizations`}>Organizations</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/${lang}/sample`}>Sample</Link>
+          </Button>
+        </div>
       </div>
     </>
   );

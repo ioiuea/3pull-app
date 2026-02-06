@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { cookies } from "next/headers";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ModeSwitcher } from "@/components/mode-switcher";
+import { cookies, headers } from "next/headers";
+import { Logout } from "@/components/sample-switcher/logout";
+import { LocaleSwitcher } from "@/components/sample-switcher/locale-switcher";
+import { ModeSwitcher } from "@/components/sample-switcher/mode-switcher";
+import { OrganizationSwitcher } from "@/components/sample-switcher/organization-switcher";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_DESCRIPTION, APP_NAME } from "@/const/app";
+import { auth } from "@/lib/auth";
 import { getLang } from "@/lib/dictionaries";
 
 const geistSans = Geist({
@@ -31,6 +34,7 @@ const RootLayout = async ({
 }>) => {
   const localeCookie = (await cookies()).get("locale")?.value;
   const lang = await getLang(localeCookie);
+  const session = await auth.api.getSession({ headers: await headers() });
 
   return (
     <html lang={lang} suppressHydrationWarning>
@@ -46,6 +50,8 @@ const RootLayout = async ({
           <div className="pointer-events-none fixed top-4 right-4 z-50">
             <div className="pointer-events-auto flex items-center gap-2 rounded-md border bg-background/80 p-1 shadow-sm backdrop-blur">
               <LocaleSwitcher />
+              {session && <Logout />}
+              {session && <OrganizationSwitcher />}
               <ModeSwitcher />
             </div>
           </div>

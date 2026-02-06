@@ -61,7 +61,7 @@ export const LoginClient = ({ dict }: LoginClientProps) => {
   const signInWithMicrosoft = async () => {
     await authClient.signIn.social({
       provider: "microsoft",
-      callbackURL: "/dashboard",
+      callbackURL: "/",
     });
   };
 
@@ -72,7 +72,7 @@ export const LoginClient = ({ dict }: LoginClientProps) => {
 
     if (success) {
       toast.success(message as string);
-      router.push("/dashboard");
+      router.push("/organization");
     } else {
       toast.error(message as string);
     }

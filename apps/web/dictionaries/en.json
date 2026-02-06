@@ -63,6 +63,103 @@
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy"
   },
+  "sample": {
+    "index": {
+      "badge": "Sample Playground",
+      "title": "Choose a sample to explore",
+      "description": "Each page focuses on a single library so you can explore it in isolation.",
+      "backToHome": "Back to Home",
+      "cards": {
+        "zustand": {
+          "title": "Zustand Store",
+          "description": "Shared state, fast updates, simple actions.",
+          "cta": "Open Zustand sample"
+        },
+        "zod": {
+          "title": "Zod Validation",
+          "description": "Validate input and show results instantly.",
+          "cta": "Open Zod sample"
+        },
+        "swr": {
+          "title": "SWR Fetching",
+          "description": "Reactive API data with loading and errors.",
+          "cta": "Open SWR sample"
+        }
+      }
+    },
+    "backToSamples": "Back to Samples",
+    "zustand": {
+      "badge": "Zustand",
+      "title": "Zustand sample",
+      "description": "Adjust shared state and see updates across the UI.",
+      "counterTitle": "Shared Counter",
+      "counterDescription": "Buttons update the store immediately.",
+      "labelDefault": "Clicks",
+      "labelFieldLabel": "Label",
+      "labelPlaceholder": "Click label",
+      "incrementCta": "+1",
+      "decrementCta": "-1",
+      "resetCta": "Reset"
+    },
+    "zod": {
+      "badge": "Zod",
+      "title": "Zod sample",
+      "description": "Validate input and display feedback right away.",
+      "formTitle": "Zod Form",
+      "formDescription": "Try submitting with invalid values to see errors.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Jane",
+      "ageLabel": "Age",
+      "agePlaceholder": "23",
+      "submitCta": "Validate and save",
+      "successTitle": "Saved",
+      "errorTitle": "Validation errors",
+      "successMessage": "Registered {name} ({age} years old).",
+      "validation": {
+        "nameMin": "Name must be at least 2 characters.",
+        "ageInteger": "Age must be a whole number.",
+        "ageMin": "Age must be 13 or older.",
+        "ageMax": "Age must be 120 or younger."
+      }
+    },
+    "swr": {
+      "badge": "SWR",
+      "title": "SWR sample",
+      "description": "Fetch data with caching and live updates.",
+      "dataTitle": "Remote data",
+      "dataDescription": "Search the API and see results update.",
+      "searchLabel": "Search",
+      "searchPlaceholder": "zustand, zod, swr",
+      "loadingBadge": "loading",
+      "itemsBadge": "{count} items",
+      "fetchErrorMessage": "Failed to fetch data.",
+      "errorTitle": "Fetch error",
+      "errorDescription": "Unable to load data. Please try again.",
+      "emptyTitle": "No results",
+      "emptyDescription": "No data matches the query.",
+      "updatedLabel": "Updated"
+    }
+  },
+  "organizations": {
+    "createOrganizationCta": "Create Organization",
+    "createOrganizationTitle": "Create Organization",
+    "createOrganizationDescription": "Create a new organization to get started.",
+    "createSuccess": "Organization created successfully",
+    "createError": "Failed to create organization",
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "My Organization",
+      "nameMin": "Name must be at least 2 characters.",
+      "nameMax": "Name must be 50 characters or fewer.",
+      "slugLabel": "Slug",
+      "slugPlaceholder": "my-org",
+      "slugHint": "Use 2-50 half-width characters: lowercase letters, numbers, and hyphens only.",
+      "slugMin": "Identifier must be at least 2 characters.",
+      "slugMax": "Identifier must be 50 characters or fewer.",
+      "slugPattern": "Use half-width lowercase letters, numbers, and hyphens only.",
+      "submitCta": "Create Organization"
+    }
+  },
   "terms": {
     "title": "Terms of Service",
     "intro": "This is a sample Terms of Service page. Replace it with your actual terms.",

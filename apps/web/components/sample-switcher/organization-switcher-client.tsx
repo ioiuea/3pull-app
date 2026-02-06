@@ -11,13 +11,13 @@ import {
 import type { Organization } from "@/drizzle/schema";
 import { authClient } from "@/lib/auth-client";
 
-interface OrganizationSwitcherProps {
-  organizations: Organization[];
-}
+type OrganizationSwitcherClientProps = {
+  orgs: Organization[];
+};
 
-export function OrganizationSwitcher({
-  organizations,
-}: OrganizationSwitcherProps) {
+export const OrganizationSwitcherClient = ({
+  orgs,
+}: OrganizationSwitcherClientProps) => {
   const { data: activeOrganization } = authClient.useActiveOrganization();
 
   const handleChangeOrganization = async (organizationId: string) => {
@@ -44,16 +44,16 @@ export function OrganizationSwitcher({
       onValueChange={handleChangeOrganization}
       value={activeOrganization?.id}
     >
-      <SelectTrigger className="w-45">
-        <SelectValue placeholder="Theme" />
+      <SelectTrigger className="min-w-38">
+        <SelectValue placeholder="Organization" />
       </SelectTrigger>
       <SelectContent>
-        {organizations.map((organization) => (
-          <SelectItem key={organization.id} value={organization.id}>
-            {organization.name}
+        {orgs.map((org) => (
+          <SelectItem key={org.id} value={org.id}>
+            {org.name}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
   );
-}
+};

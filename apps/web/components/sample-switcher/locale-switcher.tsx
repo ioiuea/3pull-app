@@ -19,7 +19,7 @@ const getNextPath = (pathname: string, nextLocale: Locale) => {
   return `/${nextLocale}${suffix}`;
 };
 
-export function LocaleSwitcher() {
+export const LocaleSwitcher = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -50,4 +50,4 @@ export function LocaleSwitcher() {
       </SelectContent>
     </Select>
   );
-}
+};

@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { removeMember } from "@/server/members";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
-export default function MembersTableAction({ memberId }: { memberId: string }) {
+type MembersTableActionProps = {
+  memberId: string;
+};
+
+export const MembersTableAction = ({ memberId }: MembersTableActionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -42,4 +46,4 @@ export default function MembersTableAction({ memberId }: { memberId: string }) {
       {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Remove"}
     </Button>
   );
-}
+};

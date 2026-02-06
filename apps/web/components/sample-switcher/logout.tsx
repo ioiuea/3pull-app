@@ -3,14 +3,15 @@
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
-export function Logout() {
+export const Logout = () => {
   const router = useRouter();
 
   const handleLogout = async () => {
     await authClient.signOut();
-    router.push("/");
+    router.replace("/");
+    router.refresh();
   };
 
   return (
@@ -18,4 +19,4 @@ export function Logout() {
       Logout <LogOut className="size-4" />
     </Button>
   );
-}
+};

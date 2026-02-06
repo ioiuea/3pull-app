@@ -6,14 +6,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { User } from "@/drizzle/schema";
 import { authClient } from "@/lib/auth-client";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
-interface AllUsersProps {
+type AllUsersProps = {
   users: User[];
   organizationId: string;
-}
+};
 
-export default function AllUsers({ users, organizationId }: AllUsersProps) {
+export const AllUsers = ({ users, organizationId }: AllUsersProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -62,4 +62,4 @@ export default function AllUsers({ users, organizationId }: AllUsersProps) {
       </div>
     </div>
   );
-}
+};

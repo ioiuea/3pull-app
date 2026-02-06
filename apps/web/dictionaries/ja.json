@@ -63,6 +63,103 @@
     "termsOfService": "利用規約",
     "privacyPolicy": "プライバシーポリシー"
   },
+  "sample": {
+    "index": {
+      "badge": "Sample Playground",
+      "title": "サンプルを選択",
+      "description": "各ライブラリを単独で体験できるように分割しました。",
+      "backToHome": "ホームに戻る",
+      "cards": {
+        "zustand": {
+          "title": "Zustand ストア",
+          "description": "共有状態を素早く更新します。",
+          "cta": "Zustand サンプルへ"
+        },
+        "zod": {
+          "title": "Zod バリデーション",
+          "description": "入力検証と結果表示を体験します。",
+          "cta": "Zod サンプルへ"
+        },
+        "swr": {
+          "title": "SWR 取得",
+          "description": "API 取得をリアクティブに更新します。",
+          "cta": "SWR サンプルへ"
+        }
+      }
+    },
+    "backToSamples": "サンプル一覧に戻る",
+    "zustand": {
+      "badge": "Zustand",
+      "title": "Zustand サンプル",
+      "description": "共有状態の更新を体験します。",
+      "counterTitle": "共有カウンター",
+      "counterDescription": "ボタン操作でストアを更新します。",
+      "labelDefault": "クリック数",
+      "labelFieldLabel": "ラベル",
+      "labelPlaceholder": "ラベルを入力",
+      "incrementCta": "+1",
+      "decrementCta": "-1",
+      "resetCta": "リセット"
+    },
+    "zod": {
+      "badge": "Zod",
+      "title": "Zod サンプル",
+      "description": "入力検証とフィードバックを確認します。",
+      "formTitle": "Zod フォーム",
+      "formDescription": "不正な値で送信してエラーを確認できます。",
+      "nameLabel": "名前",
+      "namePlaceholder": "山田",
+      "ageLabel": "年齢",
+      "agePlaceholder": "23",
+      "submitCta": "検証して保存",
+      "successTitle": "登録完了",
+      "errorTitle": "入力エラー",
+      "successMessage": "{name} さん（{age}歳）で登録しました。",
+      "validation": {
+        "nameMin": "名前は2文字以上で入力してください。",
+        "ageInteger": "年齢は整数で入力してください。",
+        "ageMin": "年齢は13以上で入力してください。",
+        "ageMax": "年齢は120以下で入力してください。"
+      }
+    },
+    "swr": {
+      "badge": "SWR",
+      "title": "SWR サンプル",
+      "description": "キャッシュとライブ更新で API データを取得します。",
+      "dataTitle": "リモートデータ",
+      "dataDescription": "検索条件に応じて結果を更新します。",
+      "searchLabel": "検索",
+      "searchPlaceholder": "zustand など",
+      "loadingBadge": "読み込み中",
+      "itemsBadge": "{count}件",
+      "fetchErrorMessage": "データの取得に失敗しました。",
+      "errorTitle": "取得エラー",
+      "errorDescription": "データ取得に失敗しました。再試行してください。",
+      "emptyTitle": "結果なし",
+      "emptyDescription": "条件に一致するデータがありません。",
+      "updatedLabel": "更新"
+    }
+  },
+  "organizations": {
+    "createOrganizationCta": "組織を作成",
+    "createOrganizationTitle": "組織を作成",
+    "createOrganizationDescription": "新しい組織を作成して開始します。",
+    "createSuccess": "組織を作成しました。",
+    "createError": "組織の作成に失敗しました。",
+    "form": {
+      "nameLabel": "組織名",
+      "namePlaceholder": "マイ組織",
+      "nameMin": "組織名は2文字以上で入力してください。",
+      "nameMax": "組織名は50文字以内で入力してください。",
+      "slugLabel": "識別子",
+      "slugPlaceholder": "my-org",
+      "slugHint": "2〜50文字の半角英小文字・半角数字・ハイフンで入力してください。",
+      "slugMin": "識別子は2文字以上で入力してください。",
+      "slugMax": "識別子は50文字以内で入力してください。",
+      "slugPattern": "半角英小文字・半角数字・ハイフンのみ使用できます。",
+      "submitCta": "組織を作成"
+    }
+  },
   "terms": {
     "title": "利用規約",
     "intro": "これはサンプルの利用規約ページです。実際の内容に置き換えてください。",

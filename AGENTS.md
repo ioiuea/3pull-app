@@ -84,7 +84,7 @@
 
 - Next.js（App Router）
 - pnpm による依存管理
-- i18n : 現状は未導入（`app/[lang]/...` や `dictionaries/` は未配置）
+- i18n : 導入済み（`app/[lang]/...` と `dictionaries/` を利用）
 - UI : `shadcn/ui` を `components/ui/` 配下に集約
 - 状態管理 : `store/` で Zustand を使用
 - 認証 : Auth.js + Drizzle (`auth` スキーマ)
@@ -112,6 +112,13 @@
 - クライアントコンポーネントの親は `features/<page>/index.tsx` とします。
 - サーバサイドの関数コンポーネント名は `FeatureNamePage`、クライアント側は `FeatureNameClient` の命名に統一します（例: feature が `sample` の場合は `SamplePage` / `SampleClient`）。
 - React コンポーネントは `export default function` を使わず、アロー関数コンポーネント（`const X = () => {}`）で統一します。
+
+### 6-8. i18n の利用ルール（App Router）
+
+- サーバコンポーネント（`app/[lang]/.../page.tsx`）で `params` から `lang` を取得し、`getDictionary(lang)` を呼び出す。
+- 取得した `dict` はクライアントコンポーネントに props で渡す（例: `LoginClient` など）。
+- クライアント側の `dict` 型は `type Dictionary = typeof import(\"@/dictionaries/en.json\")` を利用する。
+- 内部リンクは `/${lang}/...` を基本とし、言語を保持して遷移する。
 
 ### 6-3. Zustand 利用ルール
 

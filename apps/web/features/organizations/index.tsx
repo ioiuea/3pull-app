@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,13 +19,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
-const formSchema = z.object({
-  name: z.string().min(2).max(50),
-  slug: z.string().min(2).max(50),
-});
+type Dictionary = typeof import("@/dictionaries/en.json");
 
-export function CreateOrganizationForm() {
+type OrganizationsClientProps = {
+  dict: Dictionary;
+};
+
+export const OrganizationsClient = ({ dict }: OrganizationsClientProps) => {
+  const { organizations } = dict;
   const [isLoading, setIsLoading] = useState(false);
+
+  const formSchema = z.object({
+    name: z
+      .string()
+      .min(2, organizations.form.nameMin)
+      .max(50, organizations.form.nameMax),
+    slug: z
+      .string()
+      .min(2, organizations.form.slugMin)
+      .max(50, organizations.form.slugMax)
+      .regex(/^[a-z0-9-]+$/, organizations.form.slugPattern),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -34,7 +49,7 @@ export function CreateOrganizationForm() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
       await authClient.organization.create({
@@ -42,14 +57,14 @@ export function CreateOrganizationForm() {
         slug: values.slug,
       });
 
-      toast.success("Organization created successfully");
+      toast.success(organizations.createSuccess);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create organization");
+      toast.error(organizations.createError);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
@@ -59,9 +74,12 @@ export function CreateOrganizationForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>{organizations.form.nameLabel}</FormLabel>
               <FormControl>
-                <Input placeholder="My Organization" {...field} />
+                <Input
+                  placeholder={organizations.form.namePlaceholder}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,10 +91,14 @@ export function CreateOrganizationForm() {
           name="slug"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Slug</FormLabel>
+              <FormLabel>{organizations.form.slugLabel}</FormLabel>
               <FormControl>
-                <Input placeholder="my-org" {...field} />
+                <Input
+                  placeholder={organizations.form.slugPlaceholder}
+                  {...field}
+                />
               </FormControl>
+              <FormDescription>{organizations.form.slugHint}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -86,10 +108,10 @@ export function CreateOrganizationForm() {
           {isLoading ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            "Create Organization"
+            organizations.form.submitCta
           )}
         </Button>
       </form>
     </Form>
   );
-}
+};

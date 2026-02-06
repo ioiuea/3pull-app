@@ -8,13 +8,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Member } from "@/drizzle/schema";
-import MembersTableAction from "./members-table-action";
+import { MembersTableAction } from "@/features/organizations/members-table-action";
 
-interface MembersTableProps {
+type MembersTableProps = {
   members: Member[];
-}
+};
 
-export default function MembersTable({ members }: MembersTableProps) {
+export const MembersTable = ({ members }: MembersTableProps) => {
   return (
     <Table>
       <TableCaption>A list of organization members.</TableCaption>
@@ -40,4 +40,4 @@ export default function MembersTable({ members }: MembersTableProps) {
       </TableBody>
     </Table>
   );
-}
+};

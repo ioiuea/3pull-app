@@ -1,11 +1,11 @@
-import AllUsers from "@/components/all-users";
-import MembersTable from "@/components/members-table";
+import { AllUsers } from "@/features/organizations/all-users";
+import { MembersTable } from "@/features/organizations/members-table";
 import { getOrganizationBySlug } from "@/server/organizations";
 import { getUsers } from "@/server/users";
 
 type Params = Promise<{ slug: string }>;
 
-export default async function OrganizationPage({ params }: { params: Params }) {
+const OrganizationPage = async ({ params }: { params: Params }) => {
   const { slug } = await params;
 
   const organization = await getOrganizationBySlug(slug);
@@ -18,4 +18,6 @@ export default async function OrganizationPage({ params }: { params: Params }) {
       <AllUsers organizationId={organization?.id || ""} users={users} />
     </div>
   );
-}
+};
+
+export default OrganizationPage;
