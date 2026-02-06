@@ -111,7 +111,7 @@
 - `app/` と同階層の `features/` に、ページと同名のフォルダを作成しクライアントコンポーネントを配置します。
 - クライアントコンポーネントの親は `features/<page>/index.tsx` とします。
 - サーバサイドの関数コンポーネント名は `FeatureNamePage`、クライアント側は `FeatureNameClient` の命名に統一します（例: feature が `sample` の場合は `SamplePage` / `SampleClient`）。
-- React コンポーネントは `export default function` を使わず、アロー関数コンポーネント（`const X = () => {}`）で統一します。
+- React コンポーネントはアロー関数コンポーネント（`const X = () => {}`）で統一します。`app/**/page.tsx` は Next.js の都合上 `export default X` を使用し、`features/` などは named export を基本とします。
 
 ### 6-8. i18n の利用ルール（App Router）
 
@@ -119,6 +119,7 @@
 - 取得した `dict` はクライアントコンポーネントに props で渡す（例: `LoginClient` など）。
 - クライアント側の `dict` 型は `type Dictionary = typeof import(\"@/dictionaries/en.json\")` を利用する。
 - 内部リンクは `/${lang}/...` を基本とし、言語を保持して遷移する。
+- 詳細な構成・依存関係・利用例は `docs/i18n.md` を参照する。
 
 ### 6-3. Zustand 利用ルール
 
