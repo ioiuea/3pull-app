@@ -1,0 +1,126 @@
+{
+  "templates": [
+    {
+      "targetNsgRule": "agic-nsg",
+      "rules": [
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "@nsg-rule:services-nsg",
+          "protocol": "*",
+          "priority": 301,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "@nsg-rule:agentpool-nsg",
+          "protocol": "*",
+          "priority": 302,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "@nsg-rule:userpool-nsg",
+          "protocol": "*",
+          "priority": 303,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "ActionGroup",
+          "protocol": "*",
+          "priority": 400,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "ApplicationInsightsAvailability",
+          "protocol": "*",
+          "priority": 401,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "AzureMonitor",
+          "protocol": "*",
+          "priority": 402,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "GatewayManager",
+          "protocol": "TCP",
+          "priority": 403,
+          "sourcePortRange": "*",
+          "destinationPortRange": "65200-65535"
+        },
+        {
+          "access": "Allow",
+          "direction": "Inbound",
+          "source": "AzureLoadBalancer",
+          "protocol": "*",
+          "priority": 404,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Deny",
+          "direction": "Inbound",
+          "source": "*",
+          "protocol": "*",
+          "priority": 4096,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Outbound",
+          "destination": "@nsg-rule:firewall-nsg",
+          "protocol": "*",
+          "priority": 300,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Outbound",
+          "destination": "ActionGroup",
+          "protocol": "*",
+          "priority": 400,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Outbound",
+          "destination": "ApplicationInsightsAvailability",
+          "protocol": "*",
+          "priority": 401,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        },
+        {
+          "access": "Allow",
+          "direction": "Outbound",
+          "destination": "AzureMonitor",
+          "protocol": "*",
+          "priority": 402,
+          "sourcePortRange": "*",
+          "destinationPortRange": "*"
+        }
+      ]
+    }
+  ]
+}

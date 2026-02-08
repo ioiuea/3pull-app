@@ -1,0 +1,53 @@
+{
+  "location": "japaneast",
+  "environmentName": "dev",
+  "systemName": "3pull",
+  "vnetAddressPrefixes": [
+    "10.189.70.0/24",
+    "10.189.71.0/24",
+    "10.189.72.0/24"
+  ],
+  "subnets": [
+    {
+      "name": "firewall",
+      "prefixLength": 26,
+      "nsg-rule": "firewall-nsg"
+    },
+    {
+      "name": "maint",
+      "prefixLength": 29,
+      "nsg-rule": "maint-nsg"
+    },
+    {
+      "name": "pep",
+      "prefixLength": 26,
+      "nsg-rule": "pep-nsg"
+    },
+    {
+      "name": "agic",
+      "prefixLength": 25,
+      "nsg-rule": "agic-nsg"
+    },
+    {
+      "name": "agentpool",
+      "prefixLength": 26,
+      "nsg-rule": "agentpool-nsg"
+    },
+    {
+      "name": "services",
+      "prefixLength": 25,
+      "nsg-rule": "services-nsg"
+    },
+    {
+      "name": "userpool",
+      "prefixLength": 24,
+      "nsg-rule": "userpool-nsg"
+    }
+  ],
+  "egressNextHopIp": "10.189.73.1",
+  "egressSubnetNsgRules": [
+    "agentpool-nsg",
+    "services-nsg",
+    "userpool-nsg"
+  ]
+}
