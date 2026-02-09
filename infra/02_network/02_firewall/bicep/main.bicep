@@ -20,7 +20,7 @@ param location string = loadJsonContent('../../../common.parameter.json').locati
 param systemName string = loadJsonContent('../../../common.parameter.json').systemName
 
 @description('ログアナリティクス名')
-param logAnalyticsName string = 'log-${environmentName}-${systemName}-app'
+param logAnalyticsName string = 'log-${environmentName}-${systemName}'
 param logAnalyticsResourceGroupName string = 'rg-${environmentName}-${systemName}-monitor'
 
 // ###########################################
@@ -40,7 +40,7 @@ param modulesTags object = {
 }
 
 @description('VNETの名称')
-param vnetName string = 'vnet-${environmentName}-${systemName}-app'
+param vnetName string = 'vnet-${environmentName}-${systemName}'
 
 @description('Firewall IDS/IPS 有効化 (true: Premium, false: Standard)')
 param enableFirewallIdps bool = loadJsonContent('../../../common.parameter.json').enableFirewallIdps
@@ -73,6 +73,8 @@ module publicIPModule './modules/publicIP.bicep' = {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
     protectionMode: 'Enabled'
+    logAnalyticsName: logAnalyticsName
+    logAnalyticsResourceGroupName: logAnalyticsResourceGroupName
   }
 }
 

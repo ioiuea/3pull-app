@@ -22,6 +22,12 @@ param publicIPAddressVersion string
 @description('DDOS保護')
 param protectionMode string
 
+@description('ログアナリティクス名')
+param logAnalyticsName string
+
+@description('ログアナリティクスのリソースグループ名')
+param logAnalyticsResourceGroupName string
+
 resource publicIP 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   name: publicIPName
   location: location
@@ -35,6 +41,27 @@ resource publicIP 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
     ddosSettings: {
       protectionMode: protectionMode
     }
+  }
+}
+
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'diagnostic-to-${logAnalyticsName}'
+  scope: publicIP
+  properties: {
+    workspaceId: resourceId(logAnalyticsResourceGroupName, 'Microsoft.OperationalInsights/workspaces', logAnalyticsName)
+    logAnalyticsDestinationType: 'Dedicated'
+    logs: []
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+        timeGrain: 'PT1M'
+      }
+    ]
   }
 }
 

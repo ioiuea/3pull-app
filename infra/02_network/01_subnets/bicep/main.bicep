@@ -20,7 +20,7 @@ param location string = loadJsonContent('../../../common.parameter.json').locati
 param systemName string = loadJsonContent('../../../common.parameter.json').systemName
 
 @description('ログアナリティクス名')
-param logAnalyticsName string = 'log-${environmentName}-${systemName}-app'
+param logAnalyticsName string = 'log-${environmentName}-${systemName}'
 param logAnalyticsResourceGroupName string = 'rg-${environmentName}-${systemName}-monitor'
 
 // ###########################################
@@ -40,7 +40,7 @@ param modulesTags object = {
 }
 
 @description('VNETの名称')
-param vnetName string = 'vnet-${environmentName}-${systemName}-app'
+param vnetName string = 'vnet-${environmentName}-${systemName}'
 
 @description('VNETのアドレスプレフィックス')
 param vnetAddressPrefixes array = loadJsonContent('../../../common.parameter.json').vnetAddressPrefixes

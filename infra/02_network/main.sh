@@ -35,9 +35,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 timestamp="$(date +'%Y%m%dT%H%M%S')"
-subnet_params_dir="$repo_root/infra/02_network/01_subnets/scripts/log"
+subnet_params_dir="$repo_root/infra/log"
 subnet_params_file="$(mktemp "$subnet_params_dir/tmp-subnet-params-${timestamp}.json")"
-firewall_params_dir="$repo_root/infra/02_network/02_firewall/scripts/log"
+firewall_params_dir="$repo_root/infra/log"
 firewall_params_file="$(mktemp "$firewall_params_dir/tmp-fw-params-${timestamp}.json")"
 # nsg_params_file="$(mktemp "$repo_root/infra/02_network/tmp-nsg-params-${timestamp}.json")"
 # route_table_params_file="$(mktemp "$repo_root/infra/02_network/tmp-rt-params-${timestamp}.json")"

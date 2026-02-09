@@ -1,4 +1,2 @@
-# 02_network subnet params logs
-/02_network/01_subnets/scripts/log/
-# 02_network firewall logs
-/02_network/02_firewall/scripts/log/
+# shared logs
+/log/

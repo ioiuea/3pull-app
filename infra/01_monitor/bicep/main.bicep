@@ -75,7 +75,7 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' = {
 }
 
 module logAnalyticsModule './modules/logAnalytics.bicep' = {
-  name: 'log-${environmentName}-${systemName}-app-${currentDateTime}'
+  name: 'log-${environmentName}-${systemName}-${currentDateTime}'
   scope: resourceGroup
   params: {
     location: location
@@ -84,13 +84,13 @@ module logAnalyticsModule './modules/logAnalytics.bicep' = {
     publicNetworkAccessForIngestion: publicNetworkAccessForIngestion
     publicNetworkAccessForQuery: publicNetworkAccessForQuery
     lockKind: lockKind
-    logAnalyticsName: 'log-${environmentName}-${systemName}-app'
+    logAnalyticsName: 'log-${environmentName}-${systemName}'
     logAnalyticsSku: logAnalyticsSku
   }
 }
 
 module applicationInsightsModule './modules/applicationInsights.bicep' = {
-  name: 'appi-${environmentName}-${systemName}-app-${currentDateTime}'
+  name: 'appi-${environmentName}-${systemName}-${currentDateTime}'
   scope: resourceGroup
   params: {
     location: location
@@ -101,7 +101,7 @@ module applicationInsightsModule './modules/applicationInsights.bicep' = {
     lockKind: lockKind
     logAnalyticsName: logAnalyticsModule.outputs.logAnalyticsName
     logAnalyticsResourceGroupName: logAnalyticsModule.outputs.logAnalyticsResourceGroupName
-    applicationInsightsName: 'appi-${environmentName}-${systemName}-app'
+    applicationInsightsName: 'appi-${environmentName}-${systemName}'
     applicationInsightsType: applicationInsightsType
     applicationInsightsIngestion: applicationInsightsIngestion
   }
