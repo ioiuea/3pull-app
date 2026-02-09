@@ -47,11 +47,15 @@ IDS/IPS を有効にするかどうかを指定します。
 
 サブネットは固定で、用途は以下のとおりです。
 
-- `firewall` : Azure Firewall を配置
-- `agentpool` / `userpool` / `services` : AKS 用のサブネット
-- `agic` : Application Gateway (AppGW) を配置
-- `pep` : DB や LLM（OpenAI など）を含む各種 PaaS の Private Endpoint 用
-- `maint` : デプロイや保守用の VM を配置
+| サブネット名 | 用途 |
+| --- | --- |
+| `AzureFirewallSubnet` | Azure Firewall を配置 |
+| `SystemNodeSubnet` | AKS ノード用サブネット |
+| `WorkloadSubnet` | AKS ワークロード用サブネット |
+| `ClusterServicesSubnet` | AKS クラスタ内サービス用サブネット |
+| `ApplicationGatewaySubnet` | Application Gateway (AppGW) を配置 |
+| `PrivateEndpointSubnet` | DB や LLM（OpenAI など）を含む各種 PaaS の Private Endpoint 用 |
+| `MaintenanceSubnet` | デプロイや保守用の VM を配置 |
 
 ## egress（アウトバウンド）ルート
 
