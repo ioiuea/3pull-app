@@ -1,0 +1,7 @@
+{
+  "subnetNames": [
+    "nodepool",
+    "services",
+    "workload"
+  ]
+}

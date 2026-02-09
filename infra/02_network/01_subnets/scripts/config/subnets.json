@@ -1,0 +1,37 @@
+[
+  {
+    "name": "AzureFirewallSubnet",
+    "alias": "firewall",
+    "prefixLength": 26
+  },
+  {
+    "name": "MaintenanceSubnet",
+    "alias": "maint",
+    "prefixLength": 29
+  },
+  {
+    "name": "PrivateEndpointSubnet",
+    "alias": "pep",
+    "prefixLength": 26
+  },
+  {
+    "name": "ApplicationGatewaySubnet",
+    "alias": "agic",
+    "prefixLength": 25
+  },
+  {
+    "name": "SystemNodeSubnet",
+    "alias": "nodepool",
+    "prefixLength": 26
+  },
+  {
+    "name": "ClusterServicesSubnet",
+    "alias": "services",
+    "prefixLength": 25
+  },
+  {
+    "name": "WorkloadSubnet",
+    "alias": "workload",
+    "prefixLength": 24
+  }
+]

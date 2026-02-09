@@ -10,17 +10,19 @@ from pathlib import Path
 
 common_path = Path(os.environ["COMMON_FILE"])
 params_path = Path(os.environ["PARAMS_FILE"])
+subnets_config_path = Path(__file__).parents[2] / "01_subnets" / "scripts" / "config" / "subnets.json"
+egress_config_path = Path(__file__).parent / "config" / "egress.json"
 
 # 共通パラメータを読み込み
 data = json.loads(common_path.read_text())
-subnets = data.get("subnets", [])
+subnets = json.loads(subnets_config_path.read_text())
 
-# nsg-rule → subnet name の対応表
-nsg_rule_to_name = {s.get("nsg-rule", ""): s.get("name", "") for s in subnets}
+# サブネット名（エイリアス）の集合
+subnet_aliases = {s.get("alias", s.get("name", "")) for s in subnets}
 
 # アウトバウンド（ユーザー定義ルート）の設定
 next_hop_ip = data.get("egressNextHopIp", "")
-egress_targets = data.get("egressSubnetNsgRules", [])
+egress_targets = json.loads(egress_config_path.read_text()).get("subnetNames", [])
 
 route_tables = []
 subnet_route_table_map = {}
@@ -45,11 +47,10 @@ if next_hop_ip:
     )
 
     # 対象サブネットへ紐付け
-    for nsg_rule in egress_targets:
-        subnet_name = nsg_rule_to_name.get(nsg_rule, "")
-        if subnet_name:
-            route_tables[0]["subnetNames"].append(subnet_name)
-            subnet_route_table_map[subnet_name] = "egress"
+    for subnet_alias in egress_targets:
+        if subnet_alias in subnet_aliases:
+            route_tables[0]["subnetNames"].append(subnet_alias)
+            subnet_route_table_map[subnet_alias] = "egress"
 
 # Route Table 定義のみを持つ params を生成する
 params = {

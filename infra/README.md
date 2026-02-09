@@ -30,6 +30,12 @@ az account list-locations --query "[].name" -o tsv
 システム名を指定します。  
 リソース名やタグに埋め込まれます。
 
+### enableFirewallIdps
+
+IDS/IPS を有効にするかどうかを指定します。  
+`true` の場合は **Firewall SKU が Premium** になり、IDS/IPS を有効化します。  
+`false` の場合は **Firewall SKU が Standard** になります。
+
 ## VNET のサイズ要件
 
 最低限、以下のいずれかのアドレスレンジが必要です。

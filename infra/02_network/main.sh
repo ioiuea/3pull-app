@@ -5,13 +5,18 @@ set -euo pipefail
 # 1) infra/common.parameter.json を読み込む
 # 2) vnetAddressPrefixes と prefixLength からサブネットのアドレスを算出する
 # 3) 一時 ARM パラメータファイルを生成する
-# 4) そのパラメータで Bicep デプロイを実行する
+# 4) 01_subnets → 02_firewall → 03_nsg → 04_route を順に実行する
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 common_file="$repo_root/infra/common.parameter.json"
-subnet_script="$repo_root/infra/02_network/scripts/generate-subnets.py"
-nsg_script="$repo_root/infra/02_network/scripts/generate-nsgs.py"
-route_table_script="$repo_root/infra/02_network/scripts/generate-route-tables.py"
+subnet_script="$repo_root/infra/02_network/01_subnets/scripts/generate-subnets.py"
+subnets_runner="$repo_root/infra/02_network/01_subnets/main.subnets.sh"
+firewall_script="$repo_root/infra/02_network/02_firewall/scripts/generate-firewall-params.py"
+firewall_runner="$repo_root/infra/02_network/02_firewall/main.firewall.sh"
+# nsg_script="$repo_root/infra/02_network/03_nsg/scripts/generate-nsgs.py"
+# route_table_script="$repo_root/infra/02_network/04_route/scripts/generate-route-tables.py"
+# nsg_runner="$repo_root/infra/02_network/03_nsg/main.nsg.sh"
+# route_runner="$repo_root/infra/02_network/04_route/main.route.sh"
 what_if=""
 
 # 許容する引数は --what-if のみ
@@ -30,9 +35,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 timestamp="$(date +'%Y%m%dT%H%M%S')"
-subnet_params_file="$(mktemp "$repo_root/infra/02_network/tmp-subnet-params-${timestamp}.json")"
-nsg_params_file="$(mktemp "$repo_root/infra/02_network/tmp-nsg-params-${timestamp}.json")"
-route_table_params_file="$(mktemp "$repo_root/infra/02_network/tmp-rt-params-${timestamp}.json")"
+subnet_params_dir="$repo_root/infra/02_network/01_subnets/scripts/log"
+subnet_params_file="$(mktemp "$subnet_params_dir/tmp-subnet-params-${timestamp}.json")"
+firewall_params_dir="$repo_root/infra/02_network/02_firewall/scripts/log"
+firewall_params_file="$(mktemp "$firewall_params_dir/tmp-fw-params-${timestamp}.json")"
+# nsg_params_file="$(mktemp "$repo_root/infra/02_network/tmp-nsg-params-${timestamp}.json")"
+# route_table_params_file="$(mktemp "$repo_root/infra/02_network/tmp-rt-params-${timestamp}.json")"
 
 # location を common.parameter.json から取得する（検証は後で行う）
 location=$(COMMON_FILE="$common_file" python - <<'PY'
@@ -66,27 +74,49 @@ if ! printf '%s\n' "$available_locations" | grep -qx "$location"; then
   exit 1
 fi
 
-# デプロイ名は時刻付きで生成する
-name="main-02_network-$(date +'%Y%m%dT%H%M%S')"
+# --------------------
+# 01_subnets
+# --------------------
 
-# サブネットのパラメータを生成する
+# パラメータ生成
 COMMON_FILE="$common_file" PARAMS_FILE="$subnet_params_file" "$subnet_script"
 
-# NSG のパラメータを生成する（サブネット一時ファイルを参照）
-COMMON_FILE="$common_file" PARAMS_FILE="$nsg_params_file" SUBNET_PARAMS_FILE="$subnet_params_file" "$nsg_script"
+# サブネット作成
+COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" "$subnets_runner" ${what_if:+$what_if}
+
+# --------------------
+# 02_firewall
+# --------------------
+
+# パラメータ生成
+firewall_private_ip="$(SUBNET_PARAMS_FILE="$subnet_params_file" PARAMS_FILE="$firewall_params_file" "$firewall_script")"
+
+# ファイアウォール作成
+COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" FIREWALL_PARAMS_FILE="$firewall_params_file" "$firewall_runner" ${what_if:+$what_if}
+
+# if [[ -z "$firewall_private_ip" ]]; then
+#   echo "Firewall 用の固定 IP が取得できませんでした。" >&2
+#   exit 1
+# fi
+
+# if [[ -n "$what_if" ]]; then
+#   COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" FIREWALL_PARAMS_FILE="$firewall_params_file" "$firewall_runner" ${what_if:+$what_if} >/dev/null
+# else
+#   COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" FIREWALL_PARAMS_FILE="$firewall_params_file" "$firewall_runner" >"$firewall_ip_file"
+#   actual_firewall_ip="$(cat "$firewall_ip_file" | tr -d '\n')"
+#   if [[ -n "$actual_firewall_ip" && "$actual_firewall_ip" != "$firewall_private_ip" ]]; then
+#     echo "Warning: Firewall の実IPが固定IPと一致しませんでした。fixed=$firewall_private_ip actual=$actual_firewall_ip" >&2
+#   fi
+# fi
+
+# # NSG のパラメータを生成する（サブネット一時ファイルを参照）
+# COMMON_FILE="$common_file" PARAMS_FILE="$nsg_params_file" SUBNET_PARAMS_FILE="$subnet_params_file" "$nsg_script"
 
 # # Route Table のパラメータを生成する
-COMMON_FILE="$common_file" PARAMS_FILE="$route_table_params_file" "$route_table_script"
+# COMMON_FILE="$common_file" PARAMS_FILE="$route_table_params_file" "$route_table_script"
 
-# 生成したパラメータでデプロイを実行する
-az deployment sub create \
-  --name "$name" \
-  --location "$location" \
-  --template-file "$repo_root/infra/02_network/bicep/main.bicep" \
-  --parameters "@$subnet_params_file" \
-  --parameters "@$nsg_params_file" \
-  --parameters "@$route_table_params_file" \
-  ${what_if:+$what_if}
+# # 03_nsg: NSG 作成
+# COMMON_FILE="$common_file" LOCATION="$location" NSG_PARAMS_FILE="$nsg_params_file" "$nsg_runner"
 
-# 一時ファイルを削除する
-# rm -f "$params_file"
+# # 04_route: Route 作成とサブネット紐づけ
+# COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" ROUTE_TABLE_PARAMS_FILE="$route_table_params_file" FIREWALL_PRIVATE_IP="$firewall_private_ip" "$route_runner"

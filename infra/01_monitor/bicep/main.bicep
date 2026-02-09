@@ -32,7 +32,7 @@ param modulesTags object = {
   systemName: systemName
   modulesName: modulesName
   createdBy: 'bicep'
-  category: 'common'
+  billing: 'infra'
 }
 
 @description('データ保持期間')

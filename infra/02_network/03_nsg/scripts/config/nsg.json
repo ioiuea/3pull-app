@@ -1,12 +1,11 @@
 {
   "templates": [
     {
-      "targetNsgRule": "agic-nsg",
       "rules": [
         {
           "access": "Allow",
           "direction": "Inbound",
-          "source": "@nsg-rule:services-nsg",
+          "source": "services",
           "protocol": "*",
           "priority": 301,
           "sourcePortRange": "*",
@@ -15,7 +14,7 @@
         {
           "access": "Allow",
           "direction": "Inbound",
-          "source": "@nsg-rule:agentpool-nsg",
+          "source": "nodepool",
           "protocol": "*",
           "priority": 302,
           "sourcePortRange": "*",
@@ -24,7 +23,7 @@
         {
           "access": "Allow",
           "direction": "Inbound",
-          "source": "@nsg-rule:userpool-nsg",
+          "source": "workload",
           "protocol": "*",
           "priority": 303,
           "sourcePortRange": "*",
@@ -87,7 +86,7 @@
         {
           "access": "Allow",
           "direction": "Outbound",
-          "destination": "@nsg-rule:firewall-nsg",
+          "destination": "firewall",
           "protocol": "*",
           "priority": 300,
           "sourcePortRange": "*",
@@ -120,7 +119,8 @@
           "sourcePortRange": "*",
           "destinationPortRange": "*"
         }
-      ]
+      ],
+      "targetSubnet": "agic"
     }
   ]
 }

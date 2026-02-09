@@ -14,11 +14,12 @@ from pathlib import Path
 
 common_path = Path(os.environ["COMMON_FILE"])
 params_path = Path(os.environ["PARAMS_FILE"])
+subnets_config_path = Path(__file__).parent / "config" / "subnets.json"
 
 # 共通パラメータを読み込み（VNET の範囲とサブネットサイズの元データ）
 data = json.loads(common_path.read_text())
 base_prefixes = [ipaddress.ip_network(p) for p in data.get("vnetAddressPrefixes", [])]
-subnets = data.get("subnets", [])
+subnets = json.loads(subnets_config_path.read_text())
 
 if not base_prefixes:
     raise SystemExit("vnetAddressPrefixes is empty")
@@ -57,8 +58,12 @@ for subnet in sorted(subnets, key=lambda s: s["prefixLength"]):
     if allocated is None:
         raise SystemExit(f"subnet '{subnet['name']}' does not fit in vnetAddressPrefixes")
 
-    resolved.append({**subnet, "addressPrefix": str(allocated)})
-
+    resolved_entry = {
+        **subnet,
+        "alias": subnet.get("alias", subnet.get("name")),
+        "addressPrefix": str(allocated),
+    }
+    resolved.append(resolved_entry)
 # 算出済みサブネットを Bicep に渡すための ARM パラメータを生成する
 params = {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
