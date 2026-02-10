@@ -12,7 +12,7 @@ common_path = Path(os.environ["COMMON_FILE"])  # common.parameter.json のパス
 params_path = Path(os.environ["PARAMS_FILE"])  # 出力先 params ファイルのパス
 subnet_params_path = Path(os.environ["SUBNET_PARAMS_FILE"])  # サブネット一時ファイルのパス
 rule_template_path = Path(__file__).parent / "config" / "nsg.json"  # ルールテンプレート
-subnets_config_path = Path(__file__).parents[2] / "01_subnets" / "scripts" / "config" / "subnets.json"  # サブネット定義
+subnets_config_path = Path(__file__).parent / "config" / "subnets.json"  # サブネット定義
 
 # 共通パラメータを読み込み（サブネット定義のみ参照）
 common_data = json.loads(common_path.read_text())  # common.parameter.json を読み込み

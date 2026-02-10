@@ -50,7 +50,7 @@ name="main-02_network-route-$(date +'%Y%m%dT%H%M%S')"
 az deployment sub create \
   --name "$name" \
   --location "$location" \
-  --template-file "$repo_root/infra/02_network/03_network_policy/bicep/main.bicep" \
+  --template-file "$repo_root/infra/02_network/bicep/main.network_policy.bicep" \
   --parameters "@$subnet_policy_params_file" \
   --parameters "@$route_table_params_file" \
   --parameters "@$nsg_params_file" \

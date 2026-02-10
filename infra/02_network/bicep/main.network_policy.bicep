@@ -8,16 +8,16 @@ targetScope = 'subscription'
 // ###########################################
 
 @description('環境名')
-param environmentName string = loadJsonContent('../../../common.parameter.json').environmentName
+param environmentName string = loadJsonContent('../../common.parameter.json').environmentName
 
 @description('現在日時')
 param currentDateTime string = utcNow('yyyyMMddTHHmmss')
 
 @description('デプロイ先リージョン')
-param location string = loadJsonContent('../../../common.parameter.json').location
+param location string = loadJsonContent('../../common.parameter.json').location
 
 @description('システム名称')
-param systemName string = loadJsonContent('../../../common.parameter.json').systemName
+param systemName string = loadJsonContent('../../common.parameter.json').systemName
 
 @description('ログアナリティクス名')
 param logAnalyticsName string = 'log-${environmentName}-${systemName}'

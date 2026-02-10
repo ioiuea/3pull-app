@@ -1,0 +1,127 @@
+# 仮想ネットワーク
+
+| 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection | DDoS保護計画 |
+| ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | --------------- | ------------ |
+| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | Azure提供   | 有効化          | -            |
+
+- ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
+- ※最低限、以下のいずれかのアドレスレンジが必要です。
+  - `/24` が 3 つ分
+  - `/23` と `/24` の組み合わせ
+
+# サブネット
+
+| サブネット名               | プレフィクス | サービスエンドポイント      | NSG名                                        | ルートテーブル名                           | 備考                                   |
+| -------------------------- | ------------ | --------------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
+| `UserNodeSubnet`           | `/24`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-usernode  | rt-[environmentName]-[systemName]-outbound | アプリデプロイ領域                     |
+| `ApplicationGatewaySubnet` | `/25`        |                             |                                              | rt-[environmentName]-[systemName]-firewall | AGIC用サブネット                       |
+| `ClusterServicesSubnet`    | `/25`        | Microsoft.CognitiveServices |                                              |                                            | AKSのサービスCIDR用空きサブネット      |
+| `AgentNodeSubnet`          | `/26`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound | AKSのエージェントノード用サブネット    |
+| `PrivateEndpointSubnet`    | `/26`        |                             | nsg-[environmentName]-[systemName]-pep       | nsg-dev-aipf-pep                           | プライベートエンドポイント用サブネット |
+| `AzureFirewallSubnet`      | `/26`        |                             |                                              |                                            | ファイヤーウォール用サブネット         |
+| `MaintenanceSubnet`        | `/29`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound | メンテVM用サブネット                   |
+
+# ルートテーブル
+
+## アウトバウンド通信
+
+ハブ&スポーク構成などで **集約された FW 経由のアウトバウンド**が必要な場合、  
+`infra/common.parameter.json`の`egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
+これにより AKS からの外向き通信経路を制御できます。  
+指定しない場合は **UDR を作成しません**。
+
+## インバウンド通信
+
+TLS検査を有効化するためApplication GatewayからAzure Firewallを経由させる構成とします。
+また、FW を前面に置くと **NAT で送信元が変わり**、AppGW + WAF が **クライアント情報を正しく識別できなくなる**ためです。  
+そのため、AppGW + WAF を前面に配置し、FW を経由して AKS に到達する構成にしています。
+
+## rt-[environmentName]-[systemName]-firewall
+
+AGWからインバウンド用FWへの通信
+
+| ルート名             | アドレスプレフィックス     | ネクストホップの種類 | ネクストホップ(サブネット名) |
+| -------------------- | -------------------------- | -------------------- | ---------------------------- |
+| udr-agic-to-firewall | `ApplicationGatewaySubnet` | 仮想アプライアンス   | `AzureFirewallSubnet`        |
+
+## rt-[environmentName]-[systemName]-outbound
+
+AKSからアウトバウンドへの通信
+
+| ルート名              | アドレスプレフィックス | ネクストホップの種類 | ネクストホップ    |
+| --------------------- | ---------------------- | -------------------- | ----------------- |
+| udr-internet-outbound | 0.0.0.0/0              | 仮想アプライアンス   | [egressNextHopIp] |
+
+# ネットワークセキュリティグループ
+
+## 命名規則
+
+ルールの目的を明確に示すように、わかりやすい名前を付ける。
+[Allow/Deny]-[プロトコル]-[From/To]-[ソース/宛先]
+
+## 優先度について
+
+ルールの優先度については、以下ルールに従って優先度範囲ごとに連番で付ける。
+| 優先度範囲 | 用途 | 説明 |
+|------|------|------|
+| 100~199 | 優先ルール　　 | 200番以降のルールよりさらに優先すべきルールがある場合の枠 |
+| 200~4095 | カスタムルール | プロダクトごとに必要な通信を都度追加する　　　　　　　 |
+| 4096 | 最終拒否　　　 | 上記以外すべての通信を拒否　　　　　　　　　　　　　　 |
+
+## デフォルトルール
+
+以下のルールはリソース作成時に自動的に作成される、編集不可のデフォルトルールを表す。
+すべてのリソースに含まれるため、以下ルールを個別に記述しない。
+
+### 受信セキュリティ規則
+
+| ソース      | ソースIPアドレス/CIDR範囲,ソースサービスタグ,ソースアプリケーションのセキュリティグループ | ソースポート範囲 | 宛先        | 宛先IPアドレス/CIDR範囲,宛先サービスタグ,宛先アプリケーションのセキュリティグループ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                          | 説明 |
+| ----------- | ----------------------------------------------------------------------------------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ----------------------------- | ---- |
+| Service Tag | VirtualNetwork                                                                            | \*               | Service Tag | VirtualNetwork                                                                      | Custom   | \*             | Any        | 許可       | 65000  | AllowVnetInBound              |      |
+| Service Tag | AzureLoadBalancer                                                                         | \*               | Any         | -                                                                                   | Custom   | \*             | Any        | 許可       | 65001  | AllowAzureLoadBalancerInBound |      |
+| Any         | -                                                                                         | \*               | Any         | -                                                                                   | Custom   | \*             | Any        | 拒否       | 65500  | DenyAllInBound                |      |
+
+### 送信セキュリティ規則
+
+| ソース      | ソースIPアドレス/CIDR範囲,ソースサービスタグ,ソースアプリケーションのセキュリティグループ | ソースポート範囲 | 宛先        | 宛先IPアドレス/CIDR範囲,宛先サービスタグ,宛先アプリケーションのセキュリティグループ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                  | 説明 |
+| ----------- | ----------------------------------------------------------------------------------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | --------------------- | ---- |
+| Service Tag | VirtualNetwork                                                                            | \*               | Service Tag | VirtualNetwork                                                                      | Custom   | \*             | Any        | 許可       | 65000  | AllowVnetOutBound     |      |
+| Any         | -                                                                                         | \*               | Service Tag | Internet                                                                            | Custom   | \*             | Any        | 許可       | 65001  | AllowInternetOutBound |      |
+| Any         | -                                                                                         | \*               | Any         | \*                                                                                  | Custom   | \*             | Any        | 拒否       | 65500  | DenyAllOutBound       |      |
+
+## nsg-[environmentName]-[systemName]-usernode
+
+| ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                          | 説明                             |
+| ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ----------------------------- | -------------------------------- |
+| IPアドレス　 | `UserNodeSubnet`, `AgentNodeSubnet`          | \*               | Any  | -                                        | Custom   | 443,4443       | TCP        | 許可       | 200    | Allow-HTTPS-From-K8SAPIServer | K8SAPIサーバーからの通信許可     |
+| IPアドレス　 | `ApplicationGatewaySubnet`                   | \*               | Any  | -                                        | Custom   | 8080,3000,3080 | HTTP       | 許可       | 201    | Allow-HTTP-From-AgwSubnet     | ApplicationGatewayからの通信許可 |
+| IPアドレス　 | `MaintenanceSubnet`                          | \*               | Any  | -                                        | Custom   | \*             | Any        | 許可       | 202    | Allow-Any-From-MaintVmSubnet  | メンテナンス用VMからの通信許可   |
+| Service Tag  | ActionGroup                                  | \*               | Any  | -                                        | Custom   | 8080           | Any        | 許可       | 203    | Allow-8080-From-ActionGroup   | ログ収集のための通信許可         |
+| Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                       | その他全ての通信拒否             |
+
+## nsg-[environmentName]-[systemName]-agentnode
+
+| ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                          | 説明                             |
+| ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ----------------------------- | -------------------------------- |
+| IPアドレス　 | `AgentNodeSubnet`                            | \*               | Any  | -                                        | Custom   | 443,4443       | TCP        | 許可       | 200    | Allow-HTTPS-From-K8SAPIServer | K8SAPIサーバーからの通信許可     |
+| IPアドレス　 | `ApplicationGatewaySubnet`                   | \*               | Any  | -                                        | Custom   | 8080,3000,3080 | HTTP       | 許可       | 201    | Allow-HTTP-From-AgwSubnet     | ApplicationGatewayからの通信許可 |
+| IPアドレス　 | `MaintenanceSubnet`                          | \*               | Any  | -                                        | Custom   | \*             | Any        | 許可       | 202    | Allow-Any-From-MaintVmSubnet  | メンテナンス用VMからの通信許可   |
+| Service Tag  | ActionGroup                                  | \*               | Any  | -                                        | Custom   | 8080           | Any        | 許可       | 203    | Allow-8080-From-ActionGroup   | ログ収集のための通信許可         |
+| Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                       | その他全ての通信拒否             |
+
+## nsg-[environmentName]-[systemName]-pep
+
+| ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                         | 説明                           |
+| ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ---------------------------- | ------------------------------ |
+| IPアドレス　 | `UserNodeSubnet`                             | \*               | Any  | -                                        | Custom   | \*             | Any        | 許可       | 200    | Allow-Any-From-AksSubnet     | Aksからの通信許可              |
+| IPアドレス　 | `MaintenanceSubnet`                          | \*               | Any  | -                                        | Custom   | \*             | Any        | 許可       | 201    | Allow-Any-From-MaintVmSubnet | メンテナンス用VMからの通信許可 |
+| Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                      | その他全ての通信拒否           |
+
+## nsg-[environmentName]-[systemName]-maint
+
+| ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                         | 説明                         |
+| ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ---------------------------- | ---------------------------- |
+| IPアドレス　 | [bastionIp]                                  | \*               | Any  | -                                        | Custom   | 22             | SSH        | 許可       | 200    | Allow-SSH-From-BastionServer | 踏み台サーバーからの通信許可 |
+| Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                      | その他全ての通信拒否         |
+
+※[bastionIp]は、VNET外で踏み台サーバなどがある場合は指定することでネットワークセキュリティグループを作成します。

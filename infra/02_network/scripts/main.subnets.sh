@@ -39,6 +39,6 @@ name="main-02_network-subnets-$(date +'%Y%m%dT%H%M%S')"
 az deployment sub create \
   --name "$name" \
   --location "$location" \
-  --template-file "$repo_root/infra/02_network/01_subnets/bicep/main.bicep" \
+  --template-file "$repo_root/infra/02_network/bicep/main.subnets.bicep" \
   --parameters "@$subnet_params_file" \
   ${what_if:+$what_if}

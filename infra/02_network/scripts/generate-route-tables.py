@@ -12,7 +12,7 @@ common_path = Path(os.environ["COMMON_FILE"])
 params_path = Path(os.environ["PARAMS_FILE"])
 subnet_params_path = Path(os.environ["SUBNET_PARAMS_FILE"])
 firewall_params_path = Path(os.environ["FIREWALL_PARAMS_FILE"])
-subnets_config_path = Path(__file__).parents[2] / "01_subnets" / "scripts" / "config" / "subnets.json"
+subnets_config_path = Path(__file__).parent / "config" / "subnets.json"
 outbound_config_path = Path(__file__).parent / "config" / "outbound.json"
 
 # 共通パラメータを読み込み

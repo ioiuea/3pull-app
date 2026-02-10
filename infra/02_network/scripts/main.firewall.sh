@@ -47,7 +47,7 @@ if [[ -n "$what_if" ]]; then
   az deployment sub create \
     --name "$name" \
     --location "$location" \
-    --template-file "$repo_root/infra/02_network/02_firewall/bicep/main.bicep" \
+    --template-file "$repo_root/infra/02_network/bicep/main.firewall.bicep" \
     ${what_if:+$what_if}
   exit 0
 fi
@@ -55,7 +55,7 @@ fi
 actual_ip="$(az deployment sub create \
   --name "$name" \
   --location "$location" \
-  --template-file "$repo_root/infra/02_network/02_firewall/bicep/main.bicep" \
+  --template-file "$repo_root/infra/02_network/bicep/main.firewall.bicep" \
   --query "properties.outputs.firewallPrivateIp.value" \
   -o tsv)"
 

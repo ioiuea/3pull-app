@@ -9,14 +9,14 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 common_file="$repo_root/infra/common.parameter.json"
-subnet_script="$repo_root/infra/02_network/01_subnets/scripts/generate-subnets.py"
-subnets_runner="$repo_root/infra/02_network/01_subnets/main.subnets.sh"
-firewall_script="$repo_root/infra/02_network/02_firewall/scripts/generate-firewall-params.py"
-firewall_runner="$repo_root/infra/02_network/02_firewall/main.firewall.sh"
-route_script="$repo_root/infra/02_network/03_network_policy/scripts/generate-route-tables.py"
-nsg_script="$repo_root/infra/02_network/03_network_policy/scripts/generate-nsgs.py"
-subnet_policy_script="$repo_root/infra/02_network/03_network_policy/scripts/generate-subnet-policy-params.py"
-network_policy_runner="$repo_root/infra/02_network/03_network_policy/main.network_policy.sh"
+subnet_script="$repo_root/infra/02_network/scripts/generate-subnets.py"
+subnets_runner="$repo_root/infra/02_network/scripts/main.subnets.sh"
+firewall_script="$repo_root/infra/02_network/scripts/generate-firewall-params.py"
+firewall_runner="$repo_root/infra/02_network/scripts/main.firewall.sh"
+route_script="$repo_root/infra/02_network/scripts/generate-route-tables.py"
+nsg_script="$repo_root/infra/02_network/scripts/generate-nsgs.py"
+subnet_policy_script="$repo_root/infra/02_network/scripts/generate-subnet-policy-params.py"
+network_policy_runner="$repo_root/infra/02_network/scripts/main.network_policy.sh"
 what_if=""
 
 # 許容する引数は --what-if のみ
