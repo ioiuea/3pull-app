@@ -30,6 +30,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = {
     addressSpace: {
       addressPrefixes: addressPrefixes
     }
+    enableDdosProtection: true
   }, empty(dnsServers) ? {} : {
     dhcpOptions: {
       dnsServers: dnsServers

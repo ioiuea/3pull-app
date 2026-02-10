@@ -20,8 +20,8 @@
     "prefixLength": 25
   },
   {
-    "name": "SystemNodeSubnet",
-    "alias": "nodepool",
+    "name": "AgentNodeSubnet",
+    "alias": "agentnode",
     "prefixLength": 26
   },
   {
@@ -30,8 +30,8 @@
     "prefixLength": 25
   },
   {
-    "name": "WorkloadSubnet",
-    "alias": "workload",
+    "name": "UserNodeSubnet",
+    "alias": "usernode",
     "prefixLength": 24
   }
 ]

@@ -14,7 +14,7 @@
         {
           "access": "Allow",
           "direction": "Inbound",
-          "source": "nodepool",
+          "source": "agentnode",
           "protocol": "*",
           "priority": 302,
           "sourcePortRange": "*",
@@ -23,7 +23,7 @@
         {
           "access": "Allow",
           "direction": "Inbound",
-          "source": "workload",
+          "source": "usernode",
           "protocol": "*",
           "priority": 303,
           "sourcePortRange": "*",

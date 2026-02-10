@@ -40,9 +40,9 @@ TLS検査を有効化するためApplication GatewayからAzure Firewallを経�
 
 AGWからインバウンド用FWへの通信
 
-| ルート名             | アドレスプレフィックス     | ネクストホップの種類 | ネクストホップ(サブネット名) |
-| -------------------- | -------------------------- | -------------------- | ---------------------------- |
-| udr-agic-to-firewall | `ApplicationGatewaySubnet` | 仮想アプライアンス   | `AzureFirewallSubnet`        |
+| ルート名             | アドレスプレフィックス     | ネクストホップの種類 | ネクストホップ                     |
+| -------------------- | -------------------------- | -------------------- | ---------------------------------- |
+| udr-agic-to-firewall | `ApplicationGatewaySubnet` | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
 
 ## rt-[environmentName]-[systemName]-outbound
 
