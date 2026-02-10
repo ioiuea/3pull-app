@@ -21,6 +21,11 @@
 | `AzureFirewallSubnet`      | `/26`        |                             |                                              |                                            | ファイヤーウォール用サブネット         |
 | `MaintenanceSubnet`        | `/29`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound | メンテVM用サブネット                   |
 
+※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
+- `ClusterServicesSubnet`
+- `AzureFirewallSubnet`
+- `ApplicationGatewaySubnet`
+
 # ルートテーブル
 
 ## アウトバウンド通信
