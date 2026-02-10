@@ -17,7 +17,7 @@
 | `ApplicationGatewaySubnet` | `/25`        |                             |                                              | rt-[environmentName]-[systemName]-firewall | AGIC用サブネット                       |
 | `ClusterServicesSubnet`    | `/25`        | Microsoft.CognitiveServices |                                              |                                            | AKSのサービスCIDR用空きサブネット      |
 | `AgentNodeSubnet`          | `/26`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound | AKSのエージェントノード用サブネット    |
-| `PrivateEndpointSubnet`    | `/26`        |                             | nsg-[environmentName]-[systemName]-pep       | nsg-dev-aipf-pep                           | プライベートエンドポイント用サブネット |
+| `PrivateEndpointSubnet`    | `/26`        |                             | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
 | `AzureFirewallSubnet`      | `/26`        |                             |                                              |                                            | ファイヤーウォール用サブネット         |
 | `MaintenanceSubnet`        | `/29`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound | メンテVM用サブネット                   |
 
