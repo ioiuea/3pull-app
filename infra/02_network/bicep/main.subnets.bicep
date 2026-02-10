@@ -48,6 +48,9 @@ param vnetAddressPrefixes array = loadJsonContent('../../common.parameter.json')
 @description('VNETのDNSサーバー')
 param vnetDnsServers array = []
 
+@description('DDoS Protection Plan のリソースID')
+param ddosProtectionPlanId string = loadJsonContent('../../common.parameter.json').ddosProtectionPlanId
+
 @description('サブネット情報')
 param subnets array
 
@@ -73,6 +76,7 @@ module virtualNetworkModule './modules/virtualNetwork.bicep' = {
     virtualNetworkName: vnetName
     addressPrefixes: vnetAddressPrefixes
     dnsServers: vnetDnsServers
+    ddosProtectionPlanId: ddosProtectionPlanId
     lockKind: lockKind
     logAnalyticsName: logAnalyticsName
     logAnalyticsResourceGroupName: logAnalyticsResourceGroupName

@@ -56,7 +56,7 @@ route_tables.append(
         "name": firewall_alias,
         "routes": [
             {
-                "name": f"udr-{agic_alias}-to-{firewall_alias}",
+                "name": "udr-firewall-inbound",
                 "properties": {
                     "addressPrefix": agic_prefix,
                     "nextHopType": "VirtualAppliance",
@@ -69,7 +69,7 @@ route_tables.append(
 )
 
 # 02) outbound（ユーザー定義ルート）の設定
-next_hop_ip = data.get("egressNextHopIp", "")
+next_hop_ip = data.get("egressNextHopIp", "") or firewall_ip
 outbound_targets = json.loads(outbound_config_path.read_text()).get("subnetNames", [])
 
 if next_hop_ip:

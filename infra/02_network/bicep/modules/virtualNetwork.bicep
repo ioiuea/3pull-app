@@ -13,6 +13,9 @@ param addressPrefixes array
 @description('VNETのDNSサーバー')
 param dnsServers array
 
+@description('DDoS Protection Plan のリソースID')
+param ddosProtectionPlanId string
+
 @description('ロック')
 param lockKind string
 
@@ -30,7 +33,11 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = {
     addressSpace: {
       addressPrefixes: addressPrefixes
     }
+  }, empty(ddosProtectionPlanId) ? {} : {
     enableDdosProtection: true
+    ddosProtectionPlan: {
+      id: ddosProtectionPlanId
+    }
   }, empty(dnsServers) ? {} : {
     dhcpOptions: {
       dnsServers: dnsServers

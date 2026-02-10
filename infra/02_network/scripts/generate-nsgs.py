@@ -43,11 +43,17 @@ templates = rule_template_data.get("templates", [])  # templates 配列
 # サブネット名でテンプレートを引けるようにする
 template_by_subnet = {t.get("targetSubnet", ""): t for t in templates}  # alias → template
 
+shared_bastion_ip = common_data.get("sharedBastionIp", "")  # VNET外の踏み台IP
+
 nsgs = []  # 出力する NSG 定義の配列
 for subnet in resolved_subnets:  # 各サブネットについて NSG を作成
     rules = []  # そのサブネットに適用するルール配列
     subnet_name = subnet.get("name", "")  # リソース名
     subnet_alias = subnet.get("alias", alias_by_name.get(subnet_name, subnet_name))  # エイリアス
+    if subnet_alias in {"services", "agic", "firewall"}:
+        continue
+    if subnet_alias == "maint" and not shared_bastion_ip:
+        continue
     template = template_by_subnet.get(subnet_alias)  # 対象テンプレートを取得
 
     if template:  # テンプレートがあればルールを構築
@@ -62,6 +68,10 @@ for subnet in resolved_subnets:  # 各サブネットについて NSG を作成
             if direction == "Outbound" and "source" not in rule:  # Outbound の送信元が未指定なら
                 source = subnet_alias  # 対象サブネットを送信元にする
 
+            # sharedBastionIp のルールは未指定ならスキップ
+            if source == "sharedBastionIp" and not shared_bastion_ip:
+                continue
+
             def format_name(value: str) -> str:  # ルール名表示用の整形
                 if value == "*":  # 任意は Any に置換
                     return "Any"
@@ -70,19 +80,45 @@ for subnet in resolved_subnets:  # 各サブネットについて NSG を作成
                 return value  # それ以外はそのまま
 
             # ルール名は From/To 形式
-            if direction == "Inbound":  # Inbound なら From 形式
-                rule_name = f"{rule.get('access', 'Allow')}From{format_name(source)}"  # 例: AllowFromServices
-            else:  # Outbound なら To 形式
-                rule_name = f"{rule.get('access', 'Allow')}To{format_name(destination)}"  # 例: AllowToFirewall
+            rule_name = rule.get("name", "")
+            if not rule_name:
+                if direction == "Inbound":  # Inbound なら From 形式
+                    rule_name = f"{rule.get('access', 'Allow')}From{format_name(source)}"  # 例: AllowFromServices
+                else:  # Outbound なら To 形式
+                    rule_name = f"{rule.get('access', 'Allow')}To{format_name(destination)}"  # 例: AllowToFirewall
+
+            def resolve_prefix(value):
+                if value == "sharedBastionIp":
+                    return shared_bastion_ip
+                return subnet_prefix_map.get(value, value)
+
+            def resolve_prefixes(value):
+                return [resolve_prefix(v) for v in value]
+
+            # source/destination の単数・複数に対応
+            source_is_list = isinstance(source, list)
+            destination_is_list = isinstance(destination, list)
 
             rules.append(  # ルールを追加
                 {  # ルール定義オブジェクト
                     "name": rule_name,  # ルール名
                     "properties": {  # ルールプロパティ
-                        "sourceAddressPrefix": subnet_prefix_map.get(source, source),  # 送信元アドレス
+                        **(
+                            {"sourceAddressPrefixes": resolve_prefixes(source)}
+                            if source_is_list
+                            else {"sourceAddressPrefix": resolve_prefix(source)}
+                        ),
                         "sourcePortRange": rule.get("sourcePortRange", "*"),  # 送信元ポート
-                        "destinationAddressPrefix": subnet_prefix_map.get(destination, destination),  # 宛先アドレス
-                        "destinationPortRange": rule.get("destinationPortRange", "*"),  # 宛先ポート
+                        **(
+                            {"destinationAddressPrefixes": resolve_prefixes(destination)}
+                            if destination_is_list
+                            else {"destinationAddressPrefix": resolve_prefix(destination)}
+                        ),
+                        **(
+                            {"destinationPortRanges": rule.get("destinationPortRanges")}
+                            if "destinationPortRanges" in rule
+                            else {"destinationPortRange": rule.get("destinationPortRange", "*")}
+                        ),
                         "protocol": rule.get("protocol", "*"),  # プロトコル
                         "access": rule.get("access", "Allow"),  # Allow/Deny
                         "priority": rule.get("priority", 100),  # 優先度

@@ -1,7 +1,7 @@
 {
   "subnetNames": [
     "agentnode",
-    "services",
-    "usernode"
+    "usernode",
+    "maint"
   ]
 }

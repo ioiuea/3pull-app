@@ -36,52 +36,87 @@ IDS/IPS を有効にするかどうかを指定します。
 `true` の場合は **Firewall SKU が Premium** になり、IDS/IPS を有効化します。  
 `false` の場合は **Firewall SKU が Standard** になります。
 
-## VNET のサイズ要件
+### ddosProtectionPlanId
 
+Azure DDoS Protection Plan のリソース ID を指定します。  
+指定した場合のみ VNET で DDoS Protection が有効になります。  
+未指定（空文字）の場合は DDoS Protection を有効にしません。
+
+### vnetAddressPrefixes
+
+VNET のアドレス空間を指定します。  
 最低限、以下のいずれかのアドレスレンジが必要です。
 
 - `/24` が 3 つ分  
 - `/23` と `/24` の組み合わせ
 
-## サブネット構成（固定）
+### egressNextHopIp
 
-サブネットは固定で、用途は以下のとおりです。
-
-| サブネット名 | プレフィクス | 用途 |
-| --- | --- | --- |
-| `AzureFirewallSubnet` | `/26` | Azure Firewall を配置 |
-| `SystemNodeSubnet` | `/26` | AKS ノード用サブネット |
-| `WorkloadSubnet` | `/24` | AKS ワークロード用サブネット |
-| `ClusterServicesSubnet` | `/25` | AKS クラスタ内サービス用サブネット |
-| `ApplicationGatewaySubnet` | `/25` | Application Gateway (AppGW) を配置 |
-| `PrivateEndpointSubnet` | `/26` | DB や LLM（OpenAI など）を含む各種 PaaS の Private Endpoint 用 |
-| `MaintenanceSubnet` | `/29` | デプロイや保守用の VM を配置 |
-
-## outbound（アウトバウンド）ルート
-
+アウトバンド通信でFWを経由した通信を行います。
 ハブ&スポーク構成などで **集約された FW 経由のアウトバウンド**が必要な場合、  
-`egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
-これにより AKS からの外向き通信経路を制御できます。  
-指定しない場合は **UDR を作成しません**。
+この IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。
+指定しない場合は **VNET 内に構築される Firewall の IP が自動で設定**されます。
 
-## Ingress の通信経路
+補足として、インバウンド通信は **構築した Firewall を経由してワークロードへ到達**する経路になります。
 
-Ingress は以下の経路とします。
+### sharedBastionIp
 
+踏み台サーバなど、メンテ用サブネット（保守用 VM）へアクセス可能な **許可 IP** を指定します。  
+指定しない場合はメンテ用サブネット向けの NSG を作成しないため、VM への通信は **すべて許可**されます。
+
+## ネットワーク構成の詳細
+
+サブネット構成やルート/NSG の設計方針は `docs/network.md` を参照してください。
+
+## デプロイ手順
+
+### Azureログイン
+
+Azure CLI を利用して Azure へログインします。
+
+```bash
+az login
 ```
-AppGW → FW → AKS
+
+### 操作対象のサブスクリプションIDを設定
+
+操作対象のサブスクリプションを設定します。
+
+```bash
+az account set --subscription {SubscriptionId}
 ```
 
-### この経路にする理由
+現在選択中のサブスクリプション確認します。
 
-FW を前面に置くと **NAT で送信元が変わり**、  
-AppGW + WAF が **クライアント情報を正しく識別できなくなる**ためです。  
-そのため、AppGW + WAF を前面に配置し、FW を経由して AKS に到達する構成にしています。
-
-## 実行順のまとめ
-
-infra 配下では `main.sh` を実行すると、以下の順で処理されます。
-
+```bash
+az account show
 ```
-01_monitor → 02_network
+
+### デプロイ
+
+プロジェクトルートから infra フォルダへ移動します。
+
+```bash
+cd infra
+```
+
+サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。  
+`infra/common.parameter.json` を読み込み、実行時にサブネットの `addressPrefix` などを動的に計算しパラメータとして生成しデプロイを行います。
+
+#### デプロイの流れ
+- `01_monitor`
+  - **Azure Log Analytics Workspace** と **Azure Application Insights** を作成
+- `02_network`
+  - **Azure Virtual Network (VNet)** / **Subnets** / **User Defined Route (UDR)** / **Network Security Group (NSG)** を作成してサブネットと紐づけ
+
+#### デプロイコマンド（dry-run）
+
+```bash
+./main.sh --what-if
+```
+
+#### デプロイコマンド
+
+```bash
+./main.sh
 ```
