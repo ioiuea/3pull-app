@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 04_route: Route Table 作成とサブネット紐づけを担当します。
+# 03_network_policy: Route Table + NSG を作成し、サブネットへ紐づけます。
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-common_file="${COMMON_FILE:-$repo_root/infra/common.parameter.json}"
-subnet_params_file="${SUBNET_PARAMS_FILE:-}"
+subnet_policy_params_file="${SUBNET_POLICY_PARAMS_FILE:-}"
 route_table_params_file="${ROUTE_TABLE_PARAMS_FILE:-}"
-firewall_private_ip="${FIREWALL_PRIVATE_IP:-}"
+nsg_params_file="${NSG_PARAMS_FILE:-}"
 location="${LOCATION:-}"
 what_if=""
 
@@ -26,8 +25,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$subnet_params_file" ]]; then
-  echo "SUBNET_PARAMS_FILE が未設定です。" >&2
+if [[ -z "$subnet_policy_params_file" ]]; then
+  echo "SUBNET_POLICY_PARAMS_FILE が未設定です。" >&2
   exit 1
 fi
 
@@ -36,13 +35,13 @@ if [[ -z "$route_table_params_file" ]]; then
   exit 1
 fi
 
-if [[ -z "$firewall_private_ip" ]]; then
-  echo "FIREWALL_PRIVATE_IP が未設定です。" >&2
+if [[ -z "$location" ]]; then
+  echo "LOCATION が未設定です。" >&2
   exit 1
 fi
 
-if [[ -z "$location" ]]; then
-  echo "LOCATION が未設定です。" >&2
+if [[ -z "$nsg_params_file" ]]; then
+  echo "NSG_PARAMS_FILE が未設定です。" >&2
   exit 1
 fi
 
@@ -51,8 +50,8 @@ name="main-02_network-route-$(date +'%Y%m%dT%H%M%S')"
 az deployment sub create \
   --name "$name" \
   --location "$location" \
-  --template-file "$repo_root/infra/02_network/04_route/bicep/main.bicep" \
-  --parameters "@$subnet_params_file" \
+  --template-file "$repo_root/infra/02_network/03_network_policy/bicep/main.bicep" \
+  --parameters "@$subnet_policy_params_file" \
   --parameters "@$route_table_params_file" \
-  --parameters firewallPrivateIp="$firewall_private_ip" \
+  --parameters "@$nsg_params_file" \
   ${what_if:+$what_if}

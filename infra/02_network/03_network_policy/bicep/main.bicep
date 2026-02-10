@@ -1,5 +1,5 @@
 // ###########################################
-// 02_network (phase 4): Route Table & Subnet Attach
+// 02_network (phase 3): Route Table & Subnet Attach
 // ###########################################
 targetScope = 'subscription'
 
@@ -20,7 +20,9 @@ param location string = loadJsonContent('../../../common.parameter.json').locati
 param systemName string = loadJsonContent('../../../common.parameter.json').systemName
 
 @description('ログアナリティクス名')
-param logAnalyticsName string = 'log-${environmentName}-${systemName}-app'
+param logAnalyticsName string = 'log-${environmentName}-${systemName}'
+
+@description('ログアナリティクスのリソースグループ名')
 param logAnalyticsResourceGroupName string = 'rg-${environmentName}-${systemName}-monitor'
 
 // ###########################################
@@ -36,23 +38,23 @@ param modulesTags object = {
   systemName: systemName
   modulesName: modulesName
   createdBy: 'bicep'
-  category: 'common'
+  billing: 'infra'
 }
 
 @description('VNETの名称')
-param vnetName string = 'vnet-${environmentName}-${systemName}-app'
+param vnetName string = 'vnet-${environmentName}-${systemName}'
 
-@description('サブネット情報')
+@description('サブネット情報（ルート・NSG反映用）')
 param subnets array
+
+@description('NSG定義')
+param nsgs array = []
 
 @description('Route Table 定義')
 param routeTables array = []
 
-@description('サブネットと Route Table の対応表')
-param subnetRouteTableMap object = {}
-
-@description('Firewall のプライベート IP')
-param firewallPrivateIp string
+@description('ロック')
+param lockKind string = 'CanNotDelete'
 
 // ###########################################
 // モジュールの定義
@@ -75,25 +77,21 @@ module routeTableModule './modules/routeTable.bicep' = [
   }
 ]
 
-module agicToFirewallRouteTable './modules/routeTable.bicep' = {
-  name: 'rt-${currentDateTime}-firewall'
-  scope: resourceGroup
-  params: {
-    location: location
-    modulesTags: modulesTags
-    routeTableName: 'rt-${environmentName}-${systemName}-firewall'
-    routes: [
-      {
-        name: 'udr-agic-to-firewall'
-        properties: {
-          addressPrefix: '0.0.0.0/0'
-          nextHopType: 'VirtualAppliance'
-          nextHopIpAddress: firewallPrivateIp
-        }
-      }
-    ]
+module networkSecurityGroupModule './modules/networkSecurityGroup.bicep' = [
+  for nsg in nsgs: {
+    name: 'nsg-${currentDateTime}-${nsg.subnetName}'
+    scope: resourceGroup
+    params: {
+      location: location
+      modulesTags: modulesTags
+      lockKind: lockKind
+      networkSecurityGroupName: 'nsg-${environmentName}-${systemName}-${nsg.subnetName}'
+      securityRules: nsg.securityRules
+      logAnalyticsName: logAnalyticsName
+      logAnalyticsResourceGroupName: logAnalyticsResourceGroupName
+    }
   }
-}
+]
 
 @batchSize(1)
 module subnetAttachModule './modules/subnet.bicep' = [
@@ -104,24 +102,26 @@ module subnetAttachModule './modules/subnet.bicep' = [
       virtualNetworkName: vnetName
       subnetName: subnet.name
       addressPrefix: subnet.addressPrefix
-      networkSecurityGroupId: resourceId(
-        subscription().subscriptionId,
-        resourceGroup.name,
-        'Microsoft.Network/networkSecurityGroups',
-        'nsg-${environmentName}-${systemName}-${subnet.alias}'
-      )
-      routeTableId: contains(subnetRouteTableMap, subnet.alias)
-        ? resourceId(
+      networkSecurityGroupId: empty(subnet.networkSecurityGroupName)
+        ? ''
+        : resourceId(
+            subscription().subscriptionId,
+            resourceGroup.name,
+            'Microsoft.Network/networkSecurityGroups',
+            subnet.networkSecurityGroupName
+          )
+      routeTableId: empty(subnet.routeTableName)
+        ? ''
+        : resourceId(
             subscription().subscriptionId,
             resourceGroup.name,
             'Microsoft.Network/routeTables',
-            'rt-${environmentName}-${systemName}-${subnetRouteTableMap[subnet.alias]}'
+            subnet.routeTableName
           )
-        : (subnet.alias == 'agic' ? agicToFirewallRouteTable.outputs.routeTableId : '')
     }
     dependsOn: [
       routeTableModule
-      agicToFirewallRouteTable
+      networkSecurityGroupModule
     ]
   }
 ]

@@ -5,7 +5,7 @@ set -euo pipefail
 # 1) infra/common.parameter.json を読み込む
 # 2) vnetAddressPrefixes と prefixLength からサブネットのアドレスを算出する
 # 3) 一時 ARM パラメータファイルを生成する
-# 4) 01_subnets → 02_firewall → 03_nsg → 04_route を順に実行する
+# 4) 01_subnets → 02_firewall → 03_network_policy を順に実行する
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 common_file="$repo_root/infra/common.parameter.json"
@@ -13,10 +13,10 @@ subnet_script="$repo_root/infra/02_network/01_subnets/scripts/generate-subnets.p
 subnets_runner="$repo_root/infra/02_network/01_subnets/main.subnets.sh"
 firewall_script="$repo_root/infra/02_network/02_firewall/scripts/generate-firewall-params.py"
 firewall_runner="$repo_root/infra/02_network/02_firewall/main.firewall.sh"
-# nsg_script="$repo_root/infra/02_network/03_nsg/scripts/generate-nsgs.py"
-# route_table_script="$repo_root/infra/02_network/04_route/scripts/generate-route-tables.py"
-# nsg_runner="$repo_root/infra/02_network/03_nsg/main.nsg.sh"
-# route_runner="$repo_root/infra/02_network/04_route/main.route.sh"
+route_script="$repo_root/infra/02_network/03_network_policy/scripts/generate-route-tables.py"
+nsg_script="$repo_root/infra/02_network/03_network_policy/scripts/generate-nsgs.py"
+subnet_policy_script="$repo_root/infra/02_network/03_network_policy/scripts/generate-subnet-policy-params.py"
+network_policy_runner="$repo_root/infra/02_network/03_network_policy/main.network_policy.sh"
 what_if=""
 
 # 許容する引数は --what-if のみ
@@ -35,12 +35,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 timestamp="$(date +'%Y%m%dT%H%M%S')"
-subnet_params_dir="$repo_root/infra/log"
-subnet_params_file="$(mktemp "$subnet_params_dir/tmp-subnet-params-${timestamp}.json")"
-firewall_params_dir="$repo_root/infra/log"
-firewall_params_file="$(mktemp "$firewall_params_dir/tmp-fw-params-${timestamp}.json")"
-# nsg_params_file="$(mktemp "$repo_root/infra/02_network/tmp-nsg-params-${timestamp}.json")"
-# route_table_params_file="$(mktemp "$repo_root/infra/02_network/tmp-rt-params-${timestamp}.json")"
+params_dir="$repo_root/infra/log"
+subnet_params_file="$(mktemp "$params_dir/tmp-subnet-params-${timestamp}.json")"
+firewall_params_file="$(mktemp "$params_dir/tmp-firewall-params-${timestamp}.json")"
+route_params_file="$(mktemp "$params_dir/tmp-route-params-${timestamp}.json")"
+nsg_params_file="$(mktemp "$params_dir/tmp-nsg-params-${timestamp}.json")"
+subnet_policy_params_file="$(mktemp "$params_dir/tmp-subnet-policy-params-${timestamp}.json")"
 
 # location を common.parameter.json から取得する（検証は後で行う）
 location=$(COMMON_FILE="$common_file" python - <<'PY'
@@ -94,6 +94,22 @@ firewall_private_ip="$(SUBNET_PARAMS_FILE="$subnet_params_file" PARAMS_FILE="$fi
 # ファイアウォール作成
 COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" FIREWALL_PARAMS_FILE="$firewall_params_file" "$firewall_runner" ${what_if:+$what_if}
 
+# --------------------
+# 03_network_policy
+# --------------------
+
+# パラメータ生成（ユーザー定義ルート）
+COMMON_FILE="$common_file" PARAMS_FILE="$route_params_file" SUBNET_PARAMS_FILE="$subnet_params_file" FIREWALL_PARAMS_FILE="$firewall_params_file" "$route_script"
+
+# パラメータ生成（ネットワークセキュリティグループ）
+COMMON_FILE="$common_file" PARAMS_FILE="$nsg_params_file" SUBNET_PARAMS_FILE="$subnet_params_file" "$nsg_script"
+
+# パラメータ生成（サブネット更新用）
+COMMON_FILE="$common_file" PARAMS_FILE="$subnet_policy_params_file" SUBNET_PARAMS_FILE="$subnet_params_file" ROUTE_TABLE_PARAMS_FILE="$route_params_file" NSG_PARAMS_FILE="$nsg_params_file" "$subnet_policy_script"
+
+# ルートテーブル作成 + NSG 作成 + サブネット紐づけ
+COMMON_FILE="$common_file" LOCATION="$location" SUBNET_POLICY_PARAMS_FILE="$subnet_policy_params_file" ROUTE_TABLE_PARAMS_FILE="$route_params_file" NSG_PARAMS_FILE="$nsg_params_file" "$network_policy_runner" ${what_if:+$what_if}
+
 # if [[ -z "$firewall_private_ip" ]]; then
 #   echo "Firewall 用の固定 IP が取得できませんでした。" >&2
 #   exit 1
@@ -108,15 +124,3 @@ COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_para
 #     echo "Warning: Firewall の実IPが固定IPと一致しませんでした。fixed=$firewall_private_ip actual=$actual_firewall_ip" >&2
 #   fi
 # fi
-
-# # NSG のパラメータを生成する（サブネット一時ファイルを参照）
-# COMMON_FILE="$common_file" PARAMS_FILE="$nsg_params_file" SUBNET_PARAMS_FILE="$subnet_params_file" "$nsg_script"
-
-# # Route Table のパラメータを生成する
-# COMMON_FILE="$common_file" PARAMS_FILE="$route_table_params_file" "$route_table_script"
-
-# # 03_nsg: NSG 作成
-# COMMON_FILE="$common_file" LOCATION="$location" NSG_PARAMS_FILE="$nsg_params_file" "$nsg_runner"
-
-# # 04_route: Route 作成とサブネット紐づけ
-# COMMON_FILE="$common_file" LOCATION="$location" SUBNET_PARAMS_FILE="$subnet_params_file" ROUTE_TABLE_PARAMS_FILE="$route_table_params_file" FIREWALL_PRIVATE_IP="$firewall_private_ip" "$route_runner"

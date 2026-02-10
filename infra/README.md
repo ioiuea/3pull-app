@@ -47,17 +47,17 @@ IDS/IPS を有効にするかどうかを指定します。
 
 サブネットは固定で、用途は以下のとおりです。
 
-| サブネット名 | 用途 |
-| --- | --- |
-| `AzureFirewallSubnet` | Azure Firewall を配置 |
-| `SystemNodeSubnet` | AKS ノード用サブネット |
-| `WorkloadSubnet` | AKS ワークロード用サブネット |
-| `ClusterServicesSubnet` | AKS クラスタ内サービス用サブネット |
-| `ApplicationGatewaySubnet` | Application Gateway (AppGW) を配置 |
-| `PrivateEndpointSubnet` | DB や LLM（OpenAI など）を含む各種 PaaS の Private Endpoint 用 |
-| `MaintenanceSubnet` | デプロイや保守用の VM を配置 |
+| サブネット名 | プレフィクス | 用途 |
+| --- | --- | --- |
+| `AzureFirewallSubnet` | `/26` | Azure Firewall を配置 |
+| `SystemNodeSubnet` | `/26` | AKS ノード用サブネット |
+| `WorkloadSubnet` | `/24` | AKS ワークロード用サブネット |
+| `ClusterServicesSubnet` | `/25` | AKS クラスタ内サービス用サブネット |
+| `ApplicationGatewaySubnet` | `/25` | Application Gateway (AppGW) を配置 |
+| `PrivateEndpointSubnet` | `/26` | DB や LLM（OpenAI など）を含む各種 PaaS の Private Endpoint 用 |
+| `MaintenanceSubnet` | `/29` | デプロイや保守用の VM を配置 |
 
-## egress（アウトバウンド）ルート
+## outbound（アウトバウンド）ルート
 
 ハブ&スポーク構成などで **集約された FW 経由のアウトバウンド**が必要な場合、  
 `egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
