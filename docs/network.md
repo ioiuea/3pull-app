@@ -12,15 +12,15 @@
 
 # サブネット
 
-| サブネット名               | プレフィクス | サービスエンドポイント      | NSG名                                        | ルートテーブル名                           | 備考                                   |
-| -------------------------- | ------------ | --------------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
-| `UserNodeSubnet`           | `/24`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-usernode  | rt-[environmentName]-[systemName]-outbound | アプリデプロイ領域                     |
-| `ApplicationGatewaySubnet` | `/25`        |                             |                                              | rt-[environmentName]-[systemName]-firewall | AGIC用サブネット                       |
-| `ClusterServicesSubnet`    | `/25`        |                             |                                              |                                            | AKSのサービスCIDR用空きサブネット      |
-| `AgentNodeSubnet`          | `/26`        | Microsoft.CognitiveServices | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound | AKSのエージェントノード用サブネット    |
-| `PrivateEndpointSubnet`    | `/26`        |                             | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
-| `AzureFirewallSubnet`      | `/26`        |                             |                                              |                                            | ファイヤーウォール用サブネット         |
-| `MaintenanceSubnet`        | `/29`        |                             | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound | メンテVM用サブネット                   |
+| サブネット名               | プレフィクス | サービスエンドポイント | NSG名                                        | ルートテーブル名                           | 備考                                   |
+| -------------------------- | ------------ | ---------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
+| `UserNodeSubnet`           | `/24`        |                        | nsg-[environmentName]-[systemName]-usernode  | rt-[environmentName]-[systemName]-outbound | アプリデプロイ領域                     |
+| `ApplicationGatewaySubnet` | `/25`        |                        |                                              | rt-[environmentName]-[systemName]-firewall | AGIC用サブネット                       |
+| `ClusterServicesSubnet`    | `/25`        |                        |                                              |                                            | AKSのサービスCIDR用空きサブネット      |
+| `AgentNodeSubnet`          | `/26`        |                        | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound | AKSのエージェントノード用サブネット    |
+| `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
+| `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
+| `MaintenanceSubnet`        | `/29`        |                        | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound | メンテVM用サブネット                   |
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
 
@@ -55,8 +55,8 @@ AGWからインバウンド用FWへの通信
 
 AKSからアウトバウンドへの通信
 
-| ルート名              | アドレスプレフィックス | ネクストホップの種類 | ネクストホップ    |
-| -------------------- | -------------------------- | -------------------- | ---------------------------------- |
+| ルート名              | アドレスプレフィックス | ネクストホップの種類 | ネクストホップ                                          |
+| --------------------- | ---------------------- | -------------------- | ------------------------------------------------------- |
 | udr-internet-outbound | 0.0.0.0/0              | 仮想アプライアンス   | [egressNextHopIp] or [設置したFirewallのプライベートIP] |
 
 # ネットワークセキュリティグループ
@@ -143,5 +143,5 @@ AKSからアウトバウンドへの通信
 
 | ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                         | 説明                         |
 | ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ---------------------------- | ---------------------------- |
-| IPアドレス　 | [sharedBastionIp]                                  | \*               | Any  | -                                        | Custom   | 22             | SSH        | 許可       | 200    | Allow-SSH-From-BastionServer | 踏み台サーバーからの通信許可 |
+| IPアドレス　 | [sharedBastionIp]                            | \*               | Any  | -                                        | Custom   | 22             | SSH        | 許可       | 200    | Allow-SSH-From-BastionServer | 踏み台サーバーからの通信許可 |
 | Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                      | その他全ての通信拒否         |

@@ -9,6 +9,6 @@
     "10.189.71.0/24",
     "10.189.72.0/24"
   ],
-  "egressNextHopIp": "",
-  "sharedBastionIp": ""
+  "egressNextHopIp": "10.189.73.1",
+  "sharedBastionIp": "10.189.74.1"
 }

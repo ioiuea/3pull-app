@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "routeTables": {
+      "value": [
+        {
+          "name": "firewall",
+          "routes": [
+            {
+              "name": "udr-firewall-inbound",
+              "properties": {
+                "addressPrefix": "10.189.71.0/25",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "10.189.72.4"
+              }
+            }
+          ],
+          "subnetNames": [
+            "agic"
+          ]
+        },
+        {
+          "name": "outbound",
+          "routes": [
+            {
+              "name": "udr-internet-outbound",
+              "properties": {
+                "addressPrefix": "0.0.0.0/0",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "10.189.73.1"
+              }
+            }
+          ],
+          "subnetNames": [
+            "agentnode",
+            "usernode",
+            "maint"
+          ]
+        }
+      ]
+    }
+  }
+}

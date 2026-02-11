@@ -67,6 +67,19 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' = {
   tags: modulesTags
 }
 
+module ddosProtectionPlanModule './modules/ddosProtectionPlan.bicep' = {
+  name: 'ddosPlan-${currentDateTime}'
+  scope: resourceGroup
+  params: {
+    ddosProtectionPlanName: 'ddos-${environmentName}-${systemName}'
+    location: location
+    modulesTags: modulesTags
+    existingDdosProtectionPlanId: ddosProtectionPlanId
+  }
+}
+
+var ddosProtectionPlanIdEffective = ddosProtectionPlanModule.outputs.ddosProtectionPlanId
+
 module virtualNetworkModule './modules/virtualNetwork.bicep' = {
   name: 'vnet-${currentDateTime}'
   scope: resourceGroup
@@ -76,7 +89,7 @@ module virtualNetworkModule './modules/virtualNetwork.bicep' = {
     virtualNetworkName: vnetName
     addressPrefixes: vnetAddressPrefixes
     dnsServers: vnetDnsServers
-    ddosProtectionPlanId: ddosProtectionPlanId
+    ddosProtectionPlanId: ddosProtectionPlanIdEffective
     lockKind: lockKind
     logAnalyticsName: logAnalyticsName
     logAnalyticsResourceGroupName: logAnalyticsResourceGroupName

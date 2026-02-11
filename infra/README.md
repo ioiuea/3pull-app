@@ -40,7 +40,8 @@ IDS/IPS を有効にするかどうかを指定します。
 
 Azure DDoS Protection Plan のリソース ID を指定します。  
 指定した場合のみ VNET で DDoS Protection が有効になります。  
-未指定（空文字）の場合は DDoS Protection を有効にしません。
+未指定（空文字）の場合は DDoS Protection Plan を自動作成して適用します。
+入力例: `/subscriptions/<subscriptionId>/resourceGroups/<resourceGroupName>/providers/Microsoft.Network/ddosProtectionPlans/<ddosPlanName>`
 
 ### vnetAddressPrefixes
 
