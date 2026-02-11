@@ -1,3 +1,12 @@
+## 初期構築時の実行方法
+
+初期構築時は `infra/README.md` の手順に従い、`infra/main.sh` を実行してください。  
+`infra/main.sh` から `01_monitor` の `main.sh` が呼び出され、リソースが作成されます。
+
+## 個別実行（更新用）
+
+このフォルダの `main.sh` を直接実行することで、`01_monitor` を単体で更新できます。
+
 # Azureログイン
 
 Azure CLIを利用してAzureへログインします。
@@ -20,25 +29,29 @@ az account set --subscription {SubscriptionId}
 az account show
 ```
 
-# デプロイ
+### デプロイ
 
-プロジェクトルートからモジュールのフォルダへ移動します。
+プロジェクトルートから infra/01_monitor フォルダへ移動します。
 
-```
+```bash
 cd infra/01_monitor
 ```
 
+#### デプロイの流れ
+
+- `01_monitor`
+  - **Azure Log Analytics Workspace** と **Azure Application Insights** を作成
+
+#### デプロイコマンド（dry-run）
+
 サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。
 
-```
+```bash
 ./main.sh --what-if
 ```
 
-`environmentName` / `systemName` / `location` は `infra/common.parameter.json` を読み込み、`currentDateTime` は Bicep 側で `utcNow()` を利用しているため、デプロイ時の `--parameters` 指定は不要です。  
-`main.sh` が `location` を検証し、Bicep を実行します。
+#### デプロイコマンド
 
-サブスクリプションスコープでデプロイコマンドを実行します。
-
-```
+```bash
 ./main.sh
 ```

@@ -48,7 +48,7 @@ Azure DDoS Protection Plan のリソース ID を指定します。
 VNET のアドレス空間を指定します。  
 最低限、以下のいずれかのアドレスレンジが必要です。
 
-- `/24` が 3 つ分  
+- `/24` が 3 つ分
 - `/23` と `/24` の組み合わせ
 
 ### egressNextHopIp
@@ -101,16 +101,18 @@ az account show
 cd infra
 ```
 
-サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。  
-`infra/common.parameter.json` を読み込み、実行時にサブネットの `addressPrefix` などを動的に計算しパラメータとして生成しデプロイを行います。
-
 #### デプロイの流れ
+
 - `01_monitor`
   - **Azure Log Analytics Workspace** と **Azure Application Insights** を作成
 - `02_network`
   - **Azure Virtual Network (VNet)** / **Subnets** / **User Defined Route (UDR)** / **Network Security Group (NSG)** を作成してサブネットと紐づけ
 
+`infra/common.parameter.json` を読み込み、実行時にサブネットの `addressPrefix` などを動的に計算しパラメータとして生成しデプロイを行います。
+
 #### デプロイコマンド（dry-run）
+
+サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。
 
 ```bash
 ./main.sh --what-if

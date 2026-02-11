@@ -1,3 +1,13 @@
+## 初期構築時の実行方法
+
+初期構築時は `infra/README.md` の手順に従い、`infra/main.sh` を実行してください。  
+`infra/main.sh` から `02_network` の `main.sh` が呼び出され、リソースが作成されます。
+
+## 個別実行（更新用）
+
+このフォルダの `main.sh` を直接実行することで、`02_network` を単体で更新できます。  
+**前提要件:** `01_monitor` を先に実行済みで、そこで作成されるリソースが存在していること。
+
 # Azureログイン
 
 Azure CLIを利用してAzureへログインします。
@@ -20,27 +30,31 @@ az account set --subscription {SubscriptionId}
 az account show
 ```
 
-# デプロイ
+### デプロイ
 
-プロジェクトルートからモジュールのフォルダへ移動します。
+プロジェクトルートから infra/02_network フォルダへ移動します。
 
-```
+```bash
 cd infra/02_network
 ```
 
-サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。  
-`main.sh` がサブネットのアドレスを動的に計算し、一時パラメータを生成してからデプロイします。  
-内部では `01_subnets → 02_firewall → 03_network_policy` の順に実行します。
+#### デプロイの流れ
 
-```
+- `02_network`
+  - **Azure Virtual Network (VNet)** / **Subnets** / **User Defined Route (UDR)** / **Network Security Group (NSG)** を作成してサブネットと紐づけ
+
+`infra/common.parameter.json` を読み込み、実行時にサブネットの `addressPrefix` などを動的に計算しパラメータとして生成しデプロイを行います。
+
+#### デプロイコマンド（dry-run）
+
+サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。
+
+```bash
 ./main.sh --what-if
 ```
 
-`environmentName` / `systemName` / `location` / `vnetAddressPrefixes` / `subnets` は `infra/common.parameter.json` を読み込み、`currentDateTime` は Bicep 側で `utcNow()` を利用しているため、デプロイ時の `--parameters` 指定は不要です。  
-サブネットの `addressPrefix` は `main.sh` 実行時に計算し、デプロイ時に一時パラメータとして渡します。
+#### デプロイコマンド
 
-サブスクリプションスコープでデプロイコマンドを実行します。
-
-```
+```bash
 ./main.sh
 ```
