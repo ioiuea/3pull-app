@@ -14,8 +14,8 @@
 ### 1-2. ディレクトリ責務
 
 - `apps/`
-  - `apps/web` : フロントエンド（Next.js / Auth.js / Drizzle）
-  - `apps/api` : バックエンド（FastAPI / SQLAlchemy + Alembic）
+  - `apps/frontend` : フロントエンド（Next.js / Auth.js / Drizzle）
+  - `apps/backend` : バックエンド（FastAPI / SQLAlchemy + Alembic）
 - `db/`
   - Postgres 初期化スクリプト群。DB/スキーマ/ロールの作成・初期設定。
 - `infra/`
@@ -60,13 +60,13 @@
 ### 5-3. スキーマ分離と管理責務
 
 - `auth` スキーマ（認証系）
-  - 管理者: `apps/web/drizzle`
-  - マイグレーション: `apps/web/drizzle/migrations/`
+  - 管理者: `apps/frontend/drizzle`
+  - マイグレーション: `apps/frontend/drizzle/migrations/`
   - ORM: Drizzle
 - `core` スキーマ（業務系）
-  - 管理者: `apps/api/alembic`
-  - マイグレーション: `apps/api/alembic/versions/`
-  - ORM: SQLAlchemy（models は `apps/api/app/models/`）
+  - 管理者: `apps/backend/alembic`
+  - マイグレーション: `apps/backend/alembic/versions/`
+  - ORM: SQLAlchemy（models は `apps/backend/app/models/`）
 
 > **重要ポリシー**  
 > - `auth` は Web / Auth 領域のためのスキーマ、`core` は業務ドメインのためのスキーマです。  
@@ -78,7 +78,7 @@
 
 ---
 
-## 6. フロントエンド（apps/web）
+## 6. フロントエンド（apps/frontend）
 
 ### 6-1. 技術スタックと構成
 
@@ -88,7 +88,7 @@
 - UI : `shadcn/ui` を `components/ui/` 配下に集約
 - 状態管理 : `store/` で Zustand を使用
 - 認証 : Auth.js + Drizzle (`auth` スキーマ)
-- Drizzle : `apps/web/drizzle/`（`schema.ts`）+ `apps/web/drizzle.config.ts` + `apps/web/drizzle/migrations/`
+- Drizzle : `apps/frontend/drizzle/`（`schema.ts`）+ `apps/frontend/drizzle.config.ts` + `apps/frontend/drizzle/migrations/`
 
 ### 6-2. ディレクトリの主な役割
 
@@ -99,11 +99,11 @@
 - `utils/` : 汎用ユーティリティ
 - `store/` : Zustand ストア
 - `drizzle/` : Drizzle スキーマ（`schema.ts`）
-- 認証プロバイダ（Credentials / Microsoft Entra ID / GitHub）の有効化設定とクライアント情報は `apps/web/features/settings/auth` から管理され、DB の `auth_provider_configs` に保存されます。`.env` 内の `AUTH_*` 変数は初期値としてのみ利用してください（UI から更新した設定が優先されます）。
+- 認証プロバイダ（Credentials / Microsoft Entra ID / GitHub）の有効化設定とクライアント情報は `apps/frontend/features/settings/auth` から管理され、DB の `auth_provider_configs` に保存されます。`.env` 内の `AUTH_*` 変数は初期値としてのみ利用してください（UI から更新した設定が優先されます）。
 
 > **AGENT へ**:  
 > - ページ起点の UI は `app/`、機能単位の再利用可能 UI ロジックは `features/` に置く方針です。  
-> - DB スキーマの変更が必要な場合は、`apps/web/drizzle/schema.ts` と Drizzle migration をセットで扱ってください。
+> - DB スキーマの変更が必要な場合は、`apps/frontend/drizzle/schema.ts` と Drizzle migration をセットで扱ってください。
 
 ### 6-7. app ルータとクライアントコンポーネント配置ルール
 
@@ -123,7 +123,7 @@
 
 ### 6-3. Zustand 利用ルール
 
-- グローバル状態は `apps/web/store/` に集約し、ページ内で閉じる状態はローカル state を優先します。
+- グローバル状態は `apps/frontend/store/` に集約し、ページ内で閉じる状態はローカル state を優先します。
 - ストアは `useXxxStore` の命名に揃え、更新関数は action としてまとめます。
 
 ### 6-4. Zod 利用ルール
@@ -143,7 +143,7 @@
 
 ---
 
-## 7. バックエンド（apps/api）
+## 7. バックエンド（apps/backend）
 
 ### 7-1. 技術スタック
 
