@@ -1,7 +1,7 @@
 # 3pull-app
 
 <p>
-  <img src="docs/assets/3pull.png" alt="3pull character icon" width="96" />
+  <img src="docs/assets/3pull-app.png" alt="3pull character icon" />
 </p>
 
 モノレポ構成の Web + API + Infra スターターパックです。
@@ -130,6 +130,7 @@ JWT_AUDIENCE=3pull-api
 `JWT_PUBLIC_KEY` には `JWT_PUBLIC_KEY_ESCAPED` の値を貼り付けてください。
 
 注意:
+
 - `JWT_ISSUER` と `JWT_AUDIENCE` はフロントとバックで同じ値に揃えてください。
 - PEM を 1 行で持つため `\n` エスケープが必要です。
 
@@ -207,6 +208,7 @@ EMAIL_SENDER_ADDRESS=
 ```
 
 補足:
+
 - ソーシャルログインのみ利用する場合は、メール送信設定がなくても動作します。
 
 ### Frontend
