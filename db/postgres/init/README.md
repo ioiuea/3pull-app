@@ -1,29 +1,34 @@
-# Database Initialization
+# データベース初期化
 
-This directory contains initialization scripts for PostgreSQL.
+このディレクトリには PostgreSQL の初期化スクリプトがあります。
 
-## Azure Database for PostgreSQL Flexible Server
+## Azure Database for PostgreSQL Flexible Server 向け
 
-These scripts assume you connect via standard `PG*` environment variables (Azure Flexible Server compatible).
-Run them once during the initial setup of a new environment (they are idempotent, so re-running is safe).
+これらのスクリプトは、標準的な `PG*` 環境変数で接続する前提です（Azure Flexible Server 互換）。  
+新しい環境を作成した初回に一度実行してください。冪等に作られているため、再実行しても安全です。
 
-### What each script does
+### 各スクリプトの役割
 
-- `db/postgres/init/run_all.sh`:
-  - Runs all initialization scripts in order.
+- `db/postgres/init/run_all.sh`
+  - 初期化スクリプトを順番にすべて実行します。
 
-- `db/postgres/init/scripts/001_create_database.sh`:
-  - Connects to the default `postgres` database and creates the database specified by `PGDATABASE` if it does not exist.
-- `db/postgres/init/scripts/002_create_schema.sh`:
-  - Connects to `PGDATABASE` and creates `auth` and `core` schemas if they do not exist.
-- `db/postgres/init/scripts/003_roles.sh`:
-  - Creates the Web/API roles, grants minimum privileges, and hardens `PUBLIC` privileges.
-- `db/postgres/init/scripts/004_search_path.sh`:
-  - Sets per-role `search_path` defaults for `auth` (web) and `core,public` (api).
+- `db/postgres/init/scripts/001_create_database.sh`
+  - デフォルト DB `postgres` に接続し、`PGDATABASE` で指定した DB がなければ作成します。
 
-### Usage (run from the project root)
+- `db/postgres/init/scripts/002_create_schema.sh`
+  - `PGDATABASE` に接続し、`auth` と `core` スキーマを作成します（未作成時のみ）。
 
-#### 0) Set required environment variables (run once per shell)
+- `db/postgres/init/scripts/003_roles.sh`
+  - Web/API 用のロールを作成し、最小権限を付与し、`PUBLIC` 権限を制限します。
+
+- `db/postgres/init/scripts/004_search_path.sh`
+  - ロールごとの `search_path` 既定値を設定します。
+  - web 用: `auth`
+  - api 用: `core,public`
+
+### 実行方法（プロジェクトルートで実行）
+
+#### 0) 必要な環境変数を設定（シェルごとに1回）
 
 ```bash
 export PGHOST=test-3pull-db.postgres.database.azure.com
@@ -35,40 +40,40 @@ export WEB_APP_DB_USER=threepull_web
 export API_APP_DB_USER=threepull_api
 ```
 
-#### 1) Run all initialization scripts (run once)
+#### 1) 初期化スクリプトを一括実行（通常はこちら）
 
 ```bash
 bash db/postgres/init/run_all.sh
 ```
 
-Notes:
-- `PGDATABASE` is the name of the new database to create.
-- The script connects to the default database `postgres` for creation.
+補足:
+- `PGDATABASE` は新規作成するデータベース名です。
+- DB 作成ステップではデフォルト DB `postgres` に接続して作成します。
 
-#### 2) Run steps individually (optional)
+#### 2) ステップごとに個別実行（必要時）
 
-##### 2-1) Create the database (run once)
+##### 2-1) データベース作成
 
 ```bash
 bash db/postgres/init/scripts/001_create_database.sh
 ```
 
-##### 2-2) Create schemas (run once)
+##### 2-2) スキーマ作成
 
 ```bash
 bash db/postgres/init/scripts/002_create_schema.sh
 ```
 
-##### 2-3) Create roles (run once)
+##### 2-3) ロール作成・権限設定
 
 ```bash
 bash db/postgres/init/scripts/003_roles.sh
 ```
 
-##### 2-4) Set search_path defaults (run once)
+##### 2-4) `search_path` 既定値設定
 
 ```bash
 bash db/postgres/init/scripts/004_search_path.sh
 ```
 
-After the database is created, manage schema changes via Prisma (auth schema) and Alembic (core schema).
+データベース作成後のスキーマ変更は、`auth` は Drizzle、`core` は Alembic で管理してください。
