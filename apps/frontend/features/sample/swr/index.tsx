@@ -21,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_VERSION } from "@/const/app";
+import { fetchWithApiAuthRaw } from "@/lib/auth/api-fetch";
 import { type Locale } from "@/lib/i18n/locales";
 
 type Dictionary = typeof import("@/dictionaries/en.json");
@@ -47,7 +48,12 @@ export const SampleSwrClient = ({ dict, lang }: SampleSwrClientProps) => {
   const [query, setQuery] = useState("");
 
   const fetcher = async (url: string) => {
-    const response = await fetch(url);
+    const response = await fetchWithApiAuthRaw(url, {
+      cache: "no-store",
+    });
+    if (!response) {
+      throw new Error(sample.swr.fetchErrorMessage);
+    }
     if (!response.ok) {
       throw new Error(sample.swr.fetchErrorMessage);
     }

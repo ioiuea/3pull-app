@@ -4,9 +4,10 @@ SWR サンプル用 API ルーター。
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.v1.schemas.sample import SampleResponse
+from app.core.security.auth import ApiTokenPrincipal, get_current_principal
 from app.services.sample import build_sample_payload
 
 router = APIRouter(tags=["sample"])
@@ -20,6 +21,7 @@ router = APIRouter(tags=["sample"])
 )
 async def get_sample(
     response: Response,
+    _principal: ApiTokenPrincipal = Depends(get_current_principal),
     q: str = Query(
         default="",
         max_length=30,
