@@ -163,6 +163,52 @@ psql "$DATABASE_URL" -f apps/frontend/drizzle/migrations/0000_add_auth_models.sq
 
 ## 5) 起動方法
 
+### Frontend 起動前の認証設定
+
+#### Better Auth Secret を設定する
+
+`BETTER_AUTH_SECRET` は Better Auth のセッション保護に使う秘密値です。  
+十分に長いランダム文字列を生成して `apps/frontend/.env` に設定してください。
+
+生成例:
+
+```bash
+openssl rand -base64 32
+```
+
+設定:
+
+```env
+BETTER_AUTH_SECRET=<生成したランダム文字列>
+```
+
+#### Microsoft Entra ID を利用する場合
+
+以下のドキュメントを参照してアプリ登録を行い、必要値を取得してください。  
+https://learn.microsoft.com/ja-jp/entra/identity-platform/v2-protocols-oidc
+
+取得した値を `apps/frontend/.env` に設定します。
+
+```env
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_TENANT_ID=
+```
+
+#### メール認証（サインアップ）を利用する場合
+
+サインアップ時に確認メール送信が必要なため、Resend の API キーを用意してください。  
+次の値を `apps/frontend/.env` に設定します。
+
+```env
+RESEND_API_KEY=
+EMAIL_SENDER_NAME=
+EMAIL_SENDER_ADDRESS=
+```
+
+補足:
+- ソーシャルログインのみ利用する場合は、メール送信設定がなくても動作します。
+
 ### Frontend
 
 ```bash
@@ -197,14 +243,13 @@ uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app \
   --keep-alive ${GUNICORN_KEEPALIVE:-5}
 ```
 
-## 6) 動作確認（JWT 必須 API）
+## 6) 動作確認（フロントのヘルスチェックページ）
 
-```bash
-curl -H "Authorization: Bearer <api-jwt>" \
-  http://localhost:8000/backend/v1/healthz
-```
+1. フロントエンドを起動し、`http://localhost:3000/ja/health`（または `http://localhost:3000/en/health`）へアクセスします。
+2. ログイン済み状態で `ヘルスチェック実行` ボタンを押します。
+3. API 保護（JWT）付きで `GET /backend/v1/healthz` が呼ばれ、結果が画面に表示されます。
 
-`healthz` は Postgres について次の 2 段階を確認します。
+ヘルスチェックでは Postgres について次の 2 段階を確認します。
 
 - `postgres_tcp`: TCP 到達性
 - `postgres_sql`: SQL 実行可否（`SELECT 1`）
