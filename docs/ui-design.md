@@ -73,8 +73,8 @@ UI フレームワークは `shadcn/ui` を利用し、Tailwind CSS のブレー
 ```tsx
 <section className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 xl:px-8">
   <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:gap-6">
-    <Card className="min-h-[220px]" />
-    <Card className="min-h-[220px]" />
+    <Card className="min-h-55" />
+    <Card className="min-h-55" />
   </div>
 </section>
 ```
