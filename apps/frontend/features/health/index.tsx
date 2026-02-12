@@ -30,6 +30,11 @@ type HealthState = {
   status: HealthStatus;
   message?: string;
   checkedAt?: string;
+  payload?: {
+    app?: string;
+    now?: string;
+    version?: string;
+  };
 };
 
 export const HealthClient = ({ dict, lang }: HealthClientProps) => {
@@ -45,11 +50,21 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
       if (!response.ok) {
         throw new Error(`${health.errorPrefix} ${response.status}`);
       }
-      const data = (await response.json()) as { status?: string };
+      const data = (await response.json()) as {
+        status?: string;
+        app?: string;
+        now?: string;
+        version?: string;
+      };
       setState({
         status: "ok",
         message: data.status ?? health.okMessageFallback,
         checkedAt: new Date().toISOString(),
+        payload: {
+          app: data.app,
+          now: data.now,
+          version: data.version,
+        },
       });
     } catch (error) {
       setState({
@@ -140,7 +155,21 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                 <Alert>
                   <AlertTitle>{health.successTitle}</AlertTitle>
                   <AlertDescription>
-                    {health.responseLabel}: {state.message}
+                    <div>
+                      {health.responseLabel}: {state.message}
+                    </div>
+                    <div>
+                      {health.appLabel}: {state.payload?.app ?? "-"}
+                    </div>
+                    <div>
+                      {health.versionLabel}: {state.payload?.version ?? "-"}
+                    </div>
+                    <div>
+                      {health.nowLabel}:{" "}
+                      {state.payload?.now
+                        ? new Date(state.payload.now).toLocaleString(lang)
+                        : "-"}
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}

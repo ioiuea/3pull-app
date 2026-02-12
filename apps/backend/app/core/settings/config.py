@@ -40,8 +40,8 @@ def _load_dotenv_if_present(root_env_path: Path) -> None:
     load_dotenv(dotenv_path=root_env_path, override=False)
 
 
-# apps/backend/app/settings/config.py から 2 つ上 → apps/backend/
-_ROOT_ENV: Path = Path(__file__).resolve().parents[2] / ".env"
+# apps/backend/app/settings/config.py から 3つ上( apps/backend/ )
+_ROOT_ENV: Path = Path(__file__).resolve().parents[3] / ".env"
 _load_dotenv_if_present(_ROOT_ENV)
 
 

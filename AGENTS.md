@@ -154,6 +154,56 @@
 - structlog による構造化ログ
 - pytest / ruff / pyright
 
+### 7-2. バックエンド構成（推奨レイアウト）
+
+```text
+apps/backend/app/
+├── adapters/                   # 外部接続（インフラ層）
+│   ├── db/
+│   │   ├── engine.py
+│   │   └── session.py
+│   ├── llm/
+│   │   ├── openai_client.py
+│   │   └── claude_client.py
+├── models/                     # ORM / ドメインモデル（shared）
+├── repositories/               # データアクセス（shared, optional）
+├── services/                   # ビジネスロジック（shared）
+├── api/                        # API契約レイヤー（versioned）
+│   ├── v1/
+│   │   ├── routers/
+│   │   └── schemas/
+├── core/                       # 横断基盤（shared kernel）
+│   ├── settings/
+│   │   ├── config.py
+│   │   └── __init__.py
+│   ├── logging/
+│   │   ├── config.py
+│   │   └── middleware.py
+│   └── lifecycle/
+│       └── startup.py
+```
+
+### 7-3. レイヤー構造と依存方向
+
+```text
+client
+  ↓
+api/v1, v2   ← versioned
+  ↓
+services
+  ↓
+repositories
+  ↓
+adapters
+  ↓
+external systems
+```
+
+- 依存方向は上から下へのみ（逆参照禁止）。
+- `api` は `services` に依存してよいが、`services` は `api` に依存しない。
+- `repositories` は `adapters` を利用してよいが、`adapters` は `repositories` を参照しない。
+- `core` は shared kernel として全層から利用可能（全層 → `core`）。
+
 
 ## 11. AGENTS.md の運用ルール（必ず読んでください）
 
