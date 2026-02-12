@@ -1,25 +1,33 @@
+# このワークフローはモノレポ全体の CI（frontend + backend）を実行します。
 name: CI
 
 on:
+  # PR 作成/更新時に CI を実行
   pull_request:
+  # main ブランチへ push されたときにも CI を実行
   push:
     branches:
       - main
 
 jobs:
+  # Makefile の `all-ci` を実行する単一ジョブ
   all-ci:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
+      # リポジトリのソースコードを runner にチェックアウト
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Node.js とは別に pnpm コマンドを先に導入する
+      # （setup-node で pnpm キャッシュを使うため、先に pnpm が必要）
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
+      # Frontend 用に Node.js をセットアップし、pnpm 依存キャッシュを有効化
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -27,11 +35,13 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/frontend/pnpm-lock.yaml
 
+      # Backend 用に Python をセットアップ
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # Python 依存管理ツール uv をセットアップ（uv.lock ベースでキャッシュ）
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -39,11 +49,16 @@ jobs:
           enable-cache: true
           cache-dependency-glob: apps/backend/uv.lock
 
+      # Frontend 依存を lockfile 固定でインストール
       - name: Install frontend dependencies
         run: make frontend-install
 
+      # Backend 依存を lockfile 固定でインストール
       - name: Install backend dependencies
         run: make backend-install
 
+      # モノレポ全体 CI を実行
+      # - frontend: format/lint/typecheck/test
+      # - backend : format/lint/typecheck/test
       - name: Run all CI checks
         run: make all-ci
