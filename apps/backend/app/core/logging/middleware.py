@@ -57,13 +57,13 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         client = request.client.host if request.client else "-"
         method = request.method
         path = request.url.path
+        status = 500
 
         try:
             response = await call_next(request)
             status = response.status_code
         except Exception:
             # 例外時は500として記録し、再送出する
-            status = 500
             raise
         finally:
             elapsed_ms = (time.perf_counter() - started) * 1000.0

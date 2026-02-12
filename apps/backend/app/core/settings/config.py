@@ -15,8 +15,8 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # ---- dotenv（存在時に読み込み） ---------------------------------------------
+
 
 def _load_dotenv_if_present(root_env_path: Path) -> None:
     """
@@ -46,6 +46,7 @@ _load_dotenv_if_present(_ROOT_ENV)
 
 
 # ---- Settings model --------------------------------------------------------
+
 
 class AppSettings(BaseSettings):
     """

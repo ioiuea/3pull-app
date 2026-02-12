@@ -85,10 +85,6 @@ def tcp_ping(
     except socket.timeout:
         return False, _elapsed_ms(start_ns), "timeout"
 
-    except TimeoutError:
-        # タイムアウトは頻出のため明示的に扱う。
-        return False, _elapsed_ms(start_ns), "timeout"
-
     except ConnectionRefusedError as e:
         # ポート閉塞や未待受など。
         return False, _elapsed_ms(start_ns), str(e)

@@ -96,7 +96,9 @@ async def get_current_principal(
 
     return ApiTokenPrincipal(
         user_id=subject,
-        user_email=payload.get("email") if isinstance(payload.get("email"), str) else None,
+        user_email=payload.get("email")
+        if isinstance(payload.get("email"), str)
+        else None,
         user_name=payload.get("name") if isinstance(payload.get("name"), str) else None,
         email_verified=(
             payload.get("email_verified")

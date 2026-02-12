@@ -99,9 +99,7 @@ async def build_health_payload(db_session: AsyncSession) -> dict[str, Any]:
         )
 
     overall_status = (
-        "fail"
-        if any(dep.get("status") == "fail" for dep in dependencies)
-        else "ok"
+        "fail" if any(dep.get("status") == "fail" for dep in dependencies) else "ok"
     )
 
     return {
