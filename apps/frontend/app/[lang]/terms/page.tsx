@@ -18,9 +18,7 @@ const TermsPage = async ({ params }: TermsPageProps) => {
         </a>
       </div>
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {terms.title}
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{terms.title}</h1>
         <p className="text-sm text-muted-foreground">
           {terms.lastUpdatedLabel}: {terms.lastUpdatedValue}
         </p>

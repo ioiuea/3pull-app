@@ -32,7 +32,6 @@ type HealthClientProps = {
 
 type HealthStatus = "idle" | "loading" | "ok" | "error";
 
-
 type HealthState = {
   status: HealthStatus;
   message?: string;
@@ -107,7 +106,7 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
           now: data.now,
           version: data.version,
           dependencies: data.dependencies,
-        }
+        },
       });
     } catch (error) {
       setState({
@@ -128,14 +127,17 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
         Promise.resolve(authClient.getLastUsedLoginMethod()),
       ]);
       if (sessionResult.error) {
-        throw new Error(sessionResult.error.message ?? health.profileErrorFallback);
+        throw new Error(
+          sessionResult.error.message ?? health.profileErrorFallback,
+        );
       }
       const user = sessionResult.data?.user;
       if (!user) {
         throw new Error(health.profileNotAuthenticated);
       }
       const normalizedMethod = (lastLoginMethod ?? "unknown").toLowerCase();
-      const idpManaged = normalizedMethod !== "email" && normalizedMethod !== "unknown";
+      const idpManaged =
+        normalizedMethod !== "email" && normalizedMethod !== "unknown";
       setProfile({
         id: user.id,
         name: user.name,
@@ -218,24 +220,37 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={checkHealth} disabled={state.status === "loading"}>
+                <Button
+                  onClick={checkHealth}
+                  disabled={state.status === "loading"}
+                >
                   {health.checkButton}
                 </Button>
-                <Button onClick={loadProfile} disabled={isLoadingProfile} variant="secondary">
-                  {isLoadingProfile ? health.profileLoadingLabel : health.profileButton}
+                <Button
+                  onClick={loadProfile}
+                  disabled={isLoadingProfile}
+                  variant="secondary"
+                >
+                  {isLoadingProfile
+                    ? health.profileLoadingLabel
+                    : health.profileButton}
                 </Button>
                 {state.checkedAt && (
                   <span className="text-xs text-muted-foreground">
-                    {health.lastCheckedLabel}: {" "}
+                    {health.lastCheckedLabel}:{" "}
                     {new Date(state.checkedAt).toLocaleTimeString(lang)}
                   </span>
                 )}
               </div>
 
               {state.payload && (
-                <Alert variant={state.status === "error" ? "destructive" : "default"}>
+                <Alert
+                  variant={state.status === "error" ? "destructive" : "default"}
+                >
                   <AlertTitle>
-                    {state.status === "error" ? health.errorTitle : health.successTitle}
+                    {state.status === "error"
+                      ? health.errorTitle
+                      : health.successTitle}
                   </AlertTitle>
                   <AlertDescription>
                     <div>
@@ -256,15 +271,19 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                     <div className="mt-3 space-y-1">
                       <p className="font-semibold">{health.tokenTitle}</p>
                       <div>
-                        {health.tokenIssuerLabel}: {tokenMetadata?.issuer ?? "-"}
+                        {health.tokenIssuerLabel}:{" "}
+                        {tokenMetadata?.issuer ?? "-"}
                       </div>
                       <div>
-                        {health.tokenAudienceLabel}: {tokenMetadata?.audience ?? "-"}
+                        {health.tokenAudienceLabel}:{" "}
+                        {tokenMetadata?.audience ?? "-"}
                       </div>
                       <div>
                         {health.tokenExpiresAtLabel}:{" "}
                         {tokenMetadata?.expiresAt
-                          ? new Date(tokenMetadata.expiresAt * 1000).toLocaleString(lang)
+                          ? new Date(
+                              tokenMetadata.expiresAt * 1000,
+                            ).toLocaleString(lang)
                           : "-"}
                       </div>
                     </div>
@@ -320,7 +339,9 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
               {(profile || profileError) && (
                 <Alert variant={profileError ? "destructive" : "default"}>
                   <AlertTitle>
-                    {profileError ? health.profileErrorTitle : health.profileSuccessTitle}
+                    {profileError
+                      ? health.profileErrorTitle
+                      : health.profileSuccessTitle}
                   </AlertTitle>
                   <AlertDescription>
                     {profileError && <div>{profileError}</div>}
@@ -337,14 +358,19 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                         </div>
                         <div>
                           {health.profileEmailVerifiedLabel}:{" "}
-                          {profile.emailVerified ? health.profileYesLabel : health.profileNoLabel}
+                          {profile.emailVerified
+                            ? health.profileYesLabel
+                            : health.profileNoLabel}
                         </div>
                         <div>
-                          {health.profileAuthMethodLabel}: {profile.authMethod ?? "-"}
+                          {health.profileAuthMethodLabel}:{" "}
+                          {profile.authMethod ?? "-"}
                         </div>
                         <div>
                           {health.profileIdpManagedLabel}:{" "}
-                          {profile.idpManaged ? health.profileYesLabel : health.profileNoLabel}
+                          {profile.idpManaged
+                            ? health.profileYesLabel
+                            : health.profileNoLabel}
                         </div>
                       </div>
                     )}

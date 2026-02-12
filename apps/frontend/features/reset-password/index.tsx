@@ -112,7 +112,9 @@ export const ResetPasswordClient = ({ dict }: ResetPasswordClientProps) => {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{resetPassword.confirmPasswordLabel}</FormLabel>
+                        <FormLabel>
+                          {resetPassword.confirmPasswordLabel}
+                        </FormLabel>
                         <FormControl>
                           <Input {...field} type="password" />
                         </FormControl>

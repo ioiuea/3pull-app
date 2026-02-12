@@ -134,12 +134,12 @@ export async function getApiTokenMetadata(): Promise<ApiTokenMetadata | null> {
       typeof aud === "string"
         ? aud
         : Array.isArray(aud)
-          ? aud.filter((item): item is string => typeof item === "string").join(", ")
+          ? aud
+              .filter((item): item is string => typeof item === "string")
+              .join(", ")
           : undefined,
     expiresAt:
-      typeof payload.exp === "number"
-        ? payload.exp
-        : tokenInfo.expiresAt,
+      typeof payload.exp === "number" ? payload.exp : tokenInfo.expiresAt,
   };
 }
 
@@ -181,7 +181,8 @@ export async function fetchWithApiAuth<T = unknown>(
 
   const text = await response.text();
   try {
-    const data = text && text.length > 0 ? (JSON.parse(text) as T) : (null as T);
+    const data =
+      text && text.length > 0 ? (JSON.parse(text) as T) : (null as T);
     if (!response.ok) {
       return {
         ok: false,

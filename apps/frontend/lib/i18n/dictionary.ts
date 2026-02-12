@@ -16,8 +16,7 @@ const dictionaries = {
  * @param locale - サポートされるロケール
  * @returns 対応する辞書データ
  */
-export const getDictionary = async (locale: Locale) =>
-  dictionaries[locale]();
+export const getDictionary = async (locale: Locale) => dictionaries[locale]();
 
 /**
  * 文字列がサポートロケールかを判定する。

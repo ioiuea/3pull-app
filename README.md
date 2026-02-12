@@ -1,7 +1,7 @@
 # 3pull-app
 
 <p>
-  <img src="docs/assets/3pull-app.png" alt="3pull character icon" />
+  <img src="docs/assets/3pull-logo.png" alt="3pull character icon" />
 </p>
 
 モノレポ構成の Web + API + Infra スターターパックです。

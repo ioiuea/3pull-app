@@ -27,7 +27,9 @@ const OrganizationsPage = async ({ params }: OrganizationsPageProps) => {
     <div className="flex h-screen flex-col items-center justify-center gap-2">
       <Dialog>
         <DialogTrigger asChild>
-          <Button variant="outline">{organizations.createOrganizationCta}</Button>
+          <Button variant="outline">
+            {organizations.createOrganizationCta}
+          </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -44,9 +46,7 @@ const OrganizationsPage = async ({ params }: OrganizationsPageProps) => {
         <h2 className="font-bold text-2xl">Organizations</h2>
         {orgs.map((org) => (
           <Button asChild key={org.id} variant="outline">
-            <Link href={`/${lang}/organizations/${org.slug}`}>
-              {org.name}
-            </Link>
+            <Link href={`/${lang}/organizations/${org.slug}`}>{org.name}</Link>
           </Button>
         ))}
       </div>

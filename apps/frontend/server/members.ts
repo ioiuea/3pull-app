@@ -9,7 +9,7 @@ import { isAdmin } from "./permissions";
 export const addMember = async (
   organizationId: string,
   userId: string,
-  role: Role
+  role: Role,
 ) => {
   try {
     await auth.api.addMember({

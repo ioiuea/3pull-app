@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ORM
+    "drizzle/**",
+    // Generated/third-party style UI primitives are excluded from CI linting.
+    "components/ui/**",
+    // Unit Test
+    "test/**"
   ]),
 ]);
 

@@ -57,7 +57,7 @@ export const signIn = async (email: string, password: string) => {
 export const signUp = async (
   email: string,
   password: string,
-  username: string
+  username: string,
 ) => {
   const startTime = Date.now();
   try {
@@ -75,7 +75,7 @@ export const signUp = async (
         ? await Promise.race([
             signUpPromise,
             new Promise<"__timeout__">((resolve) =>
-              setTimeout(() => resolve("__timeout__"), timeoutMs)
+              setTimeout(() => resolve("__timeout__"), timeoutMs),
             ),
           ])
         : await signUpPromise;
@@ -148,8 +148,7 @@ export const signUp = async (
           });
           return {
             success: true,
-            message:
-              "User already exists. Verification email has been resent.",
+            message: "User already exists. Verification email has been resent.",
           };
         } catch (resendError) {
           console.error("[signUp] resend verification failed", resendError);
@@ -181,8 +180,8 @@ export const getUsers = async (organizationId: string) => {
       where: not(
         inArray(
           user.id,
-          members.map((m) => m.userId)
-        )
+          members.map((m) => m.userId),
+        ),
       ),
     });
 

@@ -48,7 +48,8 @@ const getRequiredEnv = (name: string): string => {
  * 例:
  * `-----BEGIN...\\nABC...\\n-----END...` -> 実際の改行を含むPEM文字列
  */
-const normalizePem = (value: string): string => value.replace(/\\n/g, "\n").trim();
+const normalizePem = (value: string): string =>
+  value.replace(/\\n/g, "\n").trim();
 
 /**
  * Better Auth セッションで同定したユーザー情報をもとに、

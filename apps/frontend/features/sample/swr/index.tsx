@@ -150,7 +150,9 @@ export const SampleSwrClient = ({ dict, lang }: SampleSwrClientProps) => {
               {data && data.items.length === 0 && (
                 <Alert>
                   <AlertTitle>{sample.swr.emptyTitle}</AlertTitle>
-                  <AlertDescription>{sample.swr.emptyDescription}</AlertDescription>
+                  <AlertDescription>
+                    {sample.swr.emptyDescription}
+                  </AlertDescription>
                 </Alert>
               )}
               {data && (
