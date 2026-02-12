@@ -15,7 +15,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { API_VERSION } from "@/const/app";
-import { fetchWithApiAuthRaw } from "@/lib/auth/api-fetch";
+import {
+  fetchWithApiAuthRaw,
+  getApiTokenMetadata,
+  type ApiTokenMetadata,
+} from "@/lib/auth/api-fetch";
+import { authClient } from "@/lib/auth/client";
 import { type Locale } from "@/lib/i18n/locales";
 
 type Dictionary = typeof import("@/dictionaries/en.json");
@@ -26,6 +31,7 @@ type HealthClientProps = {
 };
 
 type HealthStatus = "idle" | "loading" | "ok" | "error";
+
 
 type HealthState = {
   status: HealthStatus;
@@ -48,12 +54,28 @@ type HealthState = {
 export const HealthClient = ({ dict, lang }: HealthClientProps) => {
   const { health } = dict;
   const [state, setState] = useState<HealthState>({ status: "idle" });
+  const [tokenMetadata, setTokenMetadata] = useState<ApiTokenMetadata | null>(
+    null,
+  );
+  const [profile, setProfile] = useState<{
+    id?: string;
+    name?: string;
+    email?: string;
+    emailVerified?: boolean;
+    authMethod?: string;
+    idpManaged?: boolean;
+  } | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const endpoint = `/backend/${API_VERSION}/healthz`;
 
   const checkHealth = useCallback(async () => {
     setState({ status: "loading" });
     try {
+      const metadata = await getApiTokenMetadata();
+      setTokenMetadata(metadata);
+
       const response = await fetchWithApiAuthRaw(endpoint, {
         cache: "no-store",
       });
@@ -85,7 +107,7 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
           now: data.now,
           version: data.version,
           dependencies: data.dependencies,
-        },
+        }
       });
     } catch (error) {
       setState({
@@ -96,6 +118,41 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
       });
     }
   }, [endpoint, health]);
+
+  const loadProfile = useCallback(async () => {
+    setIsLoadingProfile(true);
+    setProfileError(null);
+    try {
+      const [sessionResult, lastLoginMethod] = await Promise.all([
+        authClient.getSession(),
+        Promise.resolve(authClient.getLastUsedLoginMethod()),
+      ]);
+      if (sessionResult.error) {
+        throw new Error(sessionResult.error.message ?? health.profileErrorFallback);
+      }
+      const user = sessionResult.data?.user;
+      if (!user) {
+        throw new Error(health.profileNotAuthenticated);
+      }
+      const normalizedMethod = (lastLoginMethod ?? "unknown").toLowerCase();
+      const idpManaged = normalizedMethod !== "email" && normalizedMethod !== "unknown";
+      setProfile({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: Boolean(user.emailVerified),
+        authMethod: lastLoginMethod ?? "unknown",
+        idpManaged,
+      });
+    } catch (error) {
+      setProfile(null);
+      setProfileError(
+        error instanceof Error ? error.message : health.profileErrorFallback,
+      );
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [health.profileErrorFallback, health.profileNotAuthenticated]);
 
   const statusLabel = useMemo(() => {
     if (state.status === "loading") return health.loadingLabel;
@@ -164,6 +221,9 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                 <Button onClick={checkHealth} disabled={state.status === "loading"}>
                   {health.checkButton}
                 </Button>
+                <Button onClick={loadProfile} disabled={isLoadingProfile} variant="secondary">
+                  {isLoadingProfile ? health.profileLoadingLabel : health.profileButton}
+                </Button>
                 {state.checkedAt && (
                   <span className="text-xs text-muted-foreground">
                     {health.lastCheckedLabel}: {" "}
@@ -192,6 +252,21 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                       {state.payload?.now
                         ? new Date(state.payload.now).toLocaleString(lang)
                         : "-"}
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      <p className="font-semibold">{health.tokenTitle}</p>
+                      <div>
+                        {health.tokenIssuerLabel}: {tokenMetadata?.issuer ?? "-"}
+                      </div>
+                      <div>
+                        {health.tokenAudienceLabel}: {tokenMetadata?.audience ?? "-"}
+                      </div>
+                      <div>
+                        {health.tokenExpiresAtLabel}:{" "}
+                        {tokenMetadata?.expiresAt
+                          ? new Date(tokenMetadata.expiresAt * 1000).toLocaleString(lang)
+                          : "-"}
+                      </div>
                     </div>
                     <div className="mt-3 space-y-2">
                       <p className="font-semibold">
@@ -238,6 +313,41 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                         );
                       })}
                     </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {(profile || profileError) && (
+                <Alert variant={profileError ? "destructive" : "default"}>
+                  <AlertTitle>
+                    {profileError ? health.profileErrorTitle : health.profileSuccessTitle}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {profileError && <div>{profileError}</div>}
+                    {profile && (
+                      <div className="space-y-1">
+                        <div>
+                          {health.profileIdLabel}: {profile.id ?? "-"}
+                        </div>
+                        <div>
+                          {health.profileNameLabel}: {profile.name ?? "-"}
+                        </div>
+                        <div>
+                          {health.profileEmailLabel}: {profile.email ?? "-"}
+                        </div>
+                        <div>
+                          {health.profileEmailVerifiedLabel}:{" "}
+                          {profile.emailVerified ? health.profileYesLabel : health.profileNoLabel}
+                        </div>
+                        <div>
+                          {health.profileAuthMethodLabel}: {profile.authMethod ?? "-"}
+                        </div>
+                        <div>
+                          {health.profileIdpManagedLabel}:{" "}
+                          {profile.idpManaged ? health.profileYesLabel : health.profileNoLabel}
+                        </div>
+                      </div>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}

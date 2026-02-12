@@ -59,11 +59,6 @@ curl -H "Authorization: Bearer <api-jwt>" \
   http://localhost:8000/backend/v1/healthz
 ```
 
-## 動作確認（JWT検証）
-
-Bearer JWT を渡すと、署名検証してユーザー情報を返します。
-
-```bash
-curl -H "Authorization: Bearer <api-jwt>" \
-  http://localhost:8000/backend/v1/me
-```
+`healthz` は Postgres について次の 2 段階で確認します。
+- `postgres_tcp`: TCP レベル到達性
+- `postgres_sql`: SQL レベル実行可否（`SELECT 1`）

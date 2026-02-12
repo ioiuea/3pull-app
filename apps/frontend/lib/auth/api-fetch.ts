@@ -22,6 +22,15 @@ type TokenCache = {
   expiresAt: number | null;
 };
 
+/**
+ * API 用 JWT から画面表示に使う主要クレーム。
+ */
+export type ApiTokenMetadata = {
+  issuer?: string;
+  audience?: string;
+  expiresAt?: number;
+};
+
 /** JWT を取得するフロントエンド API エンドポイント。 */
 const ACCESS_TOKEN_ENDPOINT = "/api/auth/access-token";
 
@@ -79,6 +88,59 @@ async function getAccessToken(): Promise<{
   tokenCache.expiresAt = body.expiresAt;
 
   return body;
+}
+
+const parseJwtPayload = (token: string): Record<string, unknown> | null => {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const normalized = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+
+  try {
+    const decoded = atob(normalized);
+    return JSON.parse(decoded) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 現在の API 用 JWT から `iss` / `aud` / `exp` を取得する。
+ *
+ * 画面表示向けの補助情報であり、認証判定には利用しない。
+ *
+ * @returns 取得できたトークンメタ情報（未認証時は `null`）
+ */
+export async function getApiTokenMetadata(): Promise<ApiTokenMetadata | null> {
+  const tokenInfo = await getAccessToken();
+  if (!tokenInfo) {
+    return null;
+  }
+
+  const payload = parseJwtPayload(tokenInfo.accessToken);
+  if (!payload) {
+    return {
+      expiresAt: tokenInfo.expiresAt,
+    };
+  }
+
+  const aud = payload.aud;
+  return {
+    issuer: typeof payload.iss === "string" ? payload.iss : undefined,
+    audience:
+      typeof aud === "string"
+        ? aud
+        : Array.isArray(aud)
+          ? aud.filter((item): item is string => typeof item === "string").join(", ")
+          : undefined,
+    expiresAt:
+      typeof payload.exp === "number"
+        ? payload.exp
+        : tokenInfo.expiresAt,
+  };
 }
 
 /**

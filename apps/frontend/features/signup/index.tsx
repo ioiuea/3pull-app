@@ -66,7 +66,7 @@ export const SignupClient = ({ dict }: SignupClientProps) => {
       toast.success(
         `${message as string} Please check your email for verification.`,
       );
-      router.push("/organization");
+      router.push("/");
     } else {
       toast.error(message as string);
     }

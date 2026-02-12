@@ -72,7 +72,7 @@ export const LoginClient = ({ dict }: LoginClientProps) => {
 
     if (success) {
       toast.success(message as string);
-      router.push("/organization");
+      router.push("/");
     } else {
       toast.error(message as string);
     }

@@ -32,6 +32,9 @@ const HomePage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
           <Button asChild variant="outline">
             <Link href={`/${lang}/sample`}>Sample</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href={`/${lang}/health`}>Health</Link>
+          </Button>
         </div>
       </div>
     </>
