@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/drizzle/drizzle";
 import { member, type Role } from "@/drizzle/schema";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { isAdmin } from "./permissions";
 
 export const addMember = async (

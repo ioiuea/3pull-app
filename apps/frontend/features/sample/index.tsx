@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { type Locale } from "@/lib/i18n";
+import { type Locale } from "@/lib/i18n/locales";
 
 type Dictionary = typeof import("@/dictionaries/en.json");
 

@@ -1,6 +1,6 @@
 import { HealthClient } from "@/features/health";
-import { getDictionary } from "@/lib/dictionaries";
-import { type Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { type Locale } from "@/lib/i18n/locales";
 
 type HealthPageProps = {
   params: Promise<{ lang: Locale }>;

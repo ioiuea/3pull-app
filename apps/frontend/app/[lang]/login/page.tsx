@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { APP_NAME } from "@/const/app";
 import { LoginClient } from "@/features/login";
-import { getDictionary } from "@/lib/dictionaries";
-import { type Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { type Locale } from "@/lib/i18n/locales";
 
 const LoginPage = async ({ params }: { params: Promise<{ lang: Locale }> }) => {
   const { lang } = await params;

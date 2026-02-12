@@ -20,7 +20,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from app.adapters.network import tcp_ping
-from app.core.settings.config import get_settings
+from app.core.settings import get_settings
 
 
 def _host_port_from_url(url: str | None, default_port: int) -> tuple[str, int] | None:

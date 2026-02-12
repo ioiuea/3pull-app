@@ -88,6 +88,7 @@
 - UI : `shadcn/ui` を `components/ui/` 配下に集約
 - 状態管理 : `store/` で Zustand を使用
 - 認証 : Auth.js + Drizzle (`auth` スキーマ)
+- API 呼び出し用トークン : Better Auth セッションを `app/api/auth/access-token` で短命 JWT に変換し、バックエンドへ Bearer で送信
 - Drizzle : `apps/frontend/drizzle/`（`schema.ts`）+ `apps/frontend/drizzle.config.ts` + `apps/frontend/drizzle/migrations/`
 
 ### 6-2. ディレクトリの主な役割
@@ -149,6 +150,7 @@
 
 - FastAPI
 - SQLAlchemy + Alembic
+- JWT 検証（RS256 公開鍵）
 - uv（Python 依存管理）
 - Pydantic Settings による設定・環境変数管理
 - structlog による構造化ログ
@@ -159,8 +161,7 @@
 ```text
 apps/backend/app/
 ├── adapters/                   # 外部接続（インフラ層）
-│   ├── db/
-│   │   ├── engine.py
+│   ├── postgres/
 │   │   └── session.py
 │   ├── llm/
 │   │   ├── openai_client.py
@@ -173,6 +174,8 @@ apps/backend/app/
 │   │   ├── routers/
 │   │   └── schemas/
 ├── core/                       # 横断基盤（shared kernel）
+│   ├── security/
+│   │   └── auth.py
 │   ├── settings/
 │   │   ├── config.py
 │   │   └── __init__.py
@@ -203,6 +206,13 @@ external systems
 - `api` は `services` に依存してよいが、`services` は `api` に依存しない。
 - `repositories` は `adapters` を利用してよいが、`adapters` は `repositories` を参照しない。
 - `core` は shared kernel として全層から利用可能（全層 → `core`）。
+
+### 7-4. `__init__.py` の統一ルール
+
+- `__init__.py` は原則として **必要最小限の再エクスポートのみ** を記述します。
+- 特定フォルダ専用の例外を作らず、`apps/backend/app/**/__init__.py` 全体に同じ方針を適用します。
+- `__init__.py` で公開するのは、呼び出し側の import を簡潔にするために実際に必要な関数・定数に限定します。
+- 型定義や内部実装詳細は、複数箇所で直接利用する明確な要件がある場合のみ `__init__.py` へ追加してください。
 
 
 ## 11. AGENTS.md の運用ルール（必ず読んでください）

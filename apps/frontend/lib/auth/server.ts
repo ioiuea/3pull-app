@@ -10,7 +10,7 @@ import { APP_URL } from "@/const/app";
 import { db } from "@/drizzle/drizzle";
 import { schema } from "@/drizzle/schema";
 import { getActiveOrganization } from "@/server/organizations";
-import { admin, member, owner } from "./auth/permissions";
+import { admin, member, owner } from "./access-control";
 
 const resend = new Resend(process.env.RESEND_API_KEY as string);
 

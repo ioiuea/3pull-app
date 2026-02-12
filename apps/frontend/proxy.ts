@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { match as matchLocale } from "@formatjs/intl-localematcher";
 import Negotiator from "negotiator";
 import { PUBLIC_PATHS } from "@/const/public-routes";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/i18n";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/i18n/locales";
 
 const LOCALE_COOKIE = "locale";
 

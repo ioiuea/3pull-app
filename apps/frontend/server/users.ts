@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/drizzle/drizzle";
 import { member, user } from "@/drizzle/schema";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 
 export const getCurrentUser = async () => {
   const session = await auth.api.getSession({

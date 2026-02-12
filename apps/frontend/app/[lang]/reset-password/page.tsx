@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { APP_NAME } from "@/const/app";
 import { ResetPasswordClient } from "@/features/reset-password";
-import { getDictionary } from "@/lib/dictionaries";
-import { type Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { type Locale } from "@/lib/i18n/locales";
 
 const ResetPasswordPage = async ({
   params,

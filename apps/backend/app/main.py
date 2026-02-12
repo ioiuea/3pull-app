@@ -12,11 +12,12 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.core.settings.config import get_settings
+from app.core.settings import get_settings
 from app.core.lifecycle.startup import lifespan
 from app.core.logging.middleware import AccessLogMiddleware
 from app.api.internal.probes import router as probes_router
 from app.api.v1.routers.health import router as health_router
+from app.api.v1.routers.me import router as me_router
 
 
 def create_app() -> FastAPI:
@@ -38,6 +39,10 @@ def create_app() -> FastAPI:
     # 公開APIは /backend/<api_version> に集約（例：/backend/v1）
     application.include_router(
         health_router,
+        prefix=f"/backend/{application.version}",
+    )
+    application.include_router(
+        me_router,
         prefix=f"/backend/{application.version}",
     )
 

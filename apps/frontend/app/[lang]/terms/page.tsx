@@ -1,5 +1,5 @@
-import { type Locale } from "@/lib/i18n";
-import { getDictionary } from "@/lib/dictionaries";
+import { type Locale } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 type TermsPageProps = {
   params: Promise<{ lang: Locale }>;

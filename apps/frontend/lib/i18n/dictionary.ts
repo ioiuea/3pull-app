@@ -1,5 +1,5 @@
 import "server-only";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "./locales";
 
 /**
  * 利用可能な辞書ローダー。

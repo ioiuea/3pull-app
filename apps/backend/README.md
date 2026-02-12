@@ -21,6 +21,10 @@ GUNICORN_WORKERS=2
 GUNICORN_THREADS=1
 GUNICORN_TIMEOUT=60
 GUNICORN_KEEPALIVE=5
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/3pull
+JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+JWT_ISSUER=3pull-web
+JWT_AUDIENCE=3pull-api
 ```
 
 ### 2) 依存関係のインストール
@@ -48,8 +52,18 @@ uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app \
   --keep-alive ${GUNICORN_KEEPALIVE:-5}
 ```
 
-## 動作確認（ヘルスチェック）
+## 動作確認（ヘルスチェック / JWT 必須）
 
 ```bash
-curl http://localhost:8000/backend/v1/healthz
+curl -H "Authorization: Bearer <api-jwt>" \
+  http://localhost:8000/backend/v1/healthz
+```
+
+## 動作確認（JWT検証）
+
+Bearer JWT を渡すと、署名検証してユーザー情報を返します。
+
+```bash
+curl -H "Authorization: Bearer <api-jwt>" \
+  http://localhost:8000/backend/v1/me
 ```

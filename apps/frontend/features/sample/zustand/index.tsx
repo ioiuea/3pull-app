@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type Locale } from "@/lib/i18n";
+import { type Locale } from "@/lib/i18n/locales";
 import useSampleStore from "@/store/sampleStore";
 
 type Dictionary = typeof import("@/dictionaries/en.json");

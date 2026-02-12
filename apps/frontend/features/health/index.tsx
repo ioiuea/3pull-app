@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { API_VERSION } from "@/const/app";
-import { type Locale } from "@/lib/i18n";
+import { fetchWithApiAuthRaw } from "@/lib/auth/api-fetch";
+import { type Locale } from "@/lib/i18n/locales";
 
 type Dictionary = typeof import("@/dictionaries/en.json");
 
@@ -53,7 +54,12 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
   const checkHealth = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const response = await fetch(endpoint, { cache: "no-store" });
+      const response = await fetchWithApiAuthRaw(endpoint, {
+        cache: "no-store",
+      });
+      if (!response) {
+        throw new Error(`${health.errorPrefix} 401`);
+      }
       if (!response.ok) {
         throw new Error(`${health.errorPrefix} ${response.status}`);
       }

@@ -80,6 +80,20 @@ class AppSettings(BaseSettings):
         validation_alias="DATABASE_URL",
     )
 
+    # ---- API JWT Auth ----
+    jwt_public_key: str | None = Field(
+        default=None,
+        validation_alias="JWT_PUBLIC_KEY",
+    )
+    jwt_issuer: str | None = Field(
+        default=None,
+        validation_alias="JWT_ISSUER",
+    )
+    jwt_audience: str | None = Field(
+        default=None,
+        validation_alias="JWT_AUDIENCE",
+    )
+
     model_config = SettingsConfigDict(
         case_sensitive=False,
         extra="ignore",

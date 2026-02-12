@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Organization } from "@/drizzle/schema";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/client";
 
 type OrganizationSwitcherClientProps = {
   orgs: Organization[];

@@ -11,9 +11,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.api.v1.schemas.health import HealthzResponse
+from app.core.security.auth import ApiTokenPrincipal, get_current_principal
 from app.services.health import build_health_payload
 
 router = APIRouter(tags=["health"])
@@ -24,7 +25,9 @@ router = APIRouter(tags=["health"])
     summary="Health",
     response_model=HealthzResponse,
 )
-def get_healthz() -> HealthzResponse:
+def get_healthz(
+    _principal: ApiTokenPrincipal = Depends(get_current_principal),
+) -> HealthzResponse:
     """
     ヘルスチェック結果を返す。
 

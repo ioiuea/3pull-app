@@ -1,6 +1,6 @@
 import { SampleClient } from "@/features/sample";
-import { getDictionary } from "@/lib/dictionaries";
-import { type Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { type Locale } from "@/lib/i18n/locales";
 
 type SamplePageProps = {
   params: Promise<{ lang: Locale }>;

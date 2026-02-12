@@ -9,8 +9,8 @@ import { OrganizationSwitcher } from "@/components/sample-switcher/organization-
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_DESCRIPTION, APP_NAME } from "@/const/app";
-import { auth } from "@/lib/auth";
-import { getLang } from "@/lib/dictionaries";
+import { auth } from "@/lib/auth/server";
+import { getLang } from "@/lib/i18n/dictionary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

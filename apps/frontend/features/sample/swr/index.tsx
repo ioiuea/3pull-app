@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/item";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type Locale } from "@/lib/i18n";
+import { type Locale } from "@/lib/i18n/locales";
 
 type Dictionary = typeof import("@/dictionaries/en.json");
 
