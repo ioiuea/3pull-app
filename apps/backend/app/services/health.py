@@ -16,25 +16,75 @@ Pydantic との責務分離:
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
+from urllib.parse import urlsplit
 
+from app.adapters.network import tcp_ping
 from app.core.settings.config import get_settings
 
 
-def build_health_payload() -> dict[str, str | datetime]:
+def _host_port_from_url(url: str | None, default_port: int) -> tuple[str, int] | None:
+    """
+    Extract host and port from DSN-like URL.
+    / DSN 形式のURLから host/port を抽出する
+    """
+    if not url:
+        return None
+
+    parsed = urlsplit(url)
+    if not parsed.hostname:
+        return None
+
+    try:
+        port = parsed.port or default_port
+    except ValueError:
+        return None
+
+    return parsed.hostname, port
+
+
+def build_health_payload() -> dict[str, Any]:
     """
     ヘルスチェック応答の元データを生成する。
 
     Returns:
-        dict[str, str | datetime]:
+        dict[str, Any]:
             API バージョン非依存のヘルス情報。
             具体的なレスポンススキーマへの変換・検証は router 側で
             Pydantic (`HealthzResponse`) により実施する。
     """
 
-    settings = get_settings()
+    s = get_settings()
+    dependencies: list[dict[str, object]] = []
+
+    # Postgres
+    pg = _host_port_from_url(s.database_url, 5432)
+    if pg:
+        ok, ms, err = tcp_ping(pg[0], pg[1])
+        dependencies.append(
+            {
+                "name": "postgres",
+                "target": f"{pg[0]}:{pg[1]}",
+                "status": "ok" if ok else "fail",
+                "latency_ms": ms,
+                "error": err,
+            }
+        )
+    else:
+        dependencies.append(
+            {"name": "postgres", "target": "(not configured)", "status": "skipped"}
+        )
+
+    overall_status = (
+        "fail"
+        if any(dep.get("status") == "fail" for dep in dependencies)
+        else "ok"
+    )
+
     return {
-        "status": "ok",
-        "app": settings.service_name,
+        "status": overall_status,
+        "app": s.service_name,
         "now": datetime.now(tz=UTC),
-        "version": settings.api_version,
+        "version": s.api_version,
+        "dependencies": dependencies,
     }

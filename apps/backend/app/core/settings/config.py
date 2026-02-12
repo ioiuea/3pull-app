@@ -74,6 +74,12 @@ class AppSettings(BaseSettings):
         validation_alias="API_PORT",
     )
 
+    # ---- Databases ----
+    database_url: str | None = Field(
+        default=None,
+        validation_alias="DATABASE_URL",
+    )
+
     model_config = SettingsConfigDict(
         case_sensitive=False,
         extra="ignore",

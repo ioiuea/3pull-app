@@ -34,6 +34,13 @@ type HealthState = {
     app?: string;
     now?: string;
     version?: string;
+    dependencies?: Array<{
+      name?: string;
+      target?: string;
+      status?: "ok" | "fail" | "skipped";
+      latency_ms?: number | null;
+      error?: string | null;
+    }>;
   };
 };
 
@@ -55,15 +62,23 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
         app?: string;
         now?: string;
         version?: string;
+        dependencies?: Array<{
+          name?: string;
+          target?: string;
+          status?: "ok" | "fail" | "skipped";
+          latency_ms?: number | null;
+          error?: string | null;
+        }>;
       };
       setState({
-        status: "ok",
+        status: data.status === "fail" ? "error" : "ok",
         message: data.status ?? health.okMessageFallback,
         checkedAt: new Date().toISOString(),
         payload: {
           app: data.app,
           now: data.now,
           version: data.version,
+          dependencies: data.dependencies,
         },
       });
     } catch (error) {
@@ -151,9 +166,11 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                 )}
               </div>
 
-              {state.status === "ok" && (
-                <Alert>
-                  <AlertTitle>{health.successTitle}</AlertTitle>
+              {state.payload && (
+                <Alert variant={state.status === "error" ? "destructive" : "default"}>
+                  <AlertTitle>
+                    {state.status === "error" ? health.errorTitle : health.successTitle}
+                  </AlertTitle>
                   <AlertDescription>
                     <div>
                       {health.responseLabel}: {state.message}
@@ -170,11 +187,56 @@ export const HealthClient = ({ dict, lang }: HealthClientProps) => {
                         ? new Date(state.payload.now).toLocaleString(lang)
                         : "-"}
                     </div>
+                    <div className="mt-3 space-y-2">
+                      <p className="font-semibold">
+                        {health.dependenciesTitle}
+                      </p>
+                      {(state.payload?.dependencies?.length ?? 0) === 0 && (
+                        <p className="text-muted-foreground">
+                          {health.dependenciesEmptyLabel}
+                        </p>
+                      )}
+                      {state.payload?.dependencies?.map((dependency, index) => {
+                        const depStatus = dependency.status ?? "skipped";
+                        const depVariant =
+                          depStatus === "ok"
+                            ? ("secondary" as const)
+                            : depStatus === "fail"
+                              ? ("destructive" as const)
+                              : ("outline" as const);
+
+                        return (
+                          <div
+                            key={`${dependency.name ?? "dependency"}-${index}`}
+                            className="rounded-md border p-3"
+                          >
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="font-medium">
+                                {dependency.name ?? "-"}
+                              </span>
+                              <Badge variant={depVariant}>{depStatus}</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {health.dependencyTargetLabel}:{" "}
+                              {dependency.target ?? "-"}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {health.dependencyLatencyLabel}:{" "}
+                              {dependency.latency_ms ?? "-"}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {health.dependencyErrorLabel}:{" "}
+                              {dependency.error ?? "-"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}
 
-              {state.status === "error" && (
+              {state.status === "error" && !state.payload && (
                 <Alert variant="destructive">
                   <AlertTitle>{health.errorTitle}</AlertTitle>
                   <AlertDescription>{state.message}</AlertDescription>
