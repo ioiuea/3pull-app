@@ -14,6 +14,7 @@ from fastapi import FastAPI
 
 from app.api.internal.probes import router as probes_router
 from app.api.v1.routers.health import router as health_router
+from app.api.v1.routers.sample import router as sample_router
 from app.core.lifecycle.startup import lifespan
 from app.core.logging.middleware import AccessLogMiddleware
 from app.core.settings import get_settings
@@ -38,6 +39,10 @@ def create_app() -> FastAPI:
     # 公開APIは /backend/<api_version> に集約（例：/backend/v1）
     application.include_router(
         health_router,
+        prefix=f"/backend/{application.version}",
+    )
+    application.include_router(
+        sample_router,
         prefix=f"/backend/{application.version}",
     )
 

@@ -4,7 +4,7 @@ BACKEND_DIR := apps/backend
 # ------------------------------
 # Frontend CI targets
 # ------------------------------
-.PHONY: frontend-install frontend-format frontend-format-fix frontend-lint frontend-lint-fix frontend-typecheck frontend-test frontend-ci
+.PHONY: frontend-install frontend-format frontend-format-fix frontend-lint frontend-lint-fix frontend-typecheck frontend-test frontend-ci all-ci
 
 frontend-install:
 	pnpm --dir $(FRONTEND_DIR) install --frozen-lockfile
@@ -55,4 +55,9 @@ backend-typecheck:
 backend-test:
 	uv --directory $(BACKEND_DIR) run pytest
 
-backend-ci: backend-format backend-lint backend-typecheck
+backend-ci: backend-format backend-lint backend-typecheck backend-test
+
+# ------------------------------
+# Monorepo CI target
+# ------------------------------
+all-ci: frontend-ci backend-ci

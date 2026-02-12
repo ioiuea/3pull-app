@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/item";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { API_VERSION } from "@/const/app";
 import { type Locale } from "@/lib/i18n/locales";
 
 type Dictionary = typeof import("@/dictionaries/en.json");
@@ -55,7 +56,7 @@ export const SampleSwrClient = ({ dict, lang }: SampleSwrClientProps) => {
   };
 
   const { data, error, isLoading } = useSWR(
-    `/api/sample?q=${encodeURIComponent(query)}`,
+    `/backend/${API_VERSION}/sample?q=${encodeURIComponent(query)}`,
     fetcher,
   );
 
