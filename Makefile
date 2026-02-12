@@ -60,4 +60,5 @@ backend-ci: backend-format backend-lint backend-typecheck backend-test
 # ------------------------------
 # Monorepo CI target
 # ------------------------------
+all-install: frontend-install backend-install
 all-ci: frontend-ci backend-ci
