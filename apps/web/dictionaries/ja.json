@@ -140,6 +140,27 @@
       "updatedLabel": "更新"
     }
   },
+  "health": {
+    "badge": "ヘルスチェック",
+    "title": "API ヘルスチェック",
+    "description": "FastAPI のヘルスチェックを呼び出して結果を表示します。",
+    "cardTitle": "ステータス",
+    "cardDescription": "ボタンを押してバックエンドにリクエストします。",
+    "endpointLabel": "エンドポイント",
+    "checkButton": "ヘルスチェック実行",
+    "lastCheckedLabel": "最終確認",
+    "successTitle": "正常",
+    "errorTitle": "異常",
+    "responseLabel": "レスポンス",
+    "idleLabel": "未実行",
+    "loadingLabel": "確認中",
+    "okLabel": "OK",
+    "errorLabel": "エラー",
+    "errorPrefix": "ステータスコード",
+    "okMessageFallback": "ok",
+    "errorFallbackMessage": "API に接続できませんでした。",
+    "backToHome": "ホームに戻る"
+  },
   "organizations": {
     "createOrganizationCta": "組織を作成",
     "createOrganizationTitle": "組織を作成",

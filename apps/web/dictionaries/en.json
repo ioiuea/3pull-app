@@ -140,6 +140,27 @@
       "updatedLabel": "Updated"
     }
   },
+  "health": {
+    "badge": "Health Check",
+    "title": "API Health Check",
+    "description": "Call the FastAPI health endpoint and show the response.",
+    "cardTitle": "Health status",
+    "cardDescription": "Press the button to request the backend.",
+    "endpointLabel": "Endpoint",
+    "checkButton": "Run health check",
+    "lastCheckedLabel": "Last checked",
+    "successTitle": "Healthy",
+    "errorTitle": "Unhealthy",
+    "responseLabel": "Response",
+    "idleLabel": "idle",
+    "loadingLabel": "checking",
+    "okLabel": "ok",
+    "errorLabel": "error",
+    "errorPrefix": "Request failed with status",
+    "okMessageFallback": "ok",
+    "errorFallbackMessage": "Failed to reach the API.",
+    "backToHome": "Back to Home"
+  },
   "organizations": {
     "createOrganizationCta": "Create Organization",
     "createOrganizationTitle": "Create Organization",
