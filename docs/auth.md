@@ -39,15 +39,15 @@
 
 ## リクエストフロー（高レベル）
 
-1) ブラウザが保護ページへアクセス。
+1. ブラウザが保護ページへアクセス。
 
-2) `apps/frontend/proxy.ts` が公開パスか判定し、非公開なら session cookie を確認。なければ `/login` にリダイレクト。
+2. `apps/frontend/proxy.ts` が公開パスか判定し、非公開なら session cookie を確認。なければ `/login` にリダイレクト。
 
-3) ログイン UI では `authClient` またはサーバアクションでサインイン。
+3. ログイン UI では `authClient` またはサーバアクションでサインイン。
 
-4) Better Auth の API は `apps/frontend/app/api/auth/[...all]/route.ts` で提供。
+4. Better Auth の API は `apps/frontend/app/api/auth/[...all]/route.ts` で提供。
 
-5) ログイン後、サーバアクションやレイアウトが `auth.api.getSession()` でセッションを取得。
+5. ログイン後、サーバアクションやレイアウトが `auth.api.getSession()` でセッションを取得。
 
 ## 認証設定の詳細
 

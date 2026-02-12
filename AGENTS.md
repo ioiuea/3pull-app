@@ -214,6 +214,22 @@ external systems
 - `__init__.py` で公開するのは、呼び出し側の import を簡潔にするために実際に必要な関数・定数に限定します。
 - 型定義や内部実装詳細は、複数箇所で直接利用する明確な要件がある場合のみ `__init__.py` へ追加してください。
 
+---
+
+## 8. 実装ガイド（docs 参照）
+
+Codex は実装方針の判断時に、以下のドキュメントを優先参照してください。
+
+- 認証: `docs/auth.md`
+- API保護: `docs/api-protect.md`
+- i18n（国際化）: `docs/i18n.md`
+- フォームバリデーション: `docs/form-validation.md`
+- UIデザイン: `docs/ui-design.md`
+- ステート管理: `docs/state.md`
+- データフェッチ戦略（SWR）: `docs/fetch-strategy.md`
+- テストコード: `docs/test-code.md`
+- ネットワーク: `docs/network.md`
+- PR（Push）前チェック: `docs/pre-check.md`
 
 ## 11. AGENTS.md の運用ルール（必ず読んでください）
 
