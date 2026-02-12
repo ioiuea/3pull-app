@@ -2,11 +2,11 @@
 name: CI
 
 on:
-  # PR 作成/更新時に CI を実行
+  # develop/staging/main 向け PR 作成/更新時に CI を実行
   pull_request:
-  # main ブランチへ push されたときにも CI を実行
-  push:
     branches:
+      - develop
+      - staging
       - main
 
 jobs:
@@ -48,14 +48,6 @@ jobs:
           version: "0.8.17"
           enable-cache: true
           cache-dependency-glob: apps/backend/uv.lock
-
-      # Frontend 依存を lockfile 固定でインストール
-      - name: Install frontend dependencies
-        run: make frontend-install
-
-      # Backend 依存を lockfile 固定でインストール
-      - name: Install backend dependencies
-        run: make backend-install
 
       # モノレポ全体 CI を実行
       # - frontend: format/lint/typecheck/test
