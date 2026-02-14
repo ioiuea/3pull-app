@@ -36,8 +36,8 @@
 
 ### 4-1. Dockerfile
 
-- `infra/docker/api.Dockerfile` : FastAPI 用
-- `infra/docker/web.Dockerfile` : Next.js 用  
+- `docker/api.Dockerfile` : FastAPI 用
+- `docker/web.Dockerfile` : Next.js 用  
 → 役割ごとに分離し、ビルドコンテキストや依存を混ぜないようにしてください。
 
 
