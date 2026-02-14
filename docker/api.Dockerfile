@@ -1,22 +1,29 @@
-# syntax=docker/dockerfile:1.7
+# ================================================================
+# # API (Fast API) — Dockerfile
+# # - Python 3.12
+# # - 本番ビルドして gunicornでワーカープロセスを管理
+# # ================================================================
 
+# -------------------------
+# builder: ビルドステージ
+# -------------------------
 FROM python:3.12-slim AS builder
 
 ENV UV_PROJECT_ENVIRONMENT=/app/.venv \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential curl \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}"
+COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /usr/local/bin/uv
 
 COPY apps/backend/pyproject.toml apps/backend/uv.lock ./
-RUN uv sync --frozen
+RUN uv sync --frozen --no-dev
 
+# -------------------------
+# runtime: 実行環境
+# -------------------------
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
