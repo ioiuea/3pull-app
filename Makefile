@@ -1,5 +1,9 @@
 FRONTEND_DIR := apps/frontend
 BACKEND_DIR := apps/backend
+DOCKER_WEB_NAME ?= 3pull-web
+DOCKER_API_NAME ?= 3pull-api
+DOCKER_IMAGE_TAG ?= latest
+DOCKER_NETWORK_NAME ?= 3pull-net
 
 # ------------------------------
 # Frontend CI targets
@@ -67,9 +71,22 @@ all-install: frontend-install backend-install
 all-ci: all-install frontend-ci backend-ci
 
 # ------------------------------
+# Container targets
+# ------------------------------
+.PHONY: docker-build-web docker-build-api docker-build
+
+docker-build-web:
+	docker buildx build --load -f docker/web.Dockerfile -t $(DOCKER_WEB_NAME):$(DOCKER_IMAGE_TAG) .
+
+docker-build-api:
+	docker buildx build --load -f docker/api.Dockerfile -t $(DOCKER_API_NAME):$(DOCKER_IMAGE_TAG) .
+
+docker-build: docker-build-web docker-build-api
+
+# ------------------------------
 # Startup targets
 # ------------------------------
-.PHONY: frontend-start frontend-build frontend-prod-start backend-start backend-prod-start up-dev up
+.PHONY: frontend-start frontend-build frontend-prod-start backend-start backend-prod-start up-dev up up-docker down-docker
 
 frontend-start:
 	pnpm --dir $(FRONTEND_DIR) dev
@@ -116,3 +133,22 @@ up: all-install frontend-build
 		echo "up supports macOS Terminal (osascript) and Windows PowerShell."; \
 		exit 1; \
 	fi
+
+up-docker: docker-build
+	@docker network inspect $(DOCKER_NETWORK_NAME) >/dev/null 2>&1 || docker network create $(DOCKER_NETWORK_NAME)
+	@if [ "$$OS" = "Windows_NT" ] && command -v powershell.exe >/dev/null 2>&1; then \
+		powershell.exe -NoProfile -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd ''$(CURDIR)''; docker rm -f $(DOCKER_API_NAME) 2>$$null; docker run --rm --name $(DOCKER_API_NAME) --network $(DOCKER_NETWORK_NAME) --env-file apps/backend/.env -p 8000:8000 $(DOCKER_API_NAME):$(DOCKER_IMAGE_TAG)'; Start-Process powershell -ArgumentList '-NoExit','-Command','cd ''$(CURDIR)''; docker rm -f $(DOCKER_WEB_NAME) 2>$$null; docker run --rm --name $(DOCKER_WEB_NAME) --network $(DOCKER_NETWORK_NAME) --env-file apps/frontend/.env -p 3000:3000 $(DOCKER_WEB_NAME):$(DOCKER_IMAGE_TAG)'"; \
+	elif [ "$$(uname -s)" = "Darwin" ] && command -v osascript >/dev/null 2>&1; then \
+		osascript \
+			-e 'tell application "Terminal" to activate' \
+			-e 'tell application "Terminal" to do script "cd $(CURDIR) && docker rm -f $(DOCKER_API_NAME) >/dev/null 2>&1 || true && docker run --rm --name $(DOCKER_API_NAME) --network $(DOCKER_NETWORK_NAME) --env-file apps/backend/.env -p 8000:8000 $(DOCKER_API_NAME):$(DOCKER_IMAGE_TAG)"' \
+			-e 'tell application "Terminal" to do script "cd $(CURDIR) && docker rm -f $(DOCKER_WEB_NAME) >/dev/null 2>&1 || true && docker run --rm --name $(DOCKER_WEB_NAME) --network $(DOCKER_NETWORK_NAME) --env-file apps/frontend/.env -p 3000:3000 $(DOCKER_WEB_NAME):$(DOCKER_IMAGE_TAG)"'; \
+	else \
+		echo "up-docker supports macOS Terminal (osascript) and Windows PowerShell."; \
+		exit 1; \
+	fi
+
+down-docker:
+	@docker rm -f $(DOCKER_WEB_NAME) >/dev/null 2>&1 || true
+	@docker rm -f $(DOCKER_API_NAME) >/dev/null 2>&1 || true
+	@docker network rm $(DOCKER_NETWORK_NAME) >/dev/null 2>&1 || true
