@@ -149,14 +149,14 @@
       "targetSubnet": "maint",
       "rules": [
         {
-          "name": "Allow-SSH-From-BastionServer",
+          "name": "Allow-SSH-RDP-From-BastionServer",
           "access": "Allow",
           "direction": "Inbound",
-          "source": "sharedBastionIp",
+          "sourceSelector": "maintBastion",
           "protocol": "TCP",
           "priority": 200,
           "sourcePortRange": "*",
-          "destinationPortRange": "22"
+          "destinationPortRanges": ["22", "3389"]
         },
         {
           "name": "DenyAll",

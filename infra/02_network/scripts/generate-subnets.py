@@ -20,6 +20,10 @@ subnets_config_path = Path(__file__).parent / "config" / "subnets.json"
 data = json.loads(common_path.read_text())
 base_prefixes = [ipaddress.ip_network(p) for p in data.get("vnetAddressPrefixes", [])]
 subnets = json.loads(subnets_config_path.read_text())
+shared_bastion_ip = str(data.get("sharedBastionIp", "")).strip()
+
+if shared_bastion_ip:
+    subnets = [subnet for subnet in subnets if subnet.get("alias") != "bastion"]
 
 if not base_prefixes:
     raise SystemExit("vnetAddressPrefixes is empty")

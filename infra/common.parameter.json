@@ -7,8 +7,9 @@
   "vnetAddressPrefixes": [
     "10.189.70.0/24",
     "10.189.71.0/24",
-    "10.189.72.0/24"
+    "10.189.72.0/24",
+    "10.189.73.0/24"
   ],
-  "egressNextHopIp": "10.189.73.1",
+  "egressNextHopIp": "",
   "sharedBastionIp": "10.189.74.1"
 }

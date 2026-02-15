@@ -7,8 +7,9 @@
 - ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
 - ※DDoS Protection は `ddosProtectionPlanId` を指定した場合のみ有効化されます。
 - ※最低限、以下のいずれかのアドレスレンジが必要です。
-  - `/24` が 3 つ分
-  - `/23` と `/24` の組み合わせ
+  - `/24` が 4 つ分
+  - 連続するサブネットレンジを確保できる場合は `/23` が 2 つ分、もしくは、`/22` が 1 つ分（`/24` 4 つ分相当）
+- ※`sharedBastionIp` を指定して VNET 外の踏み台 IP を利用する場合は、`/24` が 3 つ分でも構成可能です。
 
 # サブネット
 
@@ -20,6 +21,7 @@
 | `AgentNodeSubnet`          | `/26`        |                        | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound | AKSのエージェントノード用サブネット    |
 | `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
 | `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
+| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`sharedBastionIp` 未指定時のみ） |
 | `MaintenanceSubnet`        | `/29`        |                        | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound | メンテVM用サブネット                   |
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
@@ -27,6 +29,48 @@
 - `ClusterServicesSubnet`
 - `AzureFirewallSubnet`
 - `ApplicationGatewaySubnet`
+- `AzureBastionSubnet`
+
+# 構成図（生成パラメータ例）
+
+以下は `infra/log/tmp-*-20260215T120923.json` を基にした構成図です。
+
+```mermaid
+flowchart TB
+  Internet[(Internet)]
+  ActionGroup[(ActionGroup)]
+
+  subgraph VNet["vnet (10.189.70.0/24, 10.189.71.0/24, 10.189.72.0/24, 10.189.73.0/24)"]
+    U["UserNodeSubnet\n10.189.70.0/24\nNSG: nsg-dev-3pull-usernode\nRT: rt-dev-3pull-outbound"]
+    A["ApplicationGatewaySubnet\n10.189.71.0/25\nRT: rt-dev-3pull-firewall"]
+    S["ClusterServicesSubnet\n10.189.71.128/25"]
+    B["AzureBastionSubnet\n10.189.72.0/26"]
+    F["AzureFirewallSubnet\n10.189.72.64/26\nFirewall IP: 10.189.72.65"]
+    P["PrivateEndpointSubnet\n10.189.72.128/26\nNSG: nsg-dev-3pull-pep"]
+    G["AgentNodeSubnet\n10.189.72.192/26\nNSG: nsg-dev-3pull-agentnode\nRT: rt-dev-3pull-outbound"]
+    M["MaintenanceSubnet\n10.189.73.0/29\nNSG: nsg-dev-3pull-maint\nRT: rt-dev-3pull-outbound"]
+  end
+
+  RTFW["rt-dev-3pull-firewall\nudr-firewall-inbound\n10.189.71.0/25 -> 10.189.72.65"]
+  RTO["rt-dev-3pull-outbound\nudr-internet-outbound\n0.0.0.0/0 -> 10.189.72.65"]
+
+  A --- RTFW
+  U --- RTO
+  G --- RTO
+  M --- RTO
+
+  B -->|"22,3389"| M
+  A -->|"8080,3000,3080"| U
+  A -->|"8080,3000,3080"| G
+  M -->|"any"| U
+  M -->|"any"| G
+  U -->|"any"| P
+  M -->|"any"| P
+  ActionGroup -->|"8080"| U
+  ActionGroup -->|"8080"| G
+  RTO --> F
+  RTFW --> F
+```
 
 # ルートテーブル
 
@@ -143,5 +187,7 @@ AKSからアウトバウンドへの通信
 
 | ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                         | 説明                         |
 | ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ---------------------------- | ---------------------------- |
-| IPアドレス　 | [sharedBastionIp]                            | \*               | Any  | -                                        | Custom   | 22             | SSH        | 許可       | 200    | Allow-SSH-From-BastionServer | 踏み台サーバーからの通信許可 |
+| IPアドレス　 | [sharedBastionIp] または [AzureBastionSubnet] | \*               | Any  | -                                        | Custom   | 22,3389        | TCP        | 許可       | 200    | Allow-SSH-RDP-From-BastionServer | 踏み台からの SSH/RDP 通信許可 |
 | Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                      | その他全ての通信拒否         |
+
+`sharedBastionIp` を指定した場合は [sharedBastionIp] からの通信を許可し、未指定の場合は [AzureBastionSubnet] からの通信を許可します。

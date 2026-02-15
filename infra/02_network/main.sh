@@ -36,6 +36,7 @@ done
 
 timestamp="$(date +'%Y%m%dT%H%M%S')"
 params_dir="$repo_root/infra/log"
+mkdir -p "$params_dir"
 subnet_params_file="$(mktemp "$params_dir/tmp-subnet-params-${timestamp}.json")"
 firewall_params_file="$(mktemp "$params_dir/tmp-firewall-params-${timestamp}.json")"
 route_params_file="$(mktemp "$params_dir/tmp-route-params-${timestamp}.json")"

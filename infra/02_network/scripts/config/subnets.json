@@ -1,5 +1,10 @@
 [
   {
+    "name": "AzureBastionSubnet",
+    "alias": "bastion",
+    "prefixLength": 26
+  },
+  {
     "name": "AzureFirewallSubnet",
     "alias": "firewall",
     "prefixLength": 26
