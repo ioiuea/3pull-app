@@ -50,9 +50,7 @@ for subnet in resolved_subnets:  # 各サブネットについて NSG を作成
     rules = []  # そのサブネットに適用するルール配列
     subnet_name = subnet.get("name", "")  # リソース名
     subnet_alias = subnet.get("alias", alias_by_name.get(subnet_name, subnet_name))  # エイリアス
-    if subnet_alias in {"services", "agic", "firewall"}:
-        continue
-    if subnet_alias == "maint" and not shared_bastion_ip:
+    if subnet_alias in {"services", "agic", "firewall", "bastion"}:
         continue
     template = template_by_subnet.get(subnet_alias)  # 対象テンプレートを取得
 
@@ -61,16 +59,20 @@ for subnet in resolved_subnets:  # 各サブネットについて NSG を作成
             direction = rule.get("direction", "Inbound")  # 方向
 
             # direction に応じて source / destination を補完
-            source = rule.get("source", "*")  # 送信元（サブネット名 or 特殊値）
+            source_selector = rule.get("sourceSelector", "")
+            if source_selector == "maintBastion":
+                source = shared_bastion_ip or subnet_prefix_map.get("bastion", "")
+                if not source:
+                    raise SystemExit(
+                        "sourceSelector 'maintBastion' requires sharedBastionIp or AzureBastionSubnet"
+                    )
+            else:
+                source = rule.get("source", "*")  # 送信元（サブネット名 or 特殊値）
             destination = rule.get("destination", "*")  # 宛先（サブネット名 or 特殊値）
             if direction == "Inbound" and "destination" not in rule:  # Inbound の宛先が未指定なら
                 destination = subnet_alias  # 対象サブネットを宛先にする
             if direction == "Outbound" and "source" not in rule:  # Outbound の送信元が未指定なら
                 source = subnet_alias  # 対象サブネットを送信元にする
-
-            # sharedBastionIp のルールは未指定ならスキップ
-            if source == "sharedBastionIp" and not shared_bastion_ip:
-                continue
 
             def format_name(value: str) -> str:  # ルール名表示用の整形
                 if value == "*":  # 任意は Any に置換
@@ -88,8 +90,6 @@ for subnet in resolved_subnets:  # 各サブネットについて NSG を作成
                     rule_name = f"{rule.get('access', 'Allow')}To{format_name(destination)}"  # 例: AllowToFirewall
 
             def resolve_prefix(value):
-                if value == "sharedBastionIp":
-                    return shared_bastion_ip
                 return subnet_prefix_map.get(value, value)
 
             def resolve_prefixes(value):
