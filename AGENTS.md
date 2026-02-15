@@ -19,7 +19,8 @@
 - `db/`
   - Postgres 初期化スクリプト群。DB/スキーマ/ロールの作成・初期設定。
 - `infra/`
-  - Helm / Dockerfile などの **インフラ周り一式**。
+  - インフラ実行ルート。`main.sh` + `common.parameter.json` + `bicep/` + `scripts/` + `config/` + `params/` で構成。
+  - Bicep による Azure リソースのデプロイを担当する。
 - `docs/`
   - 仕様・設計・運用（ランブック）などのドキュメント群。
 - `ops/`

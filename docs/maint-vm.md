@@ -56,7 +56,7 @@
 | バージョン                         | latest           | properties.storageProfile.imageReference.version                |
 | OSディスク作成オプション           | FromImage        | properties.storageProfile.osDisk.createOption                   |
 | OSディスクサイズ                   | 512              | properties.storageProfile.osDisk.diskSizeGB                     |
-| マネージドディスクアカウントタイプ | PremiumSSD_LRS   | properties.storageProfile.osDisk.managedDisk.storageAccountType |
+| マネージドディスクアカウントタイプ | Premium_LRS      | properties.storageProfile.osDisk.managedDisk.storageAccountType |
 
 ## ネットワーク情報
 
@@ -103,7 +103,7 @@
 az vm extension set \
     --publisher Microsoft.Azure.ActiveDirectory \
     --name AADSSHLoginForLinux \
-    --resource-group rg-[environmentName]-[systemName]-svc \
+    --resource-group rg-[environmentName]-[systemName]-maint \
     --vm-name vm-[environmentName]-[systemName]-maint
 ```
 
@@ -118,7 +118,7 @@ az login
 - VMへログインする。
 
 ```
-az ssh vm -n vm-[environmentName]-[systemName]-maint -g rg-[environmentName]-[systemName]-svc
+az ssh vm -n vm-[environmentName]-[systemName]-maint -g rg-[environmentName]-[systemName]-maint
 ```
 
 # パッケージインストール手順
