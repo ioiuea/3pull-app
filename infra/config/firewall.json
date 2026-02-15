@@ -1,0 +1,10 @@
+{
+  "modulesName": "nw",
+  "lockKind": "CanNotDelete",
+  "publicIPSku": "Standard",
+  "publicIPAllocationMethod": "Static",
+  "publicIPAddressVersion": "IPv4",
+  "protectionMode": "Enabled",
+  "threatIntelMode": "Alert",
+  "intrusionDetectionMode": "Alert"
+}

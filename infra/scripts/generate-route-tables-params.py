@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""Route Table 用 bicepparam を生成する。"""
+
+import ipaddress
+import json
+import os
+import re
+from pathlib import Path
+
+
+def quote(value: str) -> str:
+    escaped = str(value).replace("'", "''")
+    return f"'{escaped}'"
+
+
+def key_literal(key: str) -> str:
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+        return key
+    return quote(key)
+
+
+def to_bicep(value, indent: int = 0) -> str:
+    pad = " " * indent
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        return quote(value)
+    if isinstance(value, list):
+        if not value:
+            return "[]"
+        items = [f"{' ' * (indent + 2)}{to_bicep(v, indent + 2)}" for v in value]
+        return "[\n" + "\n".join(items) + f"\n{pad}]"
+    if isinstance(value, dict):
+        if not value:
+            return "{}"
+        items = [f"{' ' * (indent + 2)}{key_literal(k)}: {to_bicep(v, indent + 2)}" for k, v in value.items()]
+        return "{\n" + "\n".join(items) + f"\n{pad}}}"
+    raise TypeError(f"Unsupported type: {type(value)}")
+
+
+common_path = Path(os.environ["COMMON_FILE"])
+config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
+subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
+firewall_meta_path = Path(os.environ["FIREWALL_META_FILE"])
+params_dir = Path(os.environ["PARAMS_DIR"])
+out_meta_path = Path(os.environ["OUT_META_FILE"])
+
+common = json.loads(common_path.read_text(encoding="utf-8"))
+config = json.loads(config_path.read_text(encoding="utf-8"))
+subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
+firewall_meta = json.loads(firewall_meta_path.read_text(encoding="utf-8"))
+
+environment_name = common.get("environmentName", "")
+system_name = common.get("systemName", "")
+location = common.get("location", "")
+
+if not environment_name or not system_name or not location:
+    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+
+vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+if not vnet_address_prefixes:
+    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+
+subnet_defs = subnets_config.get("subnetDefinitions", [])
+if common.get("sharedBastionIp", ""):
+    subnet_defs = [s for s in subnet_defs if s.get("alias", s.get("name")) != "bastion"]
+
+base_prefixes = [ipaddress.ip_network(p) for p in vnet_address_prefixes]
+range_index = 0
+current = int(base_prefixes[0].network_address)
+subnet_prefix_map = {}
+
+for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
+    prefix_len = subnet["prefixLength"]
+    allocated = None
+
+    while range_index < len(base_prefixes):
+        rng = base_prefixes[range_index]
+        block = 1 << (32 - prefix_len)
+
+        if current % block != 0:
+            current = ((current // block) + 1) * block
+
+        net = ipaddress.ip_network((current, prefix_len))
+        if net.subnet_of(rng):
+            allocated = net
+            current = int(net.broadcast_address) + 1
+            break
+
+        range_index += 1
+        if range_index < len(base_prefixes):
+            current = int(base_prefixes[range_index].network_address)
+
+    if allocated is None:
+        raise SystemExit(f"subnet '{subnet['name']}' does not fit in vnetAddressPrefixes")
+
+    subnet_name = subnet["name"]
+    subnet_alias = subnet.get("alias", subnet_name)
+    subnet_prefix_map[subnet_name] = str(allocated)
+    subnet_prefix_map[subnet_alias] = str(allocated)
+
+firewall_private_ip = firewall_meta.get("firewallPrivateIp", "")
+if not firewall_private_ip:
+    raise SystemExit("firewall-meta.json に firewallPrivateIp がありません")
+
+try:
+    ipaddress.ip_address(firewall_private_ip)
+except ValueError as exc:
+    raise SystemExit("firewallPrivateIp が不正な IP です") from exc
+
+agic_alias = "agic"
+agic_prefix = subnet_prefix_map.get(agic_alias, "")
+if not agic_prefix:
+    raise SystemExit("ApplicationGatewaySubnet(agic) のプレフィックスが見つかりません")
+
+next_hop_ip = common.get("egressNextHopIp", "") or firewall_private_ip
+try:
+    ipaddress.ip_address(next_hop_ip)
+except ValueError as exc:
+    raise SystemExit("egressNextHopIp が不正な IP です") from exc
+
+outbound_targets = config.get("outboundSubnetAliases", [])
+known_aliases = {s.get("alias", s.get("name", "")) for s in subnet_defs}
+outbound_subnet_aliases = [alias for alias in outbound_targets if alias in known_aliases]
+
+route_tables = [
+    {
+        "name": "firewall",
+        "routes": [
+            {
+                "name": config.get("inboundRouteName", "udr-firewall-inbound"),
+                "properties": {
+                    "addressPrefix": agic_prefix,
+                    "nextHopType": "VirtualAppliance",
+                    "nextHopIpAddress": firewall_private_ip,
+                },
+            }
+        ],
+        "subnetNames": [agic_alias],
+    },
+    {
+        "name": "outbound",
+        "routes": [
+            {
+                "name": config.get("outboundRouteName", "udr-internet-outbound"),
+                "properties": {
+                    "addressPrefix": config.get("outboundAddressPrefix", "0.0.0.0/0"),
+                    "nextHopType": "VirtualAppliance",
+                    "nextHopIpAddress": next_hop_ip,
+                },
+            }
+        ],
+        "subnetNames": outbound_subnet_aliases,
+    },
+]
+
+modules_name = config.get("modulesName", "nw")
+network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
+deploy = bool(common.get("resourceToggles", {}).get("subnets", True))
+
+params_dir.mkdir(parents=True, exist_ok=True)
+params_file = params_dir / "route-tables.bicepparam"
+
+lines = [
+    "using '../bicep/main.route-tables.bicep'",
+    f"param environmentName = {quote(environment_name)}",
+    f"param systemName = {quote(system_name)}",
+    f"param location = {quote(location)}",
+    f"param modulesName = {quote(modules_name)}",
+    f"param routeTables = {to_bicep(route_tables)}",
+    "",
+]
+params_file.write_text("\n".join(lines), encoding="utf-8")
+
+meta = {
+    "resourceGroupName": network_rg_name,
+    "deploy": deploy,
+    "paramsFile": str(params_file),
+}
+out_meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
