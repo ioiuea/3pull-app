@@ -1,20 +1,36 @@
-# infra/ README
+# infra README
 
-このディレクトリの Bicep で構築されるインフラ構成の概要をまとめます。
+このディレクトリは、Azure インフラを Bicep でデプロイする実行基盤です。  
+`main.sh` が `common.parameter.json` を読み込み、前処理で `.bicepparam` を動的生成して各リソースをデプロイします。
+
+## このフォルダ配下の説明
+
+- `main.sh`
+  - エントリーポイント。パラメータ生成とデプロイを順序制御します。
+- `common.parameter.json`
+  - 共通パラメータと、どのリソースをデプロイ対象にするか（実行可否）を管理します。
+- `bicep/`
+  - リソース単位の Bicep 本体。
+- `scripts/`
+  - `main.sh` から呼び出される前処理スクリプト（`.bicepparam` 生成）。
+- `config/`
+  - 原則、ユーザーが変更しない固定定義。
+- `params/`
+  - 動的生成される `.bicepparam` / `*-meta.json` の出力先。
 
 ## 前提要件
 
 - Azure CLI (`az`) が利用できること
-- Python が利用できること
+- Python 3 が利用できること
 
 ## 実行前の準備（共通パラメータ）
 
-デプロイ前に `infra/common.parameter.json` を **必ず自分の環境に合わせて編集**してください。
+デプロイ前に `infra/common.parameter.json` を環境に合わせて設定してください。
 
 ### location
 
-Azure で許可されるリージョン名を指定します。  
-リージョン一覧は次のコマンドで確認できます。
+Azure の有効なリージョン名を指定します。  
+リージョン一覧確認:
 
 ```bash
 az account list-locations --query "[].name" -o tsv
@@ -22,13 +38,11 @@ az account list-locations --query "[].name" -o tsv
 
 ### environmentName
 
-`prod` / `stg` / `dev` などの **任意の環境名**を指定します。  
-リソース名やタグに埋め込まれます。
+`prod` / `stg` / `dev` などの環境名です。任意の文字列を指定できます。リソース名とタグに反映されます。
 
 ### systemName
 
-システム名を指定します。  
-リソース名やタグに埋め込まれます。
+システム名です。リソース名とタグに反映されます。
 
 ### enableFirewallIdps
 
@@ -38,45 +52,49 @@ IDS/IPS を有効にするかどうかを指定します。
 
 ### ddosProtectionPlanId
 
-Azure DDoS Protection Plan のリソース ID を指定します。  
-指定した場合のみ VNET で DDoS Protection が有効になります。  
-未指定（空文字）の場合は DDoS Protection Plan を自動作成して適用します。
+基本（未指定）の場合は、`ddos-[environmentName]-[systemName]` の DDoS Protection Plan を新規作成して VNET に適用します。  
+企業ポリシー等により既存の保護プランを利用する場合は、そのリソース ID を指定してください。  
 入力例: `/subscriptions/<subscriptionId>/resourceGroups/<resourceGroupName>/providers/Microsoft.Network/ddosProtectionPlans/<ddosPlanName>`
 
 ### vnetAddressPrefixes
 
-VNET のアドレス空間を指定します。  
-最低限、以下のいずれかのアドレスレンジが必要です。
+VNET のアドレス空間です。サブネットを動的計算するため、以下の最低限レンジが必要です。
 
 - `/24` が 4 つ分
-- または、連続するサブネットレンジを確保できる場合は `/23` が 2 つ分、もしくは、`/22` が 1 つ分（`/24` 4 つ分相当）
-
-補足:
-
-- `sharedBastionIp` を指定して VNET 外の踏み台 IP を利用する場合は、`/24` が 3 つ分でも構成可能です。
+- 連続するレンジを確保できる場合は、`/23` が 2 つ分、または `/22` が 1 つ分（`/24` 4 つ分相当）
+- `sharedBastionIp` を指定して VNET 外の踏み台 IP を利用する場合は、`/24` が 3 つ分でも構成可能
 
 ### egressNextHopIp
 
-アウトバンド通信でFWを経由した通信を行います。
-ハブ&スポーク構成などで **集約された FW 経由のアウトバウンド**が必要な場合、  
-この IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。
-指定しない場合は **VNET 内に構築される Firewall の IP が自動で設定**されます。
-
-補足として、インバウンド通信は **構築した Firewall を経由してワークロードへ到達**する経路になります。
+AKS ノード系サブネットやメンテナンス VM サブネットからのアウトバウンド経路を制御するための設定です。  
+基本（未指定）の場合は、新規作成した Firewall のプライベート IP を next hop とするユーザー定義ルート（UDR）を作成します。  
+企業ポリシー上、ハブ＆スポーク構成で VNET ピアリングされた集約アウトバウンド経路を使う必要がある場合は、この値に IP を指定することで UDR の宛先（next hop）をその IP に書き換えます。
 
 ### sharedBastionIp
 
-踏み台サーバなど、メンテ用サブネット（保守用 VM）へアクセス可能な **許可 IP** を指定します。  
-指定がある場合は、指定した IP からのメンテ用サブネットへの通信を許可します。  
-指定がない場合は、`AzureBastionSubnet`（`/26`）を作成し、メンテ用サブネットへの通信を許可します。  
-メンテ用サブネットへの通信は **SSH (22)** と **RDP (3389)** のみが許可されます。
+メンテナンス VM 用サブネット（`MaintenanceSubnet`）に対して通信を許可する送信元を指定します。  
+基本（未指定）の場合は、新規作成される `AzureBastionSubnet` からの通信のみ許可します。  
+企業ポリシー上、ハブ＆スポーク構成で VNET ピアリングされた集約踏み台サーバを利用する必要がある場合は、この値に IP を指定することで NSG の許可送信元を書き換えます。  
+許可される通信は SSH（22）と RDP（3389）です。
 
 注記:
 
-- `sharedBastionIp` 未指定時は Bastion 用サブネットまでは自動作成されます。
-- ただし Azure Bastion サービスの作成可否は企業ポリシーに依存するため、必要に応じて手動で Azure Bastion または踏み台 VM を当該サブネット内に作成してください。
+- `AzureBastionSubnet` は作成しますが、Azure Bastion サービス本体は自動作成しません。
+- 企業ポリシーによって Azure Bastion が利用不可のケースもあるため、Bastion または踏み台サーバは要件に合わせて手動で作成してください。
 
-## ネットワーク構成の詳細
+### resourceToggles
+
+リソース単位の実行可否です。
+
+- `logAnalytics`
+- `applicationInsights`
+- `virtualNetwork`
+- `subnets`
+  - `subnets`, `route-tables`, `nsgs`, `subnet-attachments` を一括制御
+- `firewall`
+- `maintenanceVm`
+
+## ネットワーク構成ドキュメント
 
 サブネット構成やルート/NSG の設計方針は [docs/network.md](../docs/network.md) を参照してください。
 
@@ -84,53 +102,105 @@ VNET のアドレス空間を指定します。
 
 ### Azureログイン
 
-Azure CLI を利用して Azure へログインします。
-
 ```bash
 az login
 ```
 
-### 操作対象のサブスクリプションIDを設定
-
-操作対象のサブスクリプションを設定します。
+### 操作対象サブスクリプションの設定
 
 ```bash
 az account set --subscription {SubscriptionId}
-```
-
-現在選択中のサブスクリプション確認します。
-
-```bash
 az account show
 ```
 
 ### デプロイ
 
-プロジェクトルートから infra フォルダへ移動します。
-
 ```bash
 cd infra
+MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh --what-if
+MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 ```
 
-#### デプロイの流れ
+### デプロイの流れ
 
-- `01_monitor`
-  - **Azure Log Analytics Workspace** と **Azure Application Insights** を作成
-- `02_network`
-  - **Azure Virtual Network (VNet)** / **Subnets** / **User Defined Route (UDR)** / **Network Security Group (NSG)** を作成してサブネットと紐づけ
+- monitor
+  - Log Analytics Workspace
+  - Application Insights
+- network
+  - Virtual Network
+  - Subnets（作成のみ）
+  - Firewall
+  - Route Tables
+  - NSGs
+  - Subnet Attachments（RouteTable/NSG紐づけ）
+- service
+  - Maintenance VM
 
-`infra/common.parameter.json` を読み込み、実行時にサブネットの `addressPrefix` などを動的に計算しパラメータとして生成しデプロイを行います。
+## 出力ファイル（params/）
 
-#### デプロイコマンド（dry-run）
+- `log-analytics.bicepparam`
+- `application-insights.bicepparam`
+- `virtual-network.bicepparam`
+- `subnets.bicepparam`
+- `firewall.bicepparam`
+- `route-tables.bicepparam`
+- `nsgs.bicepparam`
+- `subnet-attachments.bicepparam`
+- `maintenance-vm.bicepparam`
 
-サブスクリプションスコープでデプロイコマンド（dry-run）を実行し出力を確認します。
+補足:
+
+- `params/` 配下は生成物として `.gitignore` 対象です（`.gitkeep` を除く）。
+
+## メンテVM作成後の個別手順
+
+### 目的
+
+メンテVMへの安全な運用アクセスを有効化し、運用作業に必要な CLI を利用可能にします。
+
+### 1. Entra ID ログイン拡張の有効化
 
 ```bash
-./main.sh --what-if
+az vm extension set \
+    --publisher Microsoft.Azure.ActiveDirectory \
+    --name AADSSHLoginForLinux \
+    --resource-group rg-[environmentName]-[systemName]-maint \
+    --vm-name vm-[environmentName]-[systemName]-maint
 ```
 
-#### デプロイコマンド
+対象アカウントに以下いずれかの RBAC ロール付与が必要です。
+
+- 仮想マシン管理者ログイン
+- 仮想マシンユーザーログイン
+
+### 2. メンテVMへログイン
 
 ```bash
-./main.sh
+az login
+az ssh vm -n vm-[environmentName]-[systemName]-maint -g rg-[environmentName]-[systemName]-maint
 ```
+
+### 3. メンテVM内で Azure CLI を利用する場合
+
+```shell
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+
+sudo mkdir -p /etc/apt/keyrings
+curl -sLS https://packages.microsoft.com/keys/microsoft.asc | \
+  gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
+
+AZ_DIST=$(lsb_release -cs)
+echo "Types: deb
+URIs: https://packages.microsoft.com/repos/azure-cli/
+Suites: ${AZ_DIST}
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-by: /etc/apt/keyrings/microsoft.gpg" | sudo tee /etc/apt/sources.list.d/azure-cli.sources
+
+sudo apt-get update
+sudo apt-get install azure-cli
+```
+
+- メンテVM仕様の詳細: [docs/maint-vm.md](../docs/maint-vm.md)

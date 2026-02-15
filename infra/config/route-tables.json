@@ -1,0 +1,11 @@
+{
+  "modulesName": "nw",
+  "outboundSubnetAliases": [
+    "agentnode",
+    "usernode",
+    "maint"
+  ],
+  "inboundRouteName": "udr-firewall-inbound",
+  "outboundRouteName": "udr-internet-outbound",
+  "outboundAddressPrefix": "0.0.0.0/0"
+}

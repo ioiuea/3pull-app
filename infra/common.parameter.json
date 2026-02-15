@@ -11,5 +11,13 @@
     "10.189.73.0/24"
   ],
   "egressNextHopIp": "",
-  "sharedBastionIp": "10.189.74.1"
+  "sharedBastionIp": "",
+  "resourceToggles": {
+    "logAnalytics": true,
+    "applicationInsights": true,
+    "virtualNetwork": true,
+    "subnets": true,
+    "firewall": true,
+    "maintenanceVm": true
+  }
 }
