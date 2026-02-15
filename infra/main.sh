@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# infra 配下の main.sh を順番に実行します（01_monitor → 02_network）。
+# infra 配下の main.sh を順番に実行します（01_monitor → 02_network → 03_service）。
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 what_if=""
@@ -24,6 +24,7 @@ done
 infra_root="$repo_root/infra"
 monitor_runner="$infra_root/01_monitor/main.sh"
 network_runner="$infra_root/02_network/main.sh"
+service_runner="$infra_root/03_service/main.sh"
 
 if [[ ! -x "$monitor_runner" ]]; then
   echo "実行ファイルが見つかりません: $monitor_runner" >&2
@@ -35,8 +36,16 @@ if [[ ! -x "$network_runner" ]]; then
   exit 1
 fi
 
+if [[ ! -x "$service_runner" ]]; then
+  echo "実行ファイルが見つかりません: $service_runner" >&2
+  exit 1
+fi
+
 echo "==> 01_monitor を実行します"
 "$monitor_runner" ${what_if:+$what_if}
 
 echo "==> 02_network を実行します"
 "$network_runner" ${what_if:+$what_if}
+
+echo "==> 03_service を実行します"
+"$service_runner" ${what_if:+$what_if}
