@@ -26,6 +26,10 @@ firewall_config_file="$infra_root/config/firewall.json"
 firewall_script="$infra_root/scripts/generate-firewall-params.py"
 firewall_meta_file="$params_dir/firewall-meta.json"
 
+application_gateway_config_file="$infra_root/config/application-gateway.json"
+application_gateway_script="$infra_root/scripts/generate-application-gateway-params.py"
+application_gateway_meta_file="$params_dir/application-gateway-meta.json"
+
 route_tables_config_file="$infra_root/config/route-tables.json"
 route_tables_script="$infra_root/scripts/generate-route-tables-params.py"
 route_tables_meta_file="$params_dir/route-tables-meta.json"
@@ -82,6 +86,11 @@ fi
 
 if [[ ! -f "$firewall_config_file" ]]; then
   echo "firewall config file が見つかりません: $firewall_config_file" >&2
+  exit 1
+fi
+
+if [[ ! -f "$application_gateway_config_file" ]]; then
+  echo "application gateway config file が見つかりません: $application_gateway_config_file" >&2
   exit 1
 fi
 
@@ -143,6 +152,14 @@ PARAMS_DIR="$params_dir" \
 OUT_META_FILE="$firewall_meta_file" \
 TIMESTAMP="$timestamp" \
 "$firewall_script"
+
+COMMON_FILE="$common_file" \
+RESOURCE_CONFIG_FILE="$application_gateway_config_file" \
+SUBNETS_CONFIG_FILE="$subnets_config_file" \
+PARAMS_DIR="$params_dir" \
+OUT_META_FILE="$application_gateway_meta_file" \
+TIMESTAMP="$timestamp" \
+"$application_gateway_script"
 
 COMMON_FILE="$common_file" \
 RESOURCE_CONFIG_FILE="$route_tables_config_file" \
@@ -228,6 +245,16 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+application_gateway_resource_group_name="$(META_FILE="$application_gateway_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("resourceGroupName", ""))
+PY
+)"
+
 route_tables_resource_group_name="$(META_FILE="$route_tables_meta_file" python - <<'PY'
 import json
 import os
@@ -293,6 +320,11 @@ if [[ -z "$firewall_resource_group_name" ]]; then
   exit 1
 fi
 
+if [[ -z "$application_gateway_resource_group_name" ]]; then
+  echo "application gateway resourceGroupName が取得できませんでした。config を確認してください。" >&2
+  exit 1
+fi
+
 if [[ -z "$route_tables_resource_group_name" ]]; then
   echo "route tables resourceGroupName が取得できませんでした。config を確認してください。" >&2
   exit 1
@@ -340,6 +372,13 @@ if [[ "$firewall_resource_group_name" != "$vnet_resource_group_name" && "$firewa
   echo "==> Ensure Resource Group: $firewall_resource_group_name"
   az group create \
     --name "$firewall_resource_group_name" \
+    --location "$location" >/dev/null
+fi
+
+if [[ "$application_gateway_resource_group_name" != "$vnet_resource_group_name" && "$application_gateway_resource_group_name" != "$subnets_resource_group_name" && "$application_gateway_resource_group_name" != "$firewall_resource_group_name" ]]; then
+  echo "==> Ensure Resource Group: $application_gateway_resource_group_name"
+  az group create \
+    --name "$application_gateway_resource_group_name" \
     --location "$location" >/dev/null
 fi
 
@@ -526,6 +565,26 @@ else
   echo "==> Skip Firewall (resourceToggles.firewall=false)"
 fi
 
+application_gateway_deploy="$(META_FILE="$application_gateway_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(str(bool(meta.get("deploy", True))).lower())
+PY
+)"
+
+application_gateway_params_file="$(META_FILE="$application_gateway_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+
 route_tables_deploy="$(META_FILE="$route_tables_meta_file" python - <<'PY'
 import json
 import os
@@ -617,6 +676,17 @@ if [[ "$subnet_attachments_deploy" == "true" ]]; then
     ${what_if:+$what_if}
 else
   echo "==> Skip Subnet Attachments (resourceToggles.subnets=false)"
+fi
+
+if [[ "$application_gateway_deploy" == "true" ]]; then
+  echo "==> Deploy Application Gateway"
+  az deployment group create \
+    --name "main-network-application-gateway-${timestamp}" \
+    --resource-group "$application_gateway_resource_group_name" \
+    --parameters "$application_gateway_params_file" \
+    ${what_if:+$what_if}
+else
+  echo "==> Skip Application Gateway (resourceToggles.applicationGateway=false)"
 fi
 
 maintenance_vm_deploy="$(META_FILE="$maintenance_vm_meta_file" python - <<'PY'
