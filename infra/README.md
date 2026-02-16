@@ -99,6 +99,7 @@ AKS ノード系サブネットやメンテナンス VM サブネットからの
 - `subnets`
   - `subnets`, `route-tables`, `nsgs`, `subnet-attachments` を一括制御
 - `firewall`
+- `applicationGateway`
 - `maintenanceVm`
 
 ## ネットワーク構成ドキュメント
@@ -140,6 +141,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
   - Route Tables
   - NSGs
   - Subnet Attachments（RouteTable/NSG紐づけ）
+  - Application Gateway
 - service
   - Maintenance VM
 
@@ -153,6 +155,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `route-tables.bicepparam`
 - `nsgs.bicepparam`
 - `subnet-attachments.bicepparam`
+- `application-gateway.bicepparam`
 - `maintenance-vm.bicepparam`
 
 補足:
