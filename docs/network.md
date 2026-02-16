@@ -1,10 +1,11 @@
 # 仮想ネットワーク
 
+- ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
+
 | 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection | DDoS保護計画 |
 | ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | --------------- | ------------ |
 | vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | Azure提供   | 有効化          | -            |
 
-- ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
 - ※DDoS Protection は `enableDdosProtection=true` の場合に有効化されます。
 - ※`ddosProtectionPlanId` を指定した場合は既存プランを利用し、未指定の場合は新規作成したプランを適用します。
 - ※最低限、以下のいずれかのアドレスレンジが必要です。

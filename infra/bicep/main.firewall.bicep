@@ -52,7 +52,7 @@ param publicIPAddressVersion string = 'IPv4'
 param protectionMode string = 'Enabled'
 
 @description('threat intel mode')
-param threatIntelMode string = 'Alert'
+param threatIntelMode string = 'Deny'
 
 @description('intrusion detection mode')
 param intrusionDetectionMode string = 'Alert'
