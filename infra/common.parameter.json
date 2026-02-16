@@ -3,7 +3,7 @@
   "environmentName": "dev",
   "systemName": "3pull",
   "enableFirewallIdps": false,
-  "enableDdosProtection": true,
+  "enableDdosProtection": false,
   "ddosProtectionPlanId": "",
   "vnetAddressPrefixes": [
     "10.189.70.0/24",

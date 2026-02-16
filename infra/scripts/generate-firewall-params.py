@@ -86,6 +86,7 @@ log_analytics_name = f"log-{environment_name}-{system_name}"
 log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
 enable_firewall_idps = bool(common.get("enableFirewallIdps", False))
+enable_ddos_protection = bool(common.get("enableDdosProtection", True))
 deploy = bool(common.get("resourceToggles", {}).get("firewall", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
@@ -102,15 +103,15 @@ lines = [
     f"param logAnalyticsResourceGroupName = {quote(log_analytics_rg_name)}",
     f"param vnetName = {quote(vnet_name)}",
     f"param enableFirewallIdps = {'true' if enable_firewall_idps else 'false'}",
-    f"param publicIPName = {quote(f'pip-{environment_name}-{system_name}')}",
+    f"param publicIPName = {quote(f'pip-afw-{environment_name}-{system_name}')}",
     f"param firewallPolicyName = {quote(f'afwp-{environment_name}-{system_name}')}",
     f"param firewallName = {quote(f'afw-{environment_name}-{system_name}')}",
-    f"param ipConfigurationName = {quote('ipconfig')}",
+    f"param ipConfigurationName = {quote(f'ipconf-afw-{environment_name}-{system_name}')}",
     f"param publicIPSku = {quote(config.get('publicIPSku', 'Standard'))}",
     f"param publicIPAllocationMethod = {quote(config.get('publicIPAllocationMethod', 'Static'))}",
     f"param publicIPAddressVersion = {quote(config.get('publicIPAddressVersion', 'IPv4'))}",
-    f"param protectionMode = {quote(config.get('protectionMode', 'Enabled'))}",
-    f"param threatIntelMode = {quote(config.get('threatIntelMode', 'Alert'))}",
+    f"param protectionMode = {quote('Enabled' if enable_ddos_protection else 'Disabled')}",
+    f"param threatIntelMode = {quote(config.get('threatIntelMode', 'Deny'))}",
     f"param intrusionDetectionMode = {quote(config.get('intrusionDetectionMode', 'Alert'))}",
     "",
 ]
