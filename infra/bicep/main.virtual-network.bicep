@@ -30,6 +30,9 @@ param vnetAddressPrefixes array
 @description('VNETのDNSサーバー')
 param vnetDnsServers array = []
 
+@description('DDoS Protection を有効化するか')
+param enableDdosProtection bool = true
+
 @description('DDoS Protection Plan のリソースID')
 param ddosProtectionPlanId string = ''
 
@@ -44,13 +47,21 @@ var modulesTags = {
   billing: 'infra'
 }
 
-resource ddosProtectionPlan 'Microsoft.Network/ddosProtectionPlans@2024-07-01' = if (empty(ddosProtectionPlanId)) {
+resource ddosProtectionPlan 'Microsoft.Network/ddosProtectionPlans@2024-07-01' = if (enableDdosProtection && empty(ddosProtectionPlanId)) {
   name: ddosProtectionPlanName
   location: location
   tags: modulesTags
 }
 
-var ddosProtectionPlanIdEffective = empty(ddosProtectionPlanId) ? ddosProtectionPlan.id : ddosProtectionPlanId
+resource ddosProtectionPlanDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (enableDdosProtection && empty(ddosProtectionPlanId) && lockKind != '') {
+  name: 'del-lock-${ddosProtectionPlanName}'
+  scope: ddosProtectionPlan
+  properties: {
+    level: lockKind
+  }
+}
+
+var ddosProtectionPlanIdEffective = !enableDdosProtection ? '' : (empty(ddosProtectionPlanId) ? ddosProtectionPlan.id : ddosProtectionPlanId)
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = {
   name: vnetName
