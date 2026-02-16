@@ -5,7 +5,8 @@
 | vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | Azure提供   | 有効化          | -            |
 
 - ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
-- ※DDoS Protection は `ddosProtectionPlanId` を指定した場合のみ有効化されます。
+- ※DDoS Protection は `enableDdosProtection=true` の場合に有効化されます。
+- ※`ddosProtectionPlanId` を指定した場合は既存プランを利用し、未指定の場合は新規作成したプランを適用します。
 - ※最低限、以下のいずれかのアドレスレンジが必要です。
   - `/24` が 4 つ分
   - 連続するサブネットレンジを確保できる場合は `/23` が 2 つ分、もしくは、`/22` が 1 つ分（`/24` 4 つ分相当）

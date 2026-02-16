@@ -50,9 +50,16 @@ IDS/IPS を有効にするかどうかを指定します。
 `true` の場合は **Firewall SKU が Premium** になり、IDS/IPS を有効化します。  
 `false` の場合は **Firewall SKU が Standard** になります。
 
+### enableDdosProtection
+
+DDoS Protection の有効/無効を指定します。  
+`true` の場合は、DDoS Protection Plan を（既存利用または新規作成して）VNET に適用します。  
+`false` の場合は、DDoS Protection Plan の作成をスキップし、VNET への DDoS Protection 適用もしません。
+
 ### ddosProtectionPlanId
 
-基本（未指定）の場合は、`ddos-[environmentName]-[systemName]` の DDoS Protection Plan を新規作成して VNET に適用します。  
+`enableDdosProtection=true` の場合に利用される設定です。  
+未指定の場合は、`ddos-[environmentName]-[systemName]` の DDoS Protection Plan を新規作成して VNET に適用します。  
 企業ポリシー等により既存の保護プランを利用する場合は、そのリソース ID を指定してください。  
 入力例: `/subscriptions/<subscriptionId>/resourceGroups/<resourceGroupName>/providers/Microsoft.Network/ddosProtectionPlans/<ddosPlanName>`
 
