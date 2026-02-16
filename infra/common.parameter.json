@@ -13,12 +13,19 @@
   ],
   "egressNextHopIp": "",
   "sharedBastionIp": "",
+  "aksUserPoolVmSize": "standard_d4s_v4",
+  "aksUserPoolCount": 3,
+  "aksUserPoolMinCount": 3,
+  "aksUserPoolMaxCount": 6,
+  "aksUserPoolLabel": "user",
+  "aksPodCidr": "10.189.0.0/17",
   "resourceToggles": {
     "logAnalytics": true,
     "applicationInsights": true,
     "virtualNetwork": true,
     "subnets": true,
     "firewall": true,
+    "applicationGateway": true,
     "maintenanceVm": true
   }
 }
