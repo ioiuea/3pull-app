@@ -66,6 +66,10 @@ var modulesTags = {
   billing: 'infra'
 }
 
+var maintOsDisk = union(maintVmOsDisk, {
+  name: 'disk-${maintVmName}'
+})
+
 resource nic 'Microsoft.Network/networkInterfaces@2024-07-01' = {
   name: maintNicName
   location: location
@@ -106,7 +110,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
     }
     storageProfile: {
       imageReference: maintVmImageReference
-      osDisk: maintVmOsDisk
+      osDisk: maintOsDisk
     }
     networkProfile: {
       networkInterfaces: [
@@ -127,6 +131,29 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
         vTpmEnabled: maintVTpmEnabled
       }
     }
+  }
+}
+
+resource nicDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind != '') {
+  name: 'del-lock-${maintNicName}'
+  scope: nic
+  properties: {
+    level: lockKind
+  }
+}
+
+resource osDisk 'Microsoft.Compute/disks@2024-03-02' existing = {
+  name: string(maintOsDisk.name)
+}
+
+resource osDiskDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind != '') {
+  name: 'del-lock-${string(maintOsDisk.name)}'
+  scope: osDisk
+  dependsOn: [
+    vm
+  ]
+  properties: {
+    level: lockKind
   }
 }
 
