@@ -71,6 +71,7 @@ log_analytics_name = f"log-{environment_name}-{system_name}"
 log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
 ddos_protection_plan_id = common.get("ddosProtectionPlanId", "")
+enable_ddos_protection = bool(common.get("enableDdosProtection", True))
 deploy = bool(common.get("resourceToggles", {}).get("virtualNetwork", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
@@ -88,6 +89,7 @@ lines = [
     f"param vnetName = {quote(vnet_name)}",
     f"param vnetAddressPrefixes = {to_bicep(vnet_address_prefixes)}",
     f"param vnetDnsServers = {to_bicep(vnet_dns_servers)}",
+    f"param enableDdosProtection = {'true' if enable_ddos_protection else 'false'}",
     f"param ddosProtectionPlanId = {quote(ddos_protection_plan_id)}",
     f"param ddosProtectionPlanName = {quote(ddos_plan_name)}",
     "",
