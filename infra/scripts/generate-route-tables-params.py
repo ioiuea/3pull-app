@@ -117,6 +117,9 @@ except ValueError as exc:
 agic_alias = "agic"
 if agic_alias not in known_aliases:
     raise SystemExit("ApplicationGatewaySubnet(agic) が定義されていません")
+agic_prefix = subnet_prefix_map.get(agic_alias, "")
+if not agic_prefix:
+    raise SystemExit("ApplicationGatewaySubnet(agic) のプレフィックスが見つかりません")
 
 next_hop_ip = common.get("egressNextHopIp", "") or firewall_private_ip
 try:
@@ -124,8 +127,10 @@ try:
 except ValueError as exc:
     raise SystemExit("egressNextHopIp が不正な IP です") from exc
 
-outbound_targets = config.get("outboundSubnetAliases", [])
-outbound_subnet_aliases = [alias for alias in outbound_targets if alias in known_aliases]
+outbound_aks_targets = config.get("outboundAksSubnetAliases", ["agentnode", "usernode"])
+outbound_maint_targets = config.get("outboundMaintSubnetAliases", ["maint"])
+outbound_aks_subnet_aliases = [alias for alias in outbound_aks_targets if alias in known_aliases]
+outbound_maint_subnet_aliases = [alias for alias in outbound_maint_targets if alias in known_aliases]
 inbound_target_aliases = [alias for alias in config.get("inboundTargetSubnetAliases", ["usernode", "agentnode"]) if alias in known_aliases]
 if not inbound_target_aliases:
     raise SystemExit("inboundTargetSubnetAliases に有効なサブネット alias がありません")
@@ -151,11 +156,36 @@ for alias in inbound_target_aliases:
 route_tables = [
     {
         "name": "firewall",
+        "disableBgpRoutePropagation": True,
         "routes": inbound_routes,
         "subnetNames": [agic_alias],
     },
     {
-        "name": "outbound",
+        "name": "outbound-aks",
+        "disableBgpRoutePropagation": True,
+        "routes": [
+            {
+                "name": config.get("appGatewayReturnRouteName", "udr-appgw-return"),
+                "properties": {
+                    "addressPrefix": agic_prefix,
+                    "nextHopType": "VirtualAppliance",
+                    "nextHopIpAddress": firewall_private_ip,
+                },
+            },
+            {
+                "name": config.get("outboundRouteName", "udr-internet-outbound"),
+                "properties": {
+                    "addressPrefix": config.get("outboundAddressPrefix", "0.0.0.0/0"),
+                    "nextHopType": "VirtualAppliance",
+                    "nextHopIpAddress": next_hop_ip,
+                },
+            }
+        ],
+        "subnetNames": outbound_aks_subnet_aliases,
+    },
+    {
+        "name": "outbound-maint",
+        "disableBgpRoutePropagation": True,
         "routes": [
             {
                 "name": config.get("outboundRouteName", "udr-internet-outbound"),
@@ -166,7 +196,7 @@ route_tables = [
                 },
             }
         ],
-        "subnetNames": outbound_subnet_aliases,
+        "subnetNames": outbound_maint_subnet_aliases,
     },
 ]
 

@@ -32,6 +32,7 @@ resource routeTableResources 'Microsoft.Network/routeTables@2024-07-01' = [
     location: location
     tags: modulesTags
     properties: {
+      disableBgpRoutePropagation: routeTable.?disableBgpRoutePropagation ?? false
       routes: routeTable.routes
     }
   }

@@ -1,15 +1,18 @@
 {
   "modulesName": "nw",
   "lockKind": "CanNotDelete",
-  "outboundSubnetAliases": [
+  "outboundAksSubnetAliases": [
     "agentnode",
-    "usernode",
+    "usernode"
+  ],
+  "outboundMaintSubnetAliases": [
     "maint"
   ],
   "inboundTargetSubnetAliases": [
     "usernode",
     "agentnode"
   ],
+  "appGatewayReturnRouteName": "udr-appgw-return",
   "outboundRouteName": "udr-internet-outbound",
   "outboundAddressPrefix": "0.0.0.0/0"
 }
