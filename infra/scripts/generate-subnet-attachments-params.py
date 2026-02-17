@@ -118,7 +118,7 @@ for alias in route_tables_config.get("outboundSubnetAliases", []):
     route_name_by_alias[alias] = "outbound"
 
 # NSG 紐づけ対象（nsg 生成スクリプトと同じ除外条件）
-nsg_skip_aliases = {"services", "agic", "firewall", "bastion"}
+nsg_skip_aliases = {"agic", "firewall", "bastion"}
 nsg_aliases = []
 for subnet in resolved_subnets:
     alias = subnet["alias"]

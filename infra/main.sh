@@ -5,6 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 infra_root="$repo_root/infra"
 common_file="$infra_root/common.parameter.json"
 params_dir="$infra_root/params"
+common_validation_script="$infra_root/scripts/validate-common-params.py"
 
 log_config_file="$infra_root/config/log-analytics.json"
 log_script="$infra_root/scripts/generate-log-analytics-params.py"
@@ -29,6 +30,10 @@ firewall_meta_file="$params_dir/firewall-meta.json"
 application_gateway_config_file="$infra_root/config/application-gateway.json"
 application_gateway_script="$infra_root/scripts/generate-application-gateway-params.py"
 application_gateway_meta_file="$params_dir/application-gateway-meta.json"
+
+aks_config_file="$infra_root/config/aks.json"
+aks_script="$infra_root/scripts/generate-aks-params.py"
+aks_meta_file="$params_dir/aks-meta.json"
 
 route_tables_config_file="$infra_root/config/route-tables.json"
 route_tables_script="$infra_root/scripts/generate-route-tables-params.py"
@@ -64,6 +69,14 @@ if [[ ! -f "$common_file" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$common_validation_script" ]]; then
+  echo "common parameter validation script が見つかりません: $common_validation_script" >&2
+  exit 1
+fi
+
+echo "==> Validate common parameters"
+"$common_validation_script" "$common_file"
+
 if [[ ! -f "$log_config_file" ]]; then
   echo "log analytics config file が見つかりません: $log_config_file" >&2
   exit 1
@@ -91,6 +104,11 @@ fi
 
 if [[ ! -f "$application_gateway_config_file" ]]; then
   echo "application gateway config file が見つかりません: $application_gateway_config_file" >&2
+  exit 1
+fi
+
+if [[ ! -f "$aks_config_file" ]]; then
+  echo "aks config file が見つかりません: $aks_config_file" >&2
   exit 1
 fi
 
@@ -160,6 +178,15 @@ PARAMS_DIR="$params_dir" \
 OUT_META_FILE="$application_gateway_meta_file" \
 TIMESTAMP="$timestamp" \
 "$application_gateway_script"
+
+COMMON_FILE="$common_file" \
+RESOURCE_CONFIG_FILE="$aks_config_file" \
+SUBNETS_CONFIG_FILE="$subnets_config_file" \
+APPLICATION_GATEWAY_META_FILE="$application_gateway_meta_file" \
+PARAMS_DIR="$params_dir" \
+OUT_META_FILE="$aks_meta_file" \
+TIMESTAMP="$timestamp" \
+"$aks_script"
 
 COMMON_FILE="$common_file" \
 RESOURCE_CONFIG_FILE="$route_tables_config_file" \
@@ -255,6 +282,16 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+aks_resource_group_name="$(META_FILE="$aks_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("resourceGroupName", ""))
+PY
+)"
+
 route_tables_resource_group_name="$(META_FILE="$route_tables_meta_file" python - <<'PY'
 import json
 import os
@@ -325,6 +362,11 @@ if [[ -z "$application_gateway_resource_group_name" ]]; then
   exit 1
 fi
 
+if [[ -z "$aks_resource_group_name" ]]; then
+  echo "aks resourceGroupName が取得できませんでした。config を確認してください。" >&2
+  exit 1
+fi
+
 if [[ -z "$route_tables_resource_group_name" ]]; then
   echo "route tables resourceGroupName が取得できませんでした。config を確認してください。" >&2
   exit 1
@@ -382,6 +424,13 @@ if [[ "$application_gateway_resource_group_name" != "$vnet_resource_group_name" 
     --location "$location" >/dev/null
 fi
 
+if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" ]]; then
+  echo "==> Ensure Resource Group: $aks_resource_group_name"
+  az group create \
+    --name "$aks_resource_group_name" \
+    --location "$location" >/dev/null
+fi
+
 if [[ "$route_tables_resource_group_name" != "$vnet_resource_group_name" && "$route_tables_resource_group_name" != "$subnets_resource_group_name" && "$route_tables_resource_group_name" != "$firewall_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $route_tables_resource_group_name"
   az group create \
@@ -403,7 +452,7 @@ if [[ "$subnet_attachments_resource_group_name" != "$vnet_resource_group_name" &
     --location "$location" >/dev/null
 fi
 
-if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
+if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $maintenance_vm_resource_group_name"
   az group create \
     --name "$maintenance_vm_resource_group_name" \
@@ -492,13 +541,96 @@ print(meta.get("paramsFile", ""))
 PY
 )"
 
+vnet_apply_skipped_existing=false
+vnet_created_in_this_run=false
+
 if [[ "$vnet_deploy" == "true" ]]; then
-  echo "==> Deploy Virtual Network"
-  az deployment group create \
-    --name "main-network-virtual-network-${timestamp}" \
-    --resource-group "$vnet_resource_group_name" \
-    --parameters "$vnet_params_file" \
-    ${what_if:+$what_if}
+  vnet_name="$(PARAMS_FILE="$vnet_params_file" python - <<'PY'
+import os
+import re
+from pathlib import Path
+
+content = Path(os.environ["PARAMS_FILE"]).read_text(encoding="utf-8")
+match = re.search(r"^param vnetName = '([^']*)'$", content, flags=re.MULTILINE)
+print(match.group(1) if match else "")
+PY
+)"
+
+  if [[ -z "$vnet_name" ]]; then
+    echo "vnetName が取得できませんでした: $vnet_params_file" >&2
+    exit 1
+  fi
+
+  echo "==> Check existing Virtual Network: $vnet_name"
+  existing_vnet_name="$(VNET_RG_NAME="$vnet_resource_group_name" VNET_NAME="$vnet_name" SUBSCRIPTION_ID="$(az account show --query id -o tsv)" python - <<'PY'
+import os
+import subprocess
+import sys
+
+vnet_id = (
+    f"/subscriptions/{os.environ['SUBSCRIPTION_ID']}"
+    f"/resourceGroups/{os.environ['VNET_RG_NAME']}"
+    f"/providers/Microsoft.Network/virtualNetworks/{os.environ['VNET_NAME']}"
+)
+
+cmd = [
+    "az",
+    "resource",
+    "show",
+    "--ids",
+    vnet_id,
+    "--query",
+    "name",
+    "--output",
+    "tsv",
+    "--only-show-errors",
+]
+
+for _ in range(3):
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20, check=False)
+    except subprocess.TimeoutExpired:
+        continue
+
+    if result.returncode == 0:
+        print(result.stdout.strip())
+        sys.exit(0)
+    if result.returncode != 0 and "was not found" in (result.stderr or ""):
+        print("")
+        sys.exit(0)
+
+print("__CHECK_FAILED__")
+PY
+)"
+
+  if [[ "$existing_vnet_name" == "__CHECK_FAILED__" ]]; then
+    echo "==> エラー: 既存 Virtual Network の存在確認に失敗しました（タイムアウト/リトライ上限）。" >&2
+    echo "==> Error: Failed to check existing Virtual Network state (timeout/retry exhausted)." >&2
+    echo "==> Azure CLI のログイン状態・セッション・ネットワークを確認して再実行してください。" >&2
+    echo "==> Please verify Azure CLI login/session/network and retry." >&2
+    exit 1
+  fi
+
+  if [[ -n "$existing_vnet_name" ]]; then
+    vnet_apply_skipped_existing=true
+    cat <<EOF
+------------------------------------------------------------
+NOTICE: Virtual Network
+[JA] 既存の Virtual Network を検出したため、Virtual Network の適用/更新をスキップします。
+     VNET 名: $existing_vnet_name
+[EN] Existing Virtual Network detected. Skipping Virtual Network apply/update.
+     VNET Name: $existing_vnet_name
+------------------------------------------------------------
+EOF
+  else
+    echo "==> Deploy Virtual Network"
+    az deployment group create \
+      --name "main-network-virtual-network-${timestamp}" \
+      --resource-group "$vnet_resource_group_name" \
+      --parameters "$vnet_params_file" \
+      ${what_if:+$what_if}
+    vnet_created_in_this_run=true
+  fi
 else
   echo "==> Skip Virtual Network (resourceToggles.virtualNetwork=false)"
 fi
@@ -554,13 +686,111 @@ print(meta.get("paramsFile", ""))
 PY
 )"
 
+firewall_policy_apply_skipped=false
+
 if [[ "$firewall_deploy" == "true" ]]; then
-  echo "==> Deploy Firewall"
-  az deployment group create \
-    --name "main-network-firewall-${timestamp}" \
-    --resource-group "$firewall_resource_group_name" \
-    --parameters "$firewall_params_file" \
-    ${what_if:+$what_if}
+  firewall_policy_name="$(PARAMS_FILE="$firewall_params_file" python - <<'PY'
+import os
+import re
+from pathlib import Path
+
+content = Path(os.environ["PARAMS_FILE"]).read_text(encoding="utf-8")
+match = re.search(r"^param firewallPolicyName = '([^']*)'$", content, flags=re.MULTILINE)
+print(match.group(1) if match else "")
+PY
+)"
+
+  if [[ -z "$firewall_policy_name" ]]; then
+    echo "firewallPolicyName が取得できませんでした: $firewall_params_file" >&2
+    exit 1
+  fi
+
+  echo "==> Check existing Firewall Policy: $firewall_policy_name"
+  existing_firewall_policy_name="$(FIREWALL_RG_NAME="$firewall_resource_group_name" FIREWALL_POLICY_NAME="$firewall_policy_name" SUBSCRIPTION_ID="$(az account show --query id -o tsv)" python - <<'PY'
+import os
+import subprocess
+import sys
+
+policy_id = (
+    f"/subscriptions/{os.environ['SUBSCRIPTION_ID']}"
+    f"/resourceGroups/{os.environ['FIREWALL_RG_NAME']}"
+    f"/providers/Microsoft.Network/firewallPolicies/{os.environ['FIREWALL_POLICY_NAME']}"
+)
+
+cmd = [
+    "az",
+    "resource",
+    "show",
+    "--ids",
+    policy_id,
+    "--query",
+    "name",
+    "--output",
+    "tsv",
+    "--only-show-errors",
+]
+
+for _ in range(3):
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20, check=False)
+    except subprocess.TimeoutExpired:
+        continue
+
+    if result.returncode == 0:
+        print(result.stdout.strip())
+        sys.exit(0)
+    if result.returncode != 0 and "was not found" in (result.stderr or ""):
+        print("")
+        sys.exit(0)
+
+print("__CHECK_FAILED__")
+PY
+)"
+
+  if [[ "$existing_firewall_policy_name" == "__CHECK_FAILED__" ]]; then
+    echo "==> Error: Failed to check existing Firewall Policy state (timeout/retry exhausted)." >&2
+    echo "==> エラー: 既存 Firewall Policy の存在確認に失敗しました（タイムアウト/リトライ上限）。" >&2
+    echo "==> Please verify Azure CLI login/session/network and retry." >&2
+    echo "==> Azure CLI のログイン状態・セッション・ネットワークを確認して再実行してください。" >&2
+    exit 1
+  fi
+
+  if [[ -n "$existing_firewall_policy_name" ]]; then
+    firewall_policy_apply_skipped=true
+    cat <<EOF
+------------------------------------------------------------
+NOTICE: Firewall Policy
+[EN] Existing Firewall Policy detected. Skipping policy apply/update.
+     Policy Name: $existing_firewall_policy_name
+[JA] 既存の Firewall Policy を検出したため、Policy の適用/更新をスキップします。
+     Policy 名: $existing_firewall_policy_name
+------------------------------------------------------------
+EOF
+    echo "==> Deploy Firewall (use existing Firewall Policy)"
+    firewall_deploy_cmd=(
+      az deployment group create
+      --name "main-network-firewall-${timestamp}"
+      --resource-group "$firewall_resource_group_name"
+      --parameters "$firewall_params_file"
+      --parameters skipFirewallPolicyDeployment=true
+    )
+    if [[ -n "${what_if:-}" ]]; then
+      firewall_deploy_cmd+=("$what_if")
+    fi
+    "${firewall_deploy_cmd[@]}"
+  else
+    echo "==> Deploy Firewall"
+    firewall_deploy_cmd=(
+      az deployment group create
+      --name "main-network-firewall-${timestamp}"
+      --resource-group "$firewall_resource_group_name"
+      --parameters "$firewall_params_file"
+    )
+    if [[ -n "${what_if:-}" ]]; then
+      firewall_deploy_cmd+=("$what_if")
+    fi
+    "${firewall_deploy_cmd[@]}"
+  fi
 else
   echo "==> Skip Firewall (resourceToggles.firewall=false)"
 fi
@@ -689,6 +919,37 @@ else
   echo "==> Skip Application Gateway (resourceToggles.applicationGateway=false)"
 fi
 
+aks_deploy="$(META_FILE="$aks_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(str(bool(meta.get("deploy", True))).lower())
+PY
+)"
+
+aks_params_file="$(META_FILE="$aks_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+
+if [[ "$aks_deploy" == "true" ]]; then
+  echo "==> Deploy AKS"
+  az deployment group create \
+    --name "main-service-aks-${timestamp}" \
+    --resource-group "$aks_resource_group_name" \
+    --parameters "$aks_params_file" \
+    ${what_if:+$what_if}
+else
+  echo "==> Skip AKS (resourceToggles.aks=false)"
+fi
+
 maintenance_vm_deploy="$(META_FILE="$maintenance_vm_meta_file" python - <<'PY'
 import json
 import os
@@ -725,4 +986,44 @@ if [[ "$maintenance_vm_deploy" == "true" ]]; then
     ${what_if:+$what_if}
 else
   echo "==> Skip Maintenance VM (resourceToggles.maintenanceVm=false)"
+fi
+
+egress_next_hop_ip="$(COMMON_FILE="$common_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+common = json.loads(Path(os.environ["COMMON_FILE"]).read_text(encoding="utf-8"))
+print(common.get("egressNextHopIp", ""))
+PY
+)"
+
+if [[ "$vnet_deploy" == "true" && "$vnet_apply_skipped_existing" != "true" && "$vnet_created_in_this_run" == "true" ]]; then
+  cat <<'EOF'
+------------------------------------------------------------
+NOTICE: Virtual Network (Initial Provisioning)
+[EN] A new Virtual Network has been created. If peering with other VNETs is required,
+     configure it from Azure Portal: https://portal.azure.com/
+
+[JA] Virtual Network を新規作成しています。別 VNET とのピアリングなどが必要な場合は、
+     Azure Portal（https://portal.azure.com/）から設定してください。
+------------------------------------------------------------
+EOF
+fi
+
+if [[ "$firewall_deploy" == "true" && -z "$egress_next_hop_ip" && "$firewall_policy_apply_skipped" != "true" ]]; then
+  cat <<'EOF'
+------------------------------------------------------------
+NOTICE: Firewall Outbound Rule (Initial Provisioning)
+[EN] Because egressNextHopIp is not specified, outbound traffic in Firewall Policy is temporarily allowed to Any
+     to permit required external communication during the initial Azure Kubernetes Service provisioning.
+     After provisioning, review and tighten Firewall Policy allow/deny rules according to your enterprise policy.
+     Edit Firewall Policy from Azure Portal: https://portal.azure.com/
+
+[JA] egressNextHopIp が未指定のため、初期構築段階では Azure Kubernetes Service の構築に必要な外部通信を許可する目的で、
+     Firewall Policy のアウトバウンド通信が宛先 Any で許可される構成になります。
+     構築完了後は、企業ポリシーに合わせて Firewall Policy の許可/遮断ルールを見直して運用してください。
+     Firewall Policy の編集は Azure Portal（https://portal.azure.com/）から実施してください。
+------------------------------------------------------------
+EOF
 fi

@@ -12,6 +12,13 @@ def quote(value: str) -> str:
     return f"'{escaped}'"
 
 
+def to_bicep_string_array(values: list[str]) -> str:
+    if not values:
+        return "[]"
+    items = "\n".join(f"  {quote(v)}" for v in values)
+    return "[\n" + items + "\n]"
+
+
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
@@ -41,6 +48,7 @@ base_prefixes = [ipaddress.ip_network(p) for p in vnet_address_prefixes]
 range_index = 0
 current = int(base_prefixes[0].network_address)
 firewall_subnet = None
+subnet_prefix_map = {}
 
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
@@ -66,6 +74,11 @@ for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     if allocated is None:
         raise SystemExit(f"subnet '{subnet['name']}' does not fit in vnetAddressPrefixes")
 
+    subnet_name = subnet["name"]
+    subnet_alias = subnet.get("alias", subnet_name)
+    subnet_prefix_map[subnet_name] = str(allocated)
+    subnet_prefix_map[subnet_alias] = str(allocated)
+
     if subnet.get("name") == "AzureFirewallSubnet":
         firewall_subnet = allocated
 
@@ -87,7 +100,14 @@ log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
 enable_firewall_idps = bool(common.get("enableFirewallIdps", False))
 enable_ddos_protection = bool(common.get("enableDdosProtection", True))
+egress_next_hop_ip = common.get("egressNextHopIp", "")
 deploy = bool(common.get("resourceToggles", {}).get("firewall", True))
+
+aks_egress_source_prefixes = []
+for alias in ("agentnode", "usernode"):
+    prefix = subnet_prefix_map.get(alias, "")
+    if prefix:
+        aks_egress_source_prefixes.append(prefix)
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "firewall.bicepparam"
@@ -103,6 +123,8 @@ lines = [
     f"param logAnalyticsResourceGroupName = {quote(log_analytics_rg_name)}",
     f"param vnetName = {quote(vnet_name)}",
     f"param enableFirewallIdps = {'true' if enable_firewall_idps else 'false'}",
+    f"param egressNextHopIp = {quote(egress_next_hop_ip)}",
+    f"param aksEgressSourceAddressPrefixes = {to_bicep_string_array(aks_egress_source_prefixes)}",
     f"param publicIPName = {quote(f'pip-afw-{environment_name}-{system_name}')}",
     f"param firewallPolicyName = {quote(f'afwp-{environment_name}-{system_name}')}",
     f"param firewallName = {quote(f'afw-{environment_name}-{system_name}')}",
