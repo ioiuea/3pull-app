@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Application Gateway 用 bicepparam を生成する。"""
+"""Application Gateway 用 bicepparam を生成する。
+
+主な処理:
+1. サブネット定義から ApplicationGatewaySubnet の CIDR を再計算する。
+2. フロントエンド固定 Private IP を算出する。
+3. AGW/WAF/PIP 作成に必要な .bicepparam とメタ情報を出力する。
+"""
 
 import ipaddress
 import json
@@ -8,16 +14,19 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 共通値とリソース固定定義を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
@@ -42,6 +51,7 @@ range_index = 0
 current = int(base_prefixes[0].network_address)
 application_gateway_subnet = None
 
+# Subnet 生成ロジックと同じ手順で AGW サブネットを特定する。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
@@ -72,6 +82,7 @@ for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
 if application_gateway_subnet is None:
     raise SystemExit("ApplicationGatewaySubnet is not defined")
 
+# 設計上、フロントエンド Private IP は 10 番目の利用可能 IP を使う。
 hosts = list(application_gateway_subnet.hosts())
 if len(hosts) < 10:
     raise SystemExit("ApplicationGatewaySubnet does not have enough usable IPs to assign the 10th host")
@@ -92,6 +103,7 @@ application_gateway_name = f"agw-{environment_name}-{system_name}"
 public_ip_name = f"pip-agw-{environment_name}-{system_name}"
 waf_policy_name = f"waf-{environment_name}-{system_name}"
 
+# AGW デプロイ用パラメータを出力する。
 lines = [
     "using '../bicep/main.application-gateway.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -135,6 +147,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# main.sh が参照するメタ情報。
 meta = {
     "resourceGroupName": network_rg_name,
     "deploy": deploy,

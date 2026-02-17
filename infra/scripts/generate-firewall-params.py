@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Firewall 用 bicepparam を生成する。"""
+"""Firewall 用 bicepparam を生成する。
+
+主な責務:
+1. サブネット定義から AzureFirewallSubnet の CIDR を再計算する。
+2. Firewall 用パラメータと AKS 送信元レンジを組み立てる。
+3. .bicepparam と firewall-meta.json を出力する。
+"""
 
 import ipaddress
 import json
@@ -8,23 +14,27 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def to_bicep_string_array(values: list[str]) -> str:
+    """文字列配列を Bicep の配列表現へ変換する。"""
     if not values:
         return "[]"
     items = "\n".join(f"  {quote(v)}" for v in values)
     return "[\n" + items + "\n]"
 
 
+# main.sh から受け取る入力/出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 設定を読み込む。common は可変値、config は固定定義。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
@@ -50,10 +60,12 @@ current = int(base_prefixes[0].network_address)
 firewall_subnet = None
 subnet_prefix_map = {}
 
+# VNET 内でのサブネット割り当てを再現し、Firewall のサブネットを特定する。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
 
+    # 現在位置から、対象 prefixLength が収まるブロックを探索する。
     while range_index < len(base_prefixes):
         rng = base_prefixes[range_index]
         block = 1 << (32 - prefix_len)
@@ -85,6 +97,7 @@ for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
 if firewall_subnet is None:
     raise SystemExit("AzureFirewallSubnet is not defined")
 
+# Azure Firewall のプライベート IP は subnet の最初の利用可能 IP を利用する。
 hosts = list(firewall_subnet.hosts())
 if not hosts:
     raise SystemExit("No usable IPs in AzureFirewallSubnet")
@@ -103,6 +116,7 @@ enable_ddos_protection = bool(common.get("enableDdosProtection", True))
 egress_next_hop_ip = common.get("egressNextHopIp", "")
 deploy = bool(common.get("resourceToggles", {}).get("firewall", True))
 
+# Firewall ポリシーで AKS 由来通信を扱うための送信元レンジ。
 aks_egress_source_prefixes = []
 for alias in ("agentnode", "usernode"):
     prefix = subnet_prefix_map.get(alias, "")
@@ -112,6 +126,7 @@ for alias in ("agentnode", "usernode"):
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "firewall.bicepparam"
 
+# Bicep へ渡すパラメータファイルを組み立てる。
 lines = [
     "using '../bicep/main.firewall.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -139,6 +154,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# 後続スクリプトが next hop を解決できるよう、Firewall IP をメタへ保存する。
 meta = {
     "resourceGroupName": network_rg_name,
     "deploy": deploy,

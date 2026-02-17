@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Route Table 用 bicepparam を生成する。"""
+"""Route Table 用 bicepparam を生成する。
+
+設計意図:
+- agic(=ApplicationGatewaySubnet) 用 inbound ルートを作る。
+- AKS 用と Maintenance 用で outbound ルートテーブルを分離する。
+- Firewall 実 IP をメタファイルから受け取り、next hop として埋め込む。
+"""
 
 import ipaddress
 import json
@@ -9,17 +15,20 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def key_literal(key: str) -> str:
+    """Bicep オブジェクトのキーを文字列化する。"""
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
         return key
     return quote(key)
 
 
 def to_bicep(value, indent: int = 0) -> str:
+    """Python の値を Bicep リテラルへ変換する。"""
     pad = " " * indent
     if value is None:
         return "null"
@@ -42,6 +51,7 @@ def to_bicep(value, indent: int = 0) -> str:
     raise TypeError(f"Unsupported type: {type(value)}")
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
@@ -49,6 +59,7 @@ firewall_meta_path = Path(os.environ["FIREWALL_META_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 入力設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
@@ -74,6 +85,7 @@ range_index = 0
 current = int(base_prefixes[0].network_address)
 subnet_prefix_map = {}
 
+# Subnet 割り当てロジックを再現し、alias -> CIDR の対応表を作る。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
@@ -105,6 +117,7 @@ for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
 
 known_aliases = {s.get("alias", s.get("name", "")) for s in subnet_defs}
 
+# 既存または直前作成された Firewall の実 IP を参照する。
 firewall_private_ip = firewall_meta.get("firewallPrivateIp", "")
 if not firewall_private_ip:
     raise SystemExit("firewall-meta.json に firewallPrivateIp がありません")
@@ -121,6 +134,7 @@ agic_prefix = subnet_prefix_map.get(agic_alias, "")
 if not agic_prefix:
     raise SystemExit("ApplicationGatewaySubnet(agic) のプレフィックスが見つかりません")
 
+# egressNextHopIp が未指定なら、この環境の Firewall を既定 next hop とする。
 next_hop_ip = common.get("egressNextHopIp", "") or firewall_private_ip
 try:
     ipaddress.ip_address(next_hop_ip)
@@ -135,6 +149,7 @@ inbound_target_aliases = [alias for alias in config.get("inboundTargetSubnetAlia
 if not inbound_target_aliases:
     raise SystemExit("inboundTargetSubnetAliases に有効なサブネット alias がありません")
 
+# Application Gateway から各 AKS ノードサブネットへ向かう経路を定義する。
 inbound_routes = []
 for alias in inbound_target_aliases:
     address_prefix = subnet_prefix_map.get(alias, "")
@@ -153,6 +168,7 @@ for alias in inbound_target_aliases:
         }
     )
 
+# 設計に沿った 3 種類のルートテーブルを定義する。
 route_tables = [
     {
         "name": "firewall",
@@ -203,11 +219,13 @@ route_tables = [
 modules_name = config.get("modulesName", "nw")
 lock_kind = config.get("lockKind", "CanNotDelete")
 network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
+# subnets トグルに連動して route table の作成可否を決める。
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "route-tables.bicepparam"
 
+# main.route-tables.bicep へ渡す .bicepparam を生成する。
 lines = [
     "using '../bicep/main.route-tables.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -220,6 +238,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# 後続工程向けメタ情報。
 meta = {
     "resourceGroupName": network_rg_name,
     "deploy": deploy,

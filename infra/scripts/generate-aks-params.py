@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""AKS 用 bicepparam を生成する。"""
+"""AKS 用 bicepparam を生成する。
+
+主な責務:
+1. common/config から AKS の可変値と固定値を統合する。
+2. aksServiceCidr から DNS Service IP(10 番目の利用可能 IP)を算出する。
+3. AKS 作成用 .bicepparam とメタ情報を出力する。
+"""
 
 import ipaddress
 import json
@@ -8,11 +14,13 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def to_bicep_array(values: list[str]) -> str:
+    """文字列配列を Bicep 配列表現へ変換する。"""
     if not values:
         return "[]"
     lines = ["["]
@@ -22,6 +30,7 @@ def to_bicep_array(values: list[str]) -> str:
     return "\n".join(lines)
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
@@ -29,6 +38,7 @@ application_gateway_meta_path = Path(os.environ["APPLICATION_GATEWAY_META_FILE"]
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 入力設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
@@ -49,6 +59,7 @@ service_cidr_raw = common.get("aksServiceCidr", "")
 if not service_cidr_raw:
     raise SystemExit("common.parameter.json の aksServiceCidr が空です")
 
+# service CIDR の 10 番目の利用可能 IP を DNS Service IP として使う。
 service_cidr_network = ipaddress.ip_network(service_cidr_raw, strict=True)
 service_hosts = list(service_cidr_network.hosts())
 if len(service_hosts) < 10:
@@ -87,11 +98,13 @@ aks_name = f"aks-{environment_name}-{system_name}"
 dns_prefix_base = config.get("dnsPrefix", "aks-dns")
 dns_prefix = f"{dns_prefix_base}-{environment_name}-{system_name}"
 
+# AKS の実行有無トグル。
 deploy = bool(common.get("resourceToggles", {}).get("aks", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "aks.bicepparam"
 
+# AKS デプロイ用 .bicepparam を出力する。
 lines = [
     "using '../bicep/main.aks.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -145,6 +158,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# main.sh が参照するメタ情報。
 meta = {
     "resourceGroupName": aks_rg_name,
     "deploy": deploy,

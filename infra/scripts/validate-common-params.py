@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""infra/common.parameter.json の入力値を事前検証する。"""
+"""infra/common.parameter.json の入力値を事前検証する。
+
+方針:
+- ここで共通パラメータを先に検証し、後続の各 generate スクリプトでは
+  正常系処理に集中できるようにする。
+- 不正値がある場合は理由を一覧表示し、main.sh の実処理を停止する。
+"""
 
 from __future__ import annotations
 
@@ -10,6 +16,7 @@ from pathlib import Path
 
 
 def parse_json(path: Path):
+    """JSON ファイルを読み込み、構文エラー時は終了コード 1 で停止する。"""
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -22,6 +29,7 @@ def parse_json(path: Path):
 
 
 def as_bool(value, key: str, errors: list[str]):
+    """bool を期待するキーの型検証を行う。"""
     if isinstance(value, bool):
         return value
     errors.append(f"{key}: true/false で指定してください。")
@@ -29,6 +37,7 @@ def as_bool(value, key: str, errors: list[str]):
 
 
 def as_non_empty_str(value, key: str, errors: list[str]):
+    """空文字でない文字列かどうかを検証する。"""
     if isinstance(value, str) and value.strip() != "":
         return value.strip()
     errors.append(f"{key}: 空でない文字列を指定してください。")
@@ -36,6 +45,7 @@ def as_non_empty_str(value, key: str, errors: list[str]):
 
 
 def as_optional_ip_or_cidr(value, key: str, errors: list[str]):
+    """任意入力の IPv4/CIDR 文字列を検証する。空文字は未指定扱い。"""
     if value == "":
         return None
     if not isinstance(value, str):
@@ -53,6 +63,7 @@ def as_optional_ip_or_cidr(value, key: str, errors: list[str]):
 
 
 def as_optional_ip(value, key: str, errors: list[str]):
+    """任意入力の IPv4 文字列を検証する。空文字は未指定扱い。"""
     if value == "":
         return None
     if not isinstance(value, str):
@@ -67,6 +78,7 @@ def as_optional_ip(value, key: str, errors: list[str]):
 
 
 def as_cidr(value, key: str, errors: list[str]):
+    """必須 CIDR 文字列を検証し、正常時は ip_network を返す。"""
     if not isinstance(value, str) or value.strip() == "":
         errors.append(f"{key}: x.x.x.x/xx 形式の CIDR を指定してください。")
         return None
@@ -78,6 +90,7 @@ def as_cidr(value, key: str, errors: list[str]):
 
 
 def as_int(value, key: str, errors: list[str]):
+    """整数値を検証する（bool は int として扱わない）。"""
     if isinstance(value, bool) or not isinstance(value, int):
         errors.append(f"{key}: 整数を指定してください。")
         return None
@@ -85,6 +98,7 @@ def as_int(value, key: str, errors: list[str]):
 
 
 def main() -> int:
+    """エントリポイント。検証結果に応じた終了コードを返す。"""
     if len(sys.argv) != 2:
         print("Usage: validate-common-params.py <common.parameter.json>", file=sys.stderr)
         return 2
@@ -98,10 +112,12 @@ def main() -> int:
         print("[ERROR] common parameter file のトップレベルは object である必要があります。", file=sys.stderr)
         return 1
 
+    # 基本識別子
     as_non_empty_str(common.get("location"), "location", errors)
     as_non_empty_str(common.get("environmentName"), "environmentName", errors)
     as_non_empty_str(common.get("systemName"), "systemName", errors)
 
+    # ネットワーク/セキュリティ系のフラグ
     as_bool(common.get("enableFirewallIdps"), "enableFirewallIdps", errors)
     enable_ddos = as_bool(common.get("enableDdosProtection"), "enableDdosProtection", errors)
 
@@ -111,6 +127,7 @@ def main() -> int:
     elif enable_ddos and ddos_plan_id and not ddos_plan_id.startswith("/subscriptions/"):
         errors.append("ddosProtectionPlanId: 指定時は Azure リソース ID 形式（/subscriptions/...）で指定してください。")
 
+    # VNET アドレス空間の検証（形式と重複チェック）
     vnet_prefixes_raw = common.get("vnetAddressPrefixes")
     vnet_prefixes: list[ipaddress._BaseNetwork] = []
     if not isinstance(vnet_prefixes_raw, list) or not vnet_prefixes_raw:
@@ -129,9 +146,11 @@ def main() -> int:
                         f"({vnet_prefixes[i]} と {vnet_prefixes[j]})"
                     )
 
+    # 任意指定 IP
     as_optional_ip(common.get("egressNextHopIp", ""), "egressNextHopIp", errors)
     as_optional_ip_or_cidr(common.get("sharedBastionIp", ""), "sharedBastionIp", errors)
 
+    # AKS user pool 設定
     as_non_empty_str(common.get("aksUserPoolVmSize"), "aksUserPoolVmSize", errors)
     count = as_int(common.get("aksUserPoolCount"), "aksUserPoolCount", errors)
     min_count = as_int(common.get("aksUserPoolMinCount"), "aksUserPoolMinCount", errors)
@@ -149,6 +168,7 @@ def main() -> int:
         if not (min_count <= count <= max_count):
             errors.append("aksUserPoolCount / aksUserPoolMinCount / aksUserPoolMaxCount: min <= count <= max を満たしてください。")
 
+    # AKS ネットワーク設定
     pod_cidr = as_cidr(common.get("aksPodCidr"), "aksPodCidr", errors)
     service_cidr = as_cidr(common.get("aksServiceCidr"), "aksServiceCidr", errors)
 
@@ -168,6 +188,7 @@ def main() -> int:
                     f"aksServiceCidr={service_cidr}, vnet={vnet}"
                 )
 
+    # リソース実行トグル
     toggles = common.get("resourceToggles")
     expected_toggle_keys = [
         "logAnalytics",

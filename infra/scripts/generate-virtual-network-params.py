@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Virtual Network 用 bicepparam を生成する。"""
+"""Virtual Network 用 bicepparam を生成する。
+
+このスクリプトは VNET 作成に必要な値を common/config から集約し、
+`main.virtual-network.bicep` へ渡す .bicepparam とメタ情報を作る。
+"""
 
 import json
 import os
@@ -8,17 +12,20 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラルを安全に出力する。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def key_literal(key: str) -> str:
+    """Bicep オブジェクトのキー表現を返す。"""
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
         return key
     return quote(key)
 
 
 def to_bicep(value, indent: int = 0) -> str:
+    """Python の値を Bicep リテラル形式に変換する。"""
     pad = " " * indent
     if value is None:
         return "null"
@@ -41,11 +48,13 @@ def to_bicep(value, indent: int = 0) -> str:
     raise TypeError(f"Unsupported type: {type(value)}")
 
 
+# main.sh から受け取るファイルパス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# まず JSON を読み込んで入力値を確定する。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 
@@ -72,11 +81,13 @@ log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
 ddos_protection_plan_id = common.get("ddosProtectionPlanId", "")
 enable_ddos_protection = bool(common.get("enableDdosProtection", True))
+# virtualNetwork のトグルでデプロイ可否を制御する。
 deploy = bool(common.get("resourceToggles", {}).get("virtualNetwork", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "virtual-network.bicepparam"
 
+# Bicep パラメータを行単位で構築して保存する。
 lines = [
     "using '../bicep/main.virtual-network.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -96,6 +107,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# 後続ステップが参照する最小限のメタ情報を保存する。
 meta = {
     "location": location,
     "resourceGroupName": network_rg_name,

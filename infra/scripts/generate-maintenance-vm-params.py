@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Maintenance VM 用 bicepparam を生成する。"""
+"""Maintenance VM 用 bicepparam を生成する。
+
+このスクリプトはメンテナンス VM の配置先サブネットを特定し、
+VM/NIC/OS Disk 作成に必要なパラメータを .bicepparam として出力する。
+"""
 
 import ipaddress
 import json
@@ -9,17 +13,20 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def key_literal(key: str) -> str:
+    """Bicep オブジェクトキーの表現を返す。"""
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
         return key
     return quote(key)
 
 
 def to_bicep(value, indent: int = 0) -> str:
+    """Python 値を Bicep リテラルへ変換する。"""
     pad = " " * indent
     if value is None:
         return "null"
@@ -42,12 +49,14 @@ def to_bicep(value, indent: int = 0) -> str:
     raise TypeError(f"Unsupported type: {type(value)}")
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
@@ -74,6 +83,7 @@ range_index = 0
 current = int(base_prefixes[0].network_address)
 maint_subnet_name = ""
 
+# サブネット割り当てを再計算し、MaintenanceSubnet を探索する。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
@@ -118,6 +128,7 @@ deploy = bool(common.get("resourceToggles", {}).get("maintenanceVm", True))
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "maintenance-vm.bicepparam"
 
+# main.maintenance-vm.bicep へ渡すパラメータを出力する。
 lines = [
     "using '../bicep/main.maintenance-vm.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -143,6 +154,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# 後続処理向けメタ情報。
 meta = {
     "resourceGroupName": service_rg_name,
     "deploy": deploy,
