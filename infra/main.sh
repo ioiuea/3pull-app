@@ -835,7 +835,121 @@ print(meta.get("paramsFile", ""))
 PY
 )"
 
+egress_next_hop_ip_for_routes="$(COMMON_FILE="$common_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+common = json.loads(Path(os.environ["COMMON_FILE"]).read_text(encoding="utf-8"))
+print(common.get("egressNextHopIp", ""))
+PY
+)"
+
 if [[ "$route_tables_deploy" == "true" ]]; then
+  if [[ -z "$egress_next_hop_ip_for_routes" ]]; then
+    firewall_name_for_routes="$(PARAMS_FILE="$firewall_params_file" python - <<'PY'
+import os
+import re
+from pathlib import Path
+
+content = Path(os.environ["PARAMS_FILE"]).read_text(encoding="utf-8")
+match = re.search(r"^param firewallName = '([^']*)'$", content, flags=re.MULTILINE)
+print(match.group(1) if match else "")
+PY
+)"
+
+    if [[ -z "$firewall_name_for_routes" ]]; then
+      echo "firewallName が取得できませんでした: $firewall_params_file" >&2
+      exit 1
+    fi
+
+    echo "==> Resolve Firewall Private IP for Route Tables: $firewall_name_for_routes"
+    actual_firewall_private_ip="$(FIREWALL_RG_NAME="$firewall_resource_group_name" FIREWALL_NAME="$firewall_name_for_routes" python - <<'PY'
+import os
+import subprocess
+import sys
+
+cmd = [
+    "az",
+    "network",
+    "firewall",
+    "show",
+    "--resource-group",
+    os.environ["FIREWALL_RG_NAME"],
+    "--name",
+    os.environ["FIREWALL_NAME"],
+    "--query",
+    "ipConfigurations[0].privateIPAddress",
+    "--output",
+    "tsv",
+    "--only-show-errors",
+]
+
+for _ in range(3):
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20, check=False)
+    except subprocess.TimeoutExpired:
+        continue
+
+    if result.returncode == 0:
+        print(result.stdout.strip())
+        sys.exit(0)
+    if result.returncode != 0 and "was not found" in (result.stderr or ""):
+        print("")
+        sys.exit(0)
+
+print("__CHECK_FAILED__")
+PY
+)"
+
+    if [[ "$actual_firewall_private_ip" == "__CHECK_FAILED__" ]]; then
+      echo "==> Error: Failed to resolve Firewall private IP for Route Tables (timeout/retry exhausted)." >&2
+      echo "==> エラー: Route Tables 用の Firewall プライベート IP 解決に失敗しました（タイムアウト/リトライ上限）。" >&2
+      exit 1
+    fi
+
+    if [[ -z "$actual_firewall_private_ip" ]]; then
+      if [[ -n "${what_if:-}" ]]; then
+        echo "==> WARN: Firewall private IP could not be resolved in --what-if mode. Continue with generated value."
+        echo "==> 警告: --what-if 実行のため Firewall プライベート IP を解決できませんでした。生成済み値で継続します。"
+      else
+        echo "==> Error: Firewall private IP is empty. Ensure Firewall exists before Route Tables deployment." >&2
+        echo "==> エラー: Firewall プライベート IP が空です。Route Tables 実行前に Firewall が存在することを確認してください。" >&2
+        exit 1
+      fi
+    else
+      FIREWALL_META_FILE="$firewall_meta_file" FIREWALL_PRIVATE_IP="$actual_firewall_private_ip" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta_path = Path(os.environ["FIREWALL_META_FILE"])
+meta = json.loads(meta_path.read_text(encoding="utf-8"))
+meta["firewallPrivateIp"] = os.environ["FIREWALL_PRIVATE_IP"]
+meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+PY
+
+      COMMON_FILE="$common_file" \
+      RESOURCE_CONFIG_FILE="$route_tables_config_file" \
+      SUBNETS_CONFIG_FILE="$subnets_config_file" \
+      FIREWALL_META_FILE="$firewall_meta_file" \
+      PARAMS_DIR="$params_dir" \
+      OUT_META_FILE="$route_tables_meta_file" \
+      TIMESTAMP="$timestamp" \
+      "$route_tables_script"
+
+      route_tables_params_file="$(META_FILE="$route_tables_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+    fi
+  fi
+
   echo "==> Deploy Route Tables (UDR)"
   az deployment group create \
     --name "main-network-route-tables-${timestamp}" \
