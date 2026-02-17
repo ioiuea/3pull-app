@@ -32,11 +32,6 @@
       "prefixLength": 26
     },
     {
-      "name": "ClusterServicesSubnet",
-      "alias": "services",
-      "prefixLength": 25
-    },
-    {
       "name": "UserNodeSubnet",
       "alias": "usernode",
       "prefixLength": 24

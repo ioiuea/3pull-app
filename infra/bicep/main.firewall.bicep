@@ -27,11 +27,20 @@ param vnetName string
 @description('Firewall IDS/IPS 有効化')
 param enableFirewallIdps bool
 
+@description('外向き経路の next hop IP（未指定時はこの Firewall を利用）')
+param egressNextHopIp string = ''
+
+@description('AKS ノードサブネットの CIDR（egressNextHopIp 未指定時に Firewall ポリシーで許可）')
+param aksEgressSourceAddressPrefixes array = []
+
 @description('Public IP 名')
 param publicIPName string
 
 @description('Firewall Policy 名')
 param firewallPolicyName string
+
+@description('既存 Firewall Policy を利用し、Policy の作成/更新をスキップするか')
+param skipFirewallPolicyDeployment bool = false
 
 @description('Firewall 名')
 param firewallName string
@@ -114,7 +123,11 @@ resource publicIPDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (loc
   }
 }
 
-resource firewallPolicy 'Microsoft.Network/firewallPolicies@2024-07-01' = {
+resource existingFirewallPolicy 'Microsoft.Network/firewallPolicies@2024-07-01' existing = if (skipFirewallPolicyDeployment) {
+  name: firewallPolicyName
+}
+
+resource firewallPolicy 'Microsoft.Network/firewallPolicies@2024-07-01' = if (!skipFirewallPolicyDeployment) {
   name: firewallPolicyName
   tags: modulesTags
   location: location
@@ -129,11 +142,47 @@ resource firewallPolicy 'Microsoft.Network/firewallPolicies@2024-07-01' = {
   }
 }
 
-resource firewallPolicyDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind != '') {
+resource firewallPolicyDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (!skipFirewallPolicyDeployment && lockKind != '') {
   name: 'del-lock-${firewallPolicyName}'
   scope: firewallPolicy
   properties: {
     level: lockKind
+  }
+}
+
+resource aksEgressRuleCollectionGroup 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2024-07-01' = if (!skipFirewallPolicyDeployment && empty(egressNextHopIp) && length(aksEgressSourceAddressPrefixes) > 0) {
+  parent: firewallPolicy
+  name: 'rcg-aks-egress'
+  properties: {
+    priority: 100
+    ruleCollections: [
+      {
+        name: 'allow-aks-egress'
+        priority: 100
+        ruleCollectionType: 'FirewallPolicyFilterRuleCollection'
+        action: {
+          type: 'Allow'
+        }
+        rules: [
+          {
+            ruleType: 'NetworkRule'
+            name: 'allow-aks-egress-any'
+            ipProtocols: [
+              'Any'
+            ]
+            sourceAddresses: [
+              ...aksEgressSourceAddressPrefixes
+            ]
+            destinationAddresses: [
+              '*'
+            ]
+            destinationPorts: [
+              '*'
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
 
@@ -143,7 +192,7 @@ resource firewall 'Microsoft.Network/azureFirewalls@2020-11-01' = {
   tags: modulesTags
   properties: {
     firewallPolicy: {
-      id: firewallPolicy.id
+      id: skipFirewallPolicyDeployment ? existingFirewallPolicy.id : firewallPolicy.id
     }
     ipConfigurations: [
       {
