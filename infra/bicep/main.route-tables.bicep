@@ -12,6 +12,9 @@ param location string
 @description('モジュール名')
 param modulesName string = 'nw'
 
+@description('ロック')
+param lockKind string = 'CanNotDelete'
+
 @description('Route Table 定義')
 param routeTables array
 
@@ -30,6 +33,16 @@ resource routeTableResources 'Microsoft.Network/routeTables@2024-07-01' = [
     tags: modulesTags
     properties: {
       routes: routeTable.routes
+    }
+  }
+]
+
+resource routeTableLocks 'Microsoft.Authorization/locks@2020-05-01' = [
+  for (routeTable, i) in routeTables: if (lockKind != '') {
+    name: 'del-lock-rt-${environmentName}-${systemName}-${routeTable.name}'
+    scope: routeTableResources[i]
+    properties: {
+      level: lockKind
     }
   }
 ]

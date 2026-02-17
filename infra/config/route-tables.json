@@ -1,11 +1,15 @@
 {
   "modulesName": "nw",
+  "lockKind": "CanNotDelete",
   "outboundSubnetAliases": [
     "agentnode",
     "usernode",
     "maint"
   ],
-  "inboundRouteName": "udr-firewall-inbound",
+  "inboundTargetSubnetAliases": [
+    "usernode",
+    "agentnode"
+  ],
   "outboundRouteName": "udr-internet-outbound",
   "outboundAddressPrefix": "0.0.0.0/0"
 }

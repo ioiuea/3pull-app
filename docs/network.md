@@ -2,16 +2,18 @@
 
 - ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
 
-| 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection | DDoS保護計画 |
-| ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | --------------- | ------------ |
-| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | Azure提供   | 有効化          | -            |
+| 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection                                 | DDoS保護プラン                                                        |
+| ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | Azure提供   | [enableDdosProtection] に応じて有効/無効        | [enableDdosProtection] と [ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
 
-- ※DDoS Protection は `enableDdosProtection=true` の場合に有効化されます。
-- ※`ddosProtectionPlanId` を指定した場合は既存プランを利用し、未指定の場合は新規作成したプランを適用します。
+- ※ `enableDdosProtection=true` の場合
+  - `ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
+  - `ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
+- ※ `enableDdosProtection=false` の場合
+  - DDoS 保護プランは作成せず、VNET への DDoS Protection 適用もしません
 - ※最低限、以下のいずれかのアドレスレンジが必要です。
-  - `/24` が 4 つ分
-  - 連続するサブネットレンジを確保できる場合は `/23` が 2 つ分、もしくは、`/22` が 1 つ分（`/24` 4 つ分相当）
-- ※`sharedBastionIp` を指定して VNET 外の踏み台 IP を利用する場合は、`/24` が 3 つ分でも構成可能です。
+  - `/24` が 3 つ分
+  - 連続するサブネットレンジを確保できる場合は `/23` が 1 つ分 + `/24` が 1 つ分、もしくは `/22` が 1 つ分（`/24` 3 つ分相当）
 
 # サブネット
 
@@ -19,7 +21,6 @@
 | -------------------------- | ------------ | ---------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
 | `UserNodeSubnet`           | `/24`        |                        | nsg-[environmentName]-[systemName]-usernode  | rt-[environmentName]-[systemName]-outbound | アプリデプロイ領域                     |
 | `ApplicationGatewaySubnet` | `/25`        |                        |                                              | rt-[environmentName]-[systemName]-firewall | AGIC用サブネット                       |
-| `ClusterServicesSubnet`    | `/25`        |                        |                                              |                                            | AKSのサービスCIDR用空きサブネット      |
 | `AgentNodeSubnet`          | `/26`        |                        | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound | AKSのエージェントノード用サブネット    |
 | `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
 | `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
@@ -28,7 +29,6 @@
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
 
-- `ClusterServicesSubnet`
 - `AzureFirewallSubnet`
 - `ApplicationGatewaySubnet`
 - `AzureBastionSubnet`
@@ -45,16 +45,15 @@ flowchart TB
   subgraph VNet["vnet (10.189.70.0/24, 10.189.71.0/24, 10.189.72.0/24, 10.189.73.0/24)"]
     U["UserNodeSubnet\n10.189.70.0/24\nNSG: nsg-dev-3pull-usernode\nRT: rt-dev-3pull-outbound"]
     A["ApplicationGatewaySubnet\n10.189.71.0/25\nRT: rt-dev-3pull-firewall"]
-    S["ClusterServicesSubnet\n10.189.71.128/25"]
-    B["AzureBastionSubnet\n10.189.72.0/26"]
-    F["AzureFirewallSubnet\n10.189.72.64/26\nFirewall IP: 10.189.72.65"]
-    P["PrivateEndpointSubnet\n10.189.72.128/26\nNSG: nsg-dev-3pull-pep"]
-    G["AgentNodeSubnet\n10.189.72.192/26\nNSG: nsg-dev-3pull-agentnode\nRT: rt-dev-3pull-outbound"]
-    M["MaintenanceSubnet\n10.189.73.0/29\nNSG: nsg-dev-3pull-maint\nRT: rt-dev-3pull-outbound"]
+    B["AzureBastionSubnet\n10.189.71.128/26"]
+    F["AzureFirewallSubnet\n10.189.71.192/26\nFirewall IP: 10.189.71.193"]
+    P["PrivateEndpointSubnet\n10.189.72.0/26\nNSG: nsg-dev-3pull-pep"]
+    G["AgentNodeSubnet\n10.189.72.64/26\nNSG: nsg-dev-3pull-agentnode\nRT: rt-dev-3pull-outbound"]
+    M["MaintenanceSubnet\n10.189.72.128/29\nNSG: nsg-dev-3pull-maint\nRT: rt-dev-3pull-outbound"]
   end
 
-  RTFW["rt-dev-3pull-firewall\nudr-firewall-inbound\n10.189.71.0/25 -> 10.189.72.65"]
-  RTO["rt-dev-3pull-outbound\nudr-internet-outbound\n0.0.0.0/0 -> 10.189.72.65"]
+  RTFW["rt-dev-3pull-firewall\nudr-usernode-inbound / udr-agentnode-inbound\nUserNodeSubnet/AgentNodeSubnet -> 10.189.71.193"]
+  RTO["rt-dev-3pull-outbound\nudr-internet-outbound\n0.0.0.0/0 -> 10.189.71.193"]
 
   A --- RTFW
   U --- RTO
@@ -91,11 +90,12 @@ TLS検査を有効化するためApplication GatewayからAzure Firewallを経�
 
 ## rt-[environmentName]-[systemName]-firewall
 
-AGWからインバウンド用FWへの通信
+Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeSubnet）を Firewall 経由にするためのルート
 
-| ルート名             | アドレスプレフィックス     | ネクストホップの種類 | ネクストホップ                     |
-| -------------------- | -------------------------- | -------------------- | ---------------------------------- |
-| udr-firewall-inbound | `ApplicationGatewaySubnet` | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
+| ルート名                        | アドレスプレフィックス | ネクストホップの種類 | ネクストホップ                     |
+| ------------------------------- | ---------------------- | -------------------- | ---------------------------------- |
+| udr-usernode-inbound            | `UserNodeSubnet`       | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
+| udr-agentnode-inbound           | `AgentNodeSubnet`      | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
 
 ## rt-[environmentName]-[systemName]-outbound
 

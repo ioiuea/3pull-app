@@ -130,7 +130,7 @@ def resolve_prefixes(values):
 nsgs = []
 for subnet in resolved_subnets:
     subnet_alias = subnet["alias"]
-    if subnet_alias in {"services", "agic", "firewall", "bastion"}:
+    if subnet_alias in {"agic", "firewall", "bastion"}:
         continue
 
     rules = []

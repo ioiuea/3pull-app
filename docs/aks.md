@@ -78,8 +78,8 @@
 | ネットワークプラグインモード | overlay                                     | properties.networkProfile.networkPluginMode |
 | ロードバランサ―SKU           | standard                                    | properties.networkPraofile.loadBalancerSku  |
 | ポッドCIDR                   | [aksPodCidr]                                | properties.networkProfile.podCidr           |
-| サービスCIDR                 | [ClusterServicesSubnet]                     | properties.networkProfile.serviceCidr       |
-| DNSサービスIP                | [ClusterServicesSubnetのレンジの10個目のIP] | properties.networkProfile.dnsServiceIP      |
+| サービスCIDR                 | [aksServiceCidr]                            | properties.networkProfile.serviceCidr       |
+| DNSサービスIP                | [aksServiceCidrのレンジの10個目のIP]        | properties.networkProfile.dnsServiceIP      |
 
 ※ ポッドCIDRはVNETのIPアドレスレンジとは別空間のため、`infra/common.parameter.json` の `aksPodCidr` で任意指定
 

@@ -67,9 +67,8 @@ DDoS Protection の有効/無効を指定します。
 
 VNET のアドレス空間です。サブネットを動的計算するため、以下の最低限レンジが必要です。
 
-- `/24` が 4 つ分
-- 連続するレンジを確保できる場合は、`/23` が 2 つ分、または `/22` が 1 つ分（`/24` 4 つ分相当）
-- `sharedBastionIp` を指定して VNET 外の踏み台 IP を利用する場合は、`/24` が 3 つ分でも構成可能
+- `/24` が 3 つ分
+- 連続するレンジを確保できる場合は、`/23` が 1 つ分 + `/24` が 1 つ分、または `/22` が 1 つ分（`/24` 3 つ分相当）
 
 ### egressNextHopIp
 
@@ -89,6 +88,62 @@ AKS ノード系サブネットやメンテナンス VM サブネットからの
 - `AzureBastionSubnet` は作成しますが、Azure Bastion サービス本体は自動作成しません。
 - 企業ポリシーによって Azure Bastion が利用不可のケースもあるため、Bastion または踏み台サーバは要件に合わせて手動で作成してください。
 
+### aksUserPoolVmSize
+
+Azure Kubernetes Service「ユーザープール」（アプリ用ノード）の VM サイズです。  
+アプリの同時実行数、CPU/メモリ要件、コストに直接影響します。
+
+- 例: `Standard_D4s_v4`（中規模）
+- 目安:
+  - 小規模検証: `Standard_D2s_v4`
+  - 本番寄り: `Standard_D4s_v4` 以上
+
+### aksUserPoolCount / aksUserPoolMinCount / aksUserPoolMaxCount
+
+Azure Kubernetes Service「ユーザープール」（アプリ用ノード）の ノード台数です。
+オートスケーリング時の下限/上限もここで指定します。
+
+- `aksUserPoolCount`: 初期ノード数
+- `aksUserPoolMinCount`: 自動縮退時の最小ノード数
+- `aksUserPoolMaxCount`: 自動拡張時の最大ノード数
+
+必須条件:
+
+- `aksUserPoolMinCount <= aksUserPoolCount <= aksUserPoolMaxCount`
+
+### aksUserPoolLabel
+
+Azure Kubernetes Service「ユーザープール」（アプリ用ノード）の ノードラベル値です。  
+Azure Kubernetes Service では `pool=<この値>` のラベルがノードに付き、Pod の `nodeSelector` / `affinity` で配置先制御に使います。
+
+- 例: `user`, `batch`, `api`
+
+### aksPodCidr
+
+Azure Kubernetes Service の Pod に割り当てる IP 範囲（CIDR）です。  
+Overlay CNI では VNET サブネットとは別空間で管理されます。  
+ただし、AKS マニフェストやネットワーク設計によって外部との通信経路が成立する構成では、重複 IP が競合する可能性があります。  
+そのため、下記のような接続がある場合は、競合しないレンジから採番することを推奨します。  
+
+- この AKS から VNET ピアリング先の別 VNET（別 AKS クラスタを含む）へ通信する場合
+- この AKS から VPN/ExpressRoute 経由でオンプレミス環境へ通信する場合
+- 逆に、別 VNET やオンプレミス側からこの AKS（Pod 宛）へ到達させる場合
+
+- 例: `10.189.0.0/17`
+- 形式: `x.x.x.x/xx`
+
+### aksServiceCidr
+
+Kubernetes Service（ClusterIP）用の IP 範囲（CIDR）です。  
+`dnsServiceIP` はこのレンジ内の 10 番目の利用可能 IP を自動設定します。
+
+- 例: `10.47.0.0/24`
+- 形式: `x.x.x.x/xx`
+- 注意:
+  - `vnetAddressPrefixes` と重複不可
+  - `aksPodCidr` と重複不可
+  - 利用可能 IP が 10 個以上必要
+
 ### resourceToggles
 
 リソース単位の実行可否です。
@@ -100,6 +155,7 @@ AKS ノード系サブネットやメンテナンス VM サブネットからの
   - `subnets`, `route-tables`, `nsgs`, `subnet-attachments` を一括制御
 - `firewall`
 - `applicationGateway`
+- `aks`
 - `maintenanceVm`
 
 ## ネットワーク構成ドキュメント
@@ -143,6 +199,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
   - Subnet Attachments（RouteTable/NSG紐づけ）
   - Application Gateway
 - service
+  - AKS
   - Maintenance VM
 
 ## 出力ファイル（params/）
@@ -156,6 +213,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `nsgs.bicepparam`
 - `subnet-attachments.bicepparam`
 - `application-gateway.bicepparam`
+- `aks.bicepparam`
 - `maintenance-vm.bicepparam`
 
 補足:
