@@ -28,10 +28,10 @@
 ## フロントエンドIP構成
 
 | 項目                       | 設定値                                                       | Bicepプロパティ名                    |
-| -------------------------- | ------------------------------------------------------------ | ------------------------------------ | ---- |
+| -------------------------- | ------------------------------------------------------------ | ------------------------------------ |
 | 名前                       | appGatewayFrontendPrivateIP                                  | name                                 |
 | プライベートIP割り当て方法 | Static                                                       | properties.privateIPAllocationMethod |
-| プライベートIPアドレス     | [ApplicationGatewaySubnetのレンジの10個目のIP]               | properties.privateIPAddress          | todo |
+| プライベートIPアドレス     | [ApplicationGatewaySubnetのレンジの10個目のIP]               | properties.privateIPAddress          |
 | サブネットID               | vnet-[environmentName]-[systemName]/ApplicationGatewaySubnet | properties.subnet.id                 |
 
 | 項目                       | 設定値                                 | Bicepプロパティ名                    |
