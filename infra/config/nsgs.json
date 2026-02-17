@@ -36,11 +36,11 @@
           "destinationPortRange": "*"
         },
         {
-          "name": "Allow-8080-From-ActionGroup",
+          "name": "Allow-HTTP-From-ActionGroup",
           "access": "Allow",
           "direction": "Inbound",
           "source": "ActionGroup",
-          "protocol": "*",
+          "protocol": "TCP",
           "priority": 203,
           "sourcePortRange": "*",
           "destinationPortRange": "8080"
@@ -91,11 +91,11 @@
           "destinationPortRange": "*"
         },
         {
-          "name": "Allow-8080-From-ActionGroup",
+          "name": "Allow-HTTP-From-ActionGroup",
           "access": "Allow",
           "direction": "Inbound",
           "source": "ActionGroup",
-          "protocol": "*",
+          "protocol": "TCP",
           "priority": 203,
           "sourcePortRange": "*",
           "destinationPortRange": "8080"
@@ -119,7 +119,7 @@
           "name": "Allow-Any-From-AksSubnet",
           "access": "Allow",
           "direction": "Inbound",
-          "source": "usernode",
+          "source": ["usernode", "agentnode"],
           "protocol": "*",
           "priority": 200,
           "sourcePortRange": "*",
