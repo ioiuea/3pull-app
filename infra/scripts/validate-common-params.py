@@ -35,6 +35,23 @@ def as_non_empty_str(value, key: str, errors: list[str]):
     return None
 
 
+def as_optional_ip_or_cidr(value, key: str, errors: list[str]):
+    if value == "":
+        return None
+    if not isinstance(value, str):
+        errors.append(f"{key}: IPv4 アドレス/CIDR 文字列か空文字を指定してください。")
+        return None
+    try:
+        if "/" in value:
+            ipaddress.ip_network(value, strict=True)
+        else:
+            ipaddress.ip_address(value)
+    except ValueError:
+        errors.append(f"{key}: 有効な IP アドレスまたは CIDR 形式ではありません。指定値={value!r}")
+        return None
+    return value
+
+
 def as_optional_ip(value, key: str, errors: list[str]):
     if value == "":
         return None
@@ -113,7 +130,7 @@ def main() -> int:
                     )
 
     as_optional_ip(common.get("egressNextHopIp", ""), "egressNextHopIp", errors)
-    as_optional_ip(common.get("sharedBastionIp", ""), "sharedBastionIp", errors)
+    as_optional_ip_or_cidr(common.get("sharedBastionIp", ""), "sharedBastionIp", errors)
 
     as_non_empty_str(common.get("aksUserPoolVmSize"), "aksUserPoolVmSize", errors)
     count = as_int(common.get("aksUserPoolCount"), "aksUserPoolCount", errors)

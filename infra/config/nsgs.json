@@ -64,7 +64,7 @@
           "name": "Allow-HTTPS-From-K8SAPIServer",
           "access": "Allow",
           "direction": "Inbound",
-          "source": "agentnode",
+          "source": ["usernode", "agentnode"],
           "protocol": "TCP",
           "priority": 200,
           "sourcePortRange": "*",
