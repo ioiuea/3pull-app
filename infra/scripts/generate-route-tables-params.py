@@ -103,6 +103,8 @@ for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     subnet_prefix_map[subnet_name] = str(allocated)
     subnet_prefix_map[subnet_alias] = str(allocated)
 
+known_aliases = {s.get("alias", s.get("name", "")) for s in subnet_defs}
+
 firewall_private_ip = firewall_meta.get("firewallPrivateIp", "")
 if not firewall_private_ip:
     raise SystemExit("firewall-meta.json に firewallPrivateIp がありません")
@@ -113,9 +115,8 @@ except ValueError as exc:
     raise SystemExit("firewallPrivateIp が不正な IP です") from exc
 
 agic_alias = "agic"
-agic_prefix = subnet_prefix_map.get(agic_alias, "")
-if not agic_prefix:
-    raise SystemExit("ApplicationGatewaySubnet(agic) のプレフィックスが見つかりません")
+if agic_alias not in known_aliases:
+    raise SystemExit("ApplicationGatewaySubnet(agic) が定義されていません")
 
 next_hop_ip = common.get("egressNextHopIp", "") or firewall_private_ip
 try:
@@ -124,22 +125,33 @@ except ValueError as exc:
     raise SystemExit("egressNextHopIp が不正な IP です") from exc
 
 outbound_targets = config.get("outboundSubnetAliases", [])
-known_aliases = {s.get("alias", s.get("name", "")) for s in subnet_defs}
 outbound_subnet_aliases = [alias for alias in outbound_targets if alias in known_aliases]
+inbound_target_aliases = [alias for alias in config.get("inboundTargetSubnetAliases", ["usernode", "agentnode"]) if alias in known_aliases]
+if not inbound_target_aliases:
+    raise SystemExit("inboundTargetSubnetAliases に有効なサブネット alias がありません")
+
+inbound_routes = []
+for alias in inbound_target_aliases:
+    address_prefix = subnet_prefix_map.get(alias, "")
+    if not address_prefix:
+        raise SystemExit(f"inbound ルート宛先サブネットのプレフィックスが見つかりません: {alias}")
+
+    route_name = f"udr-{alias}-inbound"
+    inbound_routes.append(
+        {
+            "name": route_name,
+            "properties": {
+                "addressPrefix": address_prefix,
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": firewall_private_ip,
+            },
+        }
+    )
 
 route_tables = [
     {
         "name": "firewall",
-        "routes": [
-            {
-                "name": config.get("inboundRouteName", "udr-firewall-inbound"),
-                "properties": {
-                    "addressPrefix": agic_prefix,
-                    "nextHopType": "VirtualAppliance",
-                    "nextHopIpAddress": firewall_private_ip,
-                },
-            }
-        ],
+        "routes": inbound_routes,
         "subnetNames": [agic_alias],
     },
     {
@@ -159,6 +171,7 @@ route_tables = [
 ]
 
 modules_name = config.get("modulesName", "nw")
+lock_kind = config.get("lockKind", "CanNotDelete")
 network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))
 
@@ -171,6 +184,7 @@ lines = [
     f"param systemName = {quote(system_name)}",
     f"param location = {quote(location)}",
     f"param modulesName = {quote(modules_name)}",
+    f"param lockKind = {quote(lock_kind)}",
     f"param routeTables = {to_bicep(route_tables)}",
     "",
 ]
