@@ -112,10 +112,12 @@ modules_name = subnets_config.get("modulesName", "nw")
 network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
 vnet_name = f"vnet-{environment_name}-{system_name}"
 
-# Route Table 紐づけ（firewall は agic、outbound は設定された aliases）
+# Route Table 紐づけ（firewall は agic、outbound は AKS 用/maint 用で分離）
 route_name_by_alias = {"agic": "firewall"}
-for alias in route_tables_config.get("outboundSubnetAliases", []):
-    route_name_by_alias[alias] = "outbound"
+for alias in route_tables_config.get("outboundAksSubnetAliases", ["agentnode", "usernode"]):
+    route_name_by_alias[alias] = "outbound-aks"
+for alias in route_tables_config.get("outboundMaintSubnetAliases", ["maint"]):
+    route_name_by_alias[alias] = "outbound-maint"
 
 # NSG 紐づけ対象（nsg 生成スクリプトと同じ除外条件）
 nsg_skip_aliases = {"agic", "firewall", "bastion"}

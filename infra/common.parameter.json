@@ -10,6 +10,7 @@
     "10.189.129.0/24",
     "10.189.130.0/24"
   ],
+  "vnetDnsServers": [],
   "egressNextHopIp": "",
   "sharedBastionIp": "",
   "aksUserPoolVmSize": "standard_d4s_v4",
