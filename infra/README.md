@@ -3,6 +3,8 @@
 このディレクトリは、Azure インフラを Bicep でデプロイする実行基盤です。  
 `main.sh` が `common.parameter.json` を読み込み、前処理で `.bicepparam` を動的生成して各リソースをデプロイします。
 
+ネットワーク構成の設計は [docs/network.md](../docs/network.md) を参照してください。
+
 ## このフォルダ配下の説明
 
 - `main.sh`
