@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""NSG 用 bicepparam を生成する。"""
+"""NSG 用 bicepparam を生成する。
+
+主な処理:
+1. サブネット CIDR を再計算する。
+2. nsgs.json のテンプレートを対象サブネットに展開する。
+3. source/destination の alias を実 CIDR に解決して .bicepparam を出力する。
+"""
 
 import ipaddress
 import json
@@ -9,17 +15,20 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def key_literal(key: str) -> str:
+    """Bicep オブジェクトのキーを安全に出力する。"""
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
         return key
     return quote(key)
 
 
 def to_bicep(value, indent: int = 0) -> str:
+    """Python 値を Bicep リテラル文字列へ変換する。"""
     pad = " " * indent
     if value is None:
         return "null"
@@ -42,32 +51,40 @@ def to_bicep(value, indent: int = 0) -> str:
     raise TypeError(f"Unsupported type: {type(value)}")
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 入力設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
+
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
 
 if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+    raise SystemExit(
+        "common.parameter.json の common.environmentName / "
+        "common.systemName / common.location を設定してください"
+    )
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
 subnet_defs = subnets_config.get("subnetDefinitions", [])
 if not subnet_defs:
     raise SystemExit("subnets config の subnetDefinitions が空です")
 
-shared_bastion_ip = common.get("sharedBastionIp", "")
+shared_bastion_ip = network_values.get("sharedBastionIp", "")
 if shared_bastion_ip:
     subnet_defs = [s for s in subnet_defs if s.get("alias", s.get("name")) != "bastion"]
 
@@ -77,6 +94,7 @@ current = int(base_prefixes[0].network_address)
 resolved_subnets = []
 subnet_prefix_map = {}
 
+# Subnet 生成スクリプトと同じロジックで CIDR を再計算し、alias と対応付ける。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
@@ -120,13 +138,16 @@ template_by_subnet = {t.get("targetSubnet", ""): t for t in config.get("template
 
 
 def resolve_prefix(value):
+    """alias 指定なら CIDR へ展開し、通常値はそのまま返す。"""
     return subnet_prefix_map.get(value, value)
 
 
 def resolve_prefixes(values):
+    """複数 alias/CIDR をまとめて解決する。"""
     return [resolve_prefix(v) for v in values]
 
 
+# 各サブネット用テンプレートから NSG ルールを展開する。
 nsgs = []
 for subnet in resolved_subnets:
     subnet_alias = subnet["alias"]
@@ -139,6 +160,7 @@ for subnet in resolved_subnets:
         for rule in template.get("rules", []):
             direction = rule.get("direction", "Inbound")
 
+            # maintBastion は sharedBastionIp 優先、未指定時は bastion subnet を利用する。
             source_selector = rule.get("sourceSelector", "")
             if source_selector == "maintBastion":
                 source = shared_bastion_ip or subnet_prefix_map.get("bastion", "")
@@ -200,11 +222,13 @@ network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
 log_analytics_name = f"log-{environment_name}-{system_name}"
 log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
+# subnets トグルに連動して NSG 作成の可否を決める。
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "nsgs.bicepparam"
 
+# main.nsgs.bicep に渡すパラメータを出力する。
 lines = [
     "using '../bicep/main.nsgs.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -219,6 +243,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# 後続処理向けメタ情報。
 meta = {
     "resourceGroupName": network_rg_name,
     "deploy": deploy,

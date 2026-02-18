@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Subnet 紐づけ更新用 bicepparam を生成する。"""
+"""Subnet 紐づけ更新用 bicepparam を生成する。
+
+このスクリプトは以下を一括で決定する:
+- 各サブネットに紐づける Route Table 名
+- 各サブネットに紐づける NSG 名
+- 更新対象から除外するサブネット
+"""
 
 import ipaddress
 import json
@@ -9,17 +15,20 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに値をクオートする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def key_literal(key: str) -> str:
+    """Bicep オブジェクトのキー表現を返す。"""
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
         return key
     return quote(key)
 
 
 def to_bicep(value, indent: int = 0) -> str:
+    """Python 値を Bicep リテラルへ変換する。"""
     pad = " " * indent
     if value is None:
         return "null"
@@ -42,6 +51,7 @@ def to_bicep(value, indent: int = 0) -> str:
     raise TypeError(f"Unsupported type: {type(value)}")
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
 route_tables_config_path = Path(os.environ["ROUTE_TABLES_CONFIG_FILE"])
@@ -49,25 +59,29 @@ nsgs_config_path = Path(os.environ["NSGS_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 入力設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 route_tables_config = json.loads(route_tables_config_path.read_text(encoding="utf-8"))
 nsgs_config = json.loads(nsgs_config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-if not environment_name or not system_name:
-    raise SystemExit("common.parameter.json に environmentName / systemName を設定してください")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+if not environment_name or not system_name:
+    raise SystemExit("common.parameter.json の common.environmentName / common.systemName を設定してください")
+
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
 subnet_defs = subnets_config.get("subnetDefinitions", [])
 if not subnet_defs:
     raise SystemExit("subnets config の subnetDefinitions が空です")
 
-shared_bastion_ip = common.get("sharedBastionIp", "")
+shared_bastion_ip = network_values.get("sharedBastionIp", "")
 if shared_bastion_ip:
     subnet_defs = [s for s in subnet_defs if s.get("alias", s.get("name")) != "bastion"]
 
@@ -76,6 +90,7 @@ range_index = 0
 current = int(base_prefixes[0].network_address)
 resolved_subnets = []
 
+# Subnet 生成時と同じルールで CIDR を再計算し、更新対象情報を組み立てる。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
@@ -135,6 +150,7 @@ for subnet in resolved_subnets:
         continue
 
     alias = subnet["alias"]
+    # alias に対応する route table / nsg 名を命名規則で確定する。
     route_suffix = route_name_by_alias.get(alias, "")
     route_table_name = f"rt-{environment_name}-{system_name}-{route_suffix}" if route_suffix else ""
     network_security_group_name = (
@@ -151,11 +167,13 @@ for subnet in resolved_subnets:
         }
     )
 
+# subnets トグルに連動して attach 更新の可否を決める。
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "subnet-attachments.bicepparam"
 
+# main.subnet-attachments.bicep 用パラメータを出力する。
 lines = [
     "using '../bicep/main.subnet-attachments.bicep'",
     f"param vnetName = {quote(vnet_name)}",
@@ -164,6 +182,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# main.sh が参照するメタ情報を保存する。
 meta = {
     "resourceGroupName": network_rg_name,
     "deploy": deploy,

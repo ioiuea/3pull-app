@@ -4,14 +4,14 @@
 
 | 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection                                 | DDoS保護プラン                                                        |
 | ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | [vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [enableDdosProtection] に応じて有効/無効        | [enableDdosProtection] と [ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
+| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [common.location] | [network.vnetAddressPrefixes] | [network.vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [network.enableDdosProtection] に応じて有効/無効        | [network.enableDdosProtection] と [network.ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
 
-- ※ `enableDdosProtection=true` の場合
-  - `ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
-  - `ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
-- ※ `enableDdosProtection=false` の場合
+- ※ `network.enableDdosProtection=true` の場合
+  - `network.ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
+  - `network.ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
+- ※ `network.enableDdosProtection=false` の場合
   - DDoS 保護プランは作成せず、VNET への DDoS Protection 適用もしません
-- ※ `vnetDnsServers` 未指定（空配列）の場合は Azure 提供 DNS を利用し、指定した場合はその DNS サーバーを利用します。
+- ※ `network.vnetDnsServers` 未指定（空配列）の場合は Azure 提供 DNS を利用し、指定した場合はその DNS サーバーを利用します。
 - ※ ハブ&スポーク構成で集約 DNS を利用する場合、ハブ側 Firewall のプライベート IP など、到達可能な DNS サーバー IP を指定します。
 - ※最低限、以下のいずれかのアドレスレンジが必要です。
   - `/24` が 3 つ分
@@ -26,7 +26,7 @@
 | `AgentNodeSubnet`          | `/26`        |                        | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound-aks | AKSのエージェントノード用サブネット    |
 | `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
 | `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
-| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`sharedBastionIp` 未指定時のみ） |
+| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`network.sharedBastionIp` 未指定時のみ） |
 | `MaintenanceSubnet`        | `/29`        |                        | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound-maint | メンテVM用サブネット                   |
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
@@ -37,44 +37,65 @@
 
 # 構成図（生成パラメータ例）
 
-以下は `infra/log/tmp-*-20260215T120923.json` を基にした構成図です。
+![基本構成図](assets/basic-pattern.png)
+
+## 通信経路フロー（UDR）
+
+以下は、サブネットの UDR 経路を可視化した図です。
 
 ```mermaid
-flowchart TB
-  Internet[(Internet)]
-  ActionGroup[(ActionGroup)]
+flowchart LR
+  AG["ApplicationGatewaySubnet\n10.189.129.0/25"]
+  U["UserNodeSubnet\n10.189.128.0/24"]
+  N["AgentNodeSubnet\n10.189.130.64/26"]
+  M["MaintenanceSubnet\n10.189.130.128/29"]
+  FW["Azure Firewall\n10.189.129.196"]
+  NET["0.0.0.0/0 (Internet)"]
 
-  subgraph VNet["vnet (10.189.70.0/24, 10.189.71.0/24, 10.189.72.0/24, 10.189.73.0/24)"]
-    U["UserNodeSubnet\n10.189.70.0/24\nNSG: nsg-dev-3pull-usernode\nRT: rt-dev-3pull-outbound-aks"]
-    A["ApplicationGatewaySubnet\n10.189.71.0/25\nRT: rt-dev-3pull-firewall"]
-    B["AzureBastionSubnet\n10.189.71.128/26"]
-    F["AzureFirewallSubnet\n10.189.71.192/26\nFirewall IP: 10.189.71.193"]
-    P["PrivateEndpointSubnet\n10.189.72.0/26\nNSG: nsg-dev-3pull-pep"]
-    G["AgentNodeSubnet\n10.189.72.64/26\nNSG: nsg-dev-3pull-agentnode\nRT: rt-dev-3pull-outbound-aks"]
-    M["MaintenanceSubnet\n10.189.72.128/29\nNSG: nsg-dev-3pull-maint\nRT: rt-dev-3pull-outbound-maint"]
-  end
+  RTFW["rt-dev-3pull-firewall\nudr-usernode-inbound\nudr-agentnode-inbound"]
+  RTAKS["rt-dev-3pull-outbound-aks\nudr-appgw-return\nudr-internet-outbound"]
+  RTM["rt-dev-3pull-outbound-maint\nudr-internet-outbound"]
 
-  RTFW["rt-dev-3pull-firewall\nudr-usernode-inbound / udr-agentnode-inbound\nUserNodeSubnet/AgentNodeSubnet -> 10.189.71.193"]
-  RTOAKS["rt-dev-3pull-outbound-aks\nudr-appgw-return: ApplicationGatewaySubnet -> 10.189.71.193\nudr-internet-outbound: 0.0.0.0/0 -> 10.189.71.193 or egressNextHopIp"]
-  RTOM["rt-dev-3pull-outbound-maint\nudr-internet-outbound: 0.0.0.0/0 -> 10.189.71.193 or egressNextHopIp"]
+  AG ---|"紐づけ"| RTFW
+  U ---|"紐づけ"| RTAKS
+  N ---|"紐づけ"| RTAKS
+  M ---|"紐づけ"| RTM
 
-  A --- RTFW
-  U --- RTOAKS
-  G --- RTOAKS
-  M --- RTOM
+  RTFW -->|"UserNodeSubnet 宛 / AgentNodeSubnet 宛\nnext hop: 10.189.129.196"| FW
+  RTAKS -->|"ApplicationGatewaySubnet 宛\nnext hop: 10.189.129.196"| FW
+  RTAKS -->|"0.0.0.0/0\nnext hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  RTM -->|"0.0.0.0/0\nnext hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  FW --> NET
+```
 
-  B -->|"22,3389"| M
-  A -->|"8080,3000,3080"| U
-  A -->|"8080,3000,3080"| G
-  M -->|"any"| U
-  M -->|"any"| G
-  U -->|"any"| P
-  M -->|"any"| P
-  ActionGroup -->|"8080"| U
-  ActionGroup -->|"8080"| G
-  RTOAKS --> F
-  RTOM --> F
-  RTFW --> F
+## 通信制御フロー（NSG）
+
+以下は、サブネット間の許可通信（NSG 受信規則）を可視化した図です。
+
+```mermaid
+flowchart LR
+  AG["ApplicationGatewaySubnet\n10.189.129.0/25"]
+  U["UserNodeSubnet\n10.189.128.0/24\nNSG: usernode"]
+  N["AgentNodeSubnet\n10.189.130.64/26\nNSG: agentnode"]
+  P["PrivateEndpointSubnet\n10.189.130.0/26\nNSG: pep"]
+  M["MaintenanceSubnet\n10.189.130.128/29\nNSG: maint"]
+  B["AzureBastionSubnet\n10.189.129.128/26"]
+  ACT["ActionGroup"]
+
+  AG -->|"TCP 8080,3000,3080 許可"| U
+  AG -->|"TCP 8080,3000,3080 許可"| N
+  U -->|"TCP 443,4443 許可"| U
+  U -->|"TCP 443,4443 許可"| N
+  N -->|"TCP 443,4443 許可"| U
+  N -->|"TCP 443,4443 許可"| N
+  M -->|"Any 許可"| U
+  M -->|"Any 許可"| N
+  U -->|"Any 許可"| P
+  N -->|"Any 許可"| P
+  M -->|"Any 許可"| P
+  ACT -->|"TCP 8080 許可"| U
+  ACT -->|"TCP 8080 許可"| N
+  B -->|"TCP 22,3389 許可"| M
 ```
 
 # ルートテーブル
@@ -82,11 +103,14 @@ flowchart TB
 ## アウトバウンド通信
 
 ハブ&スポーク構成などで **集約された FW 経由のアウトバウンド**が必要な場合、  
-`infra/common.parameter.json`の`egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
+`infra/common.parameter.json`の`network.egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
 これにより AKS からの外向き通信経路を制御できます。  
-`egressNextHopIp` を指定しない場合は[設置したFirewallのプライベートIP]をインターネット向けアウトバウンド通信のネクストホップとして指定します。
+`network.egressNextHopIp` を指定しない場合は[設置したFirewallのプライベートIP]をインターネット向けアウトバウンド通信のネクストホップとして指定します。
 
-- 設計方針として、`egressNextHopIp` の指定有無に関わらず、`outbound-aks` / `outbound-maint` のルートテーブルでは **ゲートウェイルート伝搬（BGP ルート伝搬）を無効化** します。
+- ゲートウェイルート伝搬（BGP ルート伝搬）は `network.enableGatewayRoutePropagation` で制御します。
+  - `false`（デフォルト）: 無効
+  - `true`: 有効
+- 推奨値は `false`（無効）です。
 - 理由:
   - UDR で定義した next hop を常に優先し、意図しない BGP 経路混入を防止するため
   - ハブ側 ExpressRoute / VPN Gateway の経路広告による予期せぬ経路変更を避けるため
@@ -102,7 +126,7 @@ TLS検査を有効化するためApplication GatewayからAzure Firewallを経�
 
 Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeSubnet）を Firewall 経由にするためのルート
 
-ゲートウェイルート伝搬（BGP ルート伝搬）: 無効
+ゲートウェイルート伝搬（BGP ルート伝搬）: [network.enableGatewayRoutePropagation]（`false`: 無効 / `true`: 有効、推奨は `false`）
 
 | ルート名                        | アドレスプレフィックス | ネクストホップの種類 | ネクストホップ                     |
 | ------------------------------- | ---------------------- | -------------------- | ---------------------------------- |
@@ -113,25 +137,25 @@ Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeS
 
 AKSからアウトバウンドへの通信
 
-ゲートウェイルート伝搬（BGP ルート伝搬）: 無効
+ゲートウェイルート伝搬（BGP ルート伝搬）: [network.enableGatewayRoutePropagation]（`false`: 無効 / `true`: 有効、推奨は `false`）
 
 | ルート名              | アドレスプレフィックス  | ネクストホップの種類 | ネクストホップ                                          |
 | --------------------- | ----------------------- | -------------------- | ------------------------------------------------------- |
 | udr-appgw-return      | `ApplicationGatewaySubnet` | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
-| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [egressNextHopIp] or [設置したFirewallのプライベートIP] |
+| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [network.egressNextHopIp] or [設置したFirewallのプライベートIP] |
 
 - `udr-appgw-return` は `UserNodeSubnet` と `AgentNodeSubnet` に適用し、AppGW 宛て戻り通信を本環境 Firewall 経由に固定します。
-- `egressNextHopIp` が指定されると `udr-internet-outbound` の next hop は集約 FW 側になりますが、`ApplicationGatewaySubnet` 宛てはより長いプレフィックス（ロンゲストマッチ）で `udr-appgw-return` が優先されます。
+- `network.egressNextHopIp` が指定されると `udr-internet-outbound` の next hop は集約 FW 側になりますが、`ApplicationGatewaySubnet` 宛てはより長いプレフィックス（ロンゲストマッチ）で `udr-appgw-return` が優先されます。
 
 ## rt-[environmentName]-[systemName]-outbound-maint
 
 MaintenanceSubnet からアウトバウンドへの通信
 
-ゲートウェイルート伝搬（BGP ルート伝搬）: 無効
+ゲートウェイルート伝搬（BGP ルート伝搬）: [network.enableGatewayRoutePropagation]（`false`: 無効 / `true`: 有効、推奨は `false`）
 
 | ルート名              | アドレスプレフィックス  | ネクストホップの種類 | ネクストホップ                                          |
 | --------------------- | ----------------------- | -------------------- | ------------------------------------------------------- |
-| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [egressNextHopIp] or [設置したFirewallのプライベートIP] |
+| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [network.egressNextHopIp] or [設置したFirewallのプライベートIP] |
 
 # ネットワークセキュリティグループ
 
@@ -174,6 +198,10 @@ MaintenanceSubnet からアウトバウンドへの通信
 
 ### 受信セキュリティ規則
 
+※ 優先度 200 で `UserNodeSubnet` と `AgentNodeSubnet` を許可している理由:
+- `UserNodeSubnet` 許可: UserPool 内の Node 同士で内部通信が発生するため。
+- `AgentNodeSubnet` 許可: usernode と agentnode 間でも内部通信が発生するため。
+
 | ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                          | 説明                             |
 | ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ----------------------------- | -------------------------------- |
 | IPアドレス　 | `UserNodeSubnet`, `AgentNodeSubnet`          | \*               | Any  | -                                        | Custom   | 443,4443       | TCP        | 許可       | 200    | Allow-HTTPS-From-K8SAPIServer | K8SAPIサーバーからの通信許可     |
@@ -185,6 +213,10 @@ MaintenanceSubnet からアウトバウンドへの通信
 ## nsg-[environmentName]-[systemName]-agentnode
 
 ### 受信セキュリティ規則
+
+※ 優先度 200 で `UserNodeSubnet` と `AgentNodeSubnet` を許可している理由:
+- `AgentNodeSubnet` 許可: agentnode のスケールアウト/再配置時に Node 間の内部通信が発生するため。
+- `UserNodeSubnet` 許可: usernode と agentnode 間でも内部通信が発生するため。
 
 | ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                          | 説明                             |
 | ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ----------------------------- | -------------------------------- |
@@ -217,7 +249,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 
 | ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                         | 説明                         |
 | ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ---------------------------- | ---------------------------- |
-| IPアドレス　 | [sharedBastionIp] または [AzureBastionSubnet] | \*               | Any  | -                                        | Custom   | 22,3389        | TCP        | 許可       | 200    | Allow-SSH-RDP-From-BastionServer | 踏み台からの SSH/RDP 通信許可 |
+| IPアドレス　 | [network.sharedBastionIp] または [AzureBastionSubnet] | \*               | Any  | -                                        | Custom   | 22,3389        | TCP        | 許可       | 200    | Allow-SSH-RDP-From-BastionServer | 踏み台からの SSH/RDP 通信許可 |
 | Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                      | その他全ての通信拒否         |
 
-`sharedBastionIp` は IP または CIDR（例: `10.0.10.0/24`）で指定可能です。指定した場合は [sharedBastionIp] からの通信を許可し、未指定の場合は [AzureBastionSubnet] からの通信を許可します。
+`network.sharedBastionIp` は IP または CIDR（例: `10.0.10.0/24`）で指定可能です。指定した場合は [network.sharedBastionIp] からの通信を許可し、未指定の場合は [AzureBastionSubnet] からの通信を許可します。
