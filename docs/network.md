@@ -45,26 +45,26 @@
 
 ```mermaid
 flowchart LR
-  AG["ApplicationGatewaySubnet\n10.189.129.0/25"]
-  U["UserNodeSubnet\n10.189.128.0/24"]
-  N["AgentNodeSubnet\n10.189.130.64/26"]
-  M["MaintenanceSubnet\n10.189.130.128/29"]
-  FW["Azure Firewall\n10.189.129.196"]
+  AG["ApplicationGatewaySubnet<br/>10.189.129.0/25"]
+  U["UserNodeSubnet<br/>10.189.128.0/24"]
+  N["AgentNodeSubnet<br/>10.189.130.64/26"]
+  M["MaintenanceSubnet<br/>10.189.130.128/29"]
+  FW["Azure Firewall<br/>10.189.129.196"]
   NET["0.0.0.0/0 (Internet)"]
 
-  RTFW["rt-dev-3pull-firewall\nudr-usernode-inbound\nudr-agentnode-inbound"]
-  RTAKS["rt-dev-3pull-outbound-aks\nudr-appgw-return\nudr-internet-outbound"]
-  RTM["rt-dev-3pull-outbound-maint\nudr-internet-outbound"]
+  RTFW["rt-dev-3pull-firewall<br/>udr-usernode-inbound<br/>udr-agentnode-inbound"]
+  RTAKS["rt-dev-3pull-outbound-aks<br/>udr-appgw-return<br/>udr-internet-outbound"]
+  RTM["rt-dev-3pull-outbound-maint<br/>udr-internet-outbound"]
 
   AG ---|"紐づけ"| RTFW
   U ---|"紐づけ"| RTAKS
   N ---|"紐づけ"| RTAKS
   M ---|"紐づけ"| RTM
 
-  RTFW -->|"UserNodeSubnet 宛 / AgentNodeSubnet 宛\nnext hop: 10.189.129.196"| FW
-  RTAKS -->|"ApplicationGatewaySubnet 宛\nnext hop: 10.189.129.196"| FW
-  RTAKS -->|"0.0.0.0/0\nnext hop: 10.189.129.196 または network.egressNextHopIp"| FW
-  RTM -->|"0.0.0.0/0\nnext hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  RTFW -->|"UserNodeSubnet 宛 / AgentNodeSubnet 宛<br/>next hop: 10.189.129.196"| FW
+  RTAKS -->|"ApplicationGatewaySubnet 宛<br/>next hop: 10.189.129.196"| FW
+  RTAKS -->|"0.0.0.0/0<br/>next hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  RTM -->|"0.0.0.0/0<br/>next hop: 10.189.129.196 または network.egressNextHopIp"| FW
   FW --> NET
 ```
 
@@ -74,12 +74,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  AG["ApplicationGatewaySubnet\n10.189.129.0/25"]
-  U["UserNodeSubnet\n10.189.128.0/24\nNSG: usernode"]
-  N["AgentNodeSubnet\n10.189.130.64/26\nNSG: agentnode"]
-  P["PrivateEndpointSubnet\n10.189.130.0/26\nNSG: pep"]
-  M["MaintenanceSubnet\n10.189.130.128/29\nNSG: maint"]
-  B["AzureBastionSubnet\n10.189.129.128/26"]
+  AG["ApplicationGatewaySubnet<br/>10.189.129.0/25"]
+  U["UserNodeSubnet<br/>10.189.128.0/24<br/>NSG: usernode"]
+  N["AgentNodeSubnet<br/>10.189.130.64/26<br/>NSG: agentnode"]
+  P["PrivateEndpointSubnet<br/>10.189.130.0/26<br/>NSG: pep"]
+  M["MaintenanceSubnet<br/>10.189.130.128/29<br/>NSG: maint"]
+  B["AzureBastionSubnet<br/>10.189.129.128/26"]
   ACT["ActionGroup"]
 
   AG -->|"TCP 8080,3000,3080 許可"| U
