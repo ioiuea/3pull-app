@@ -67,6 +67,17 @@ IDS/IPS を有効にするかどうかを指定します。
 - ハブ側 ExpressRoute / VPN Gateway からの経路広告による予期せぬ経路変更を避けやすくなるため
 - 障害時の経路切り分けを単純化しやすくなるため
 
+### network.enableCentralizedPrivateDns
+
+Private Endpoint 向け Private DNS ゾーンを、この環境で作成するかどうかの設計方針を指定します。
+
+ここでいう「集約 DNS」は、企業ポリシーによりハブ＆スポーク構成で
+Private DNS ゾーンをハブ側（共通基盤側）に集約して一元管理する運用を指します。
+各スポーク環境ごとにゾーンを個別作成せず、共通の DNS 基盤を参照する前提です。
+
+- `false`（デフォルト）: 集約 DNS なし。各環境側で Private DNS ゾーンを作成して利用
+- `true`: 集約 DNS あり。各環境側でのゾーン作成をスキップし、ハブ側などの集約 DNS で管理されたゾーンを利用
+
 ### network.enableDdosProtection
 
 DDoS Protection の有効/無効を指定します。  
@@ -187,6 +198,7 @@ Kubernetes Service（ClusterIP）用の IP 範囲（CIDR）です。
   - `subnets`, `route-tables`, `nsgs`, `subnet-attachments` を一括制御
 - `firewall`
 - `applicationGateway`
+- `keyVault`
 - `aks`
 - `maintenanceVm`
 
@@ -231,6 +243,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
   - Subnet Attachments（RouteTable/NSG紐づけ）
   - Application Gateway
 - service
+  - Key Vault
   - AKS
   - Maintenance VM
 
@@ -245,6 +258,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `nsgs.bicepparam`
 - `subnet-attachments.bicepparam`
 - `application-gateway.bicepparam`
+- `key-vault.bicepparam`
 - `aks.bicepparam`
 - `maintenance-vm.bicepparam`
 

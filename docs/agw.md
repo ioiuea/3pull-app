@@ -6,7 +6,7 @@
 
 | 項目         | 設定値                             | Bicepプロパティ名 |
 | ------------ | ---------------------------------- | ----------------- |
-| 名前         | agw-[environmentName]-[systemName] | name              |
+| 名前         | agw-[common.environmentName]-[common.systemName] | name              |
 | 場所         | [common.location]                  | location          |
 | マネージドID | -                                  | identity          |
 
@@ -23,7 +23,7 @@
 | 項目         | 設定値                                                       | Bicepプロパティ名    |
 | ------------ | ------------------------------------------------------------ | -------------------- |
 | 名前         | appGatewayIpConfig                                           | name                 |
-| サブネットID | vnet-[environmentName]-[systemName]/ApplicationGatewaySubnet | properties.subnet.id |
+| サブネットID | vnet-[common.environmentName]-[common.systemName]/ApplicationGatewaySubnet | properties.subnet.id |
 
 ## フロントエンドIP構成
 
@@ -32,14 +32,14 @@
 | 名前                       | appGatewayFrontendPrivateIP                                  | name                                 |
 | プライベートIP割り当て方法 | Static                                                       | properties.privateIPAllocationMethod |
 | プライベートIPアドレス     | [ApplicationGatewaySubnetのレンジの10個目のIP]               | properties.privateIPAddress          |
-| サブネットID               | vnet-[environmentName]-[systemName]/ApplicationGatewaySubnet | properties.subnet.id                 |
+| サブネットID               | vnet-[common.environmentName]-[common.systemName]/ApplicationGatewaySubnet | properties.subnet.id                 |
 
 | 項目                       | 設定値                                 | Bicepプロパティ名                    |
 | -------------------------- | -------------------------------------- | ------------------------------------ |
 | 名前                       | appGatewayFrontendPublicIP             | name                                 |
 | プライベートIP割り当て方法 | -                                      | properties.privateIPAllocationMethod |
 | プライベートIPアドレス     | -                                      | properties.privateIPAddress          |
-| パブリックIPアドレスID     | pip-agw-[environmentName]-[systemName] | properties.publicIPAddress.id        |
+| パブリックIPアドレスID     | pip-agw-[common.environmentName]-[common.systemName] | properties.publicIPAddress.id        |
 
 ## フロントエンドポート
 
@@ -108,18 +108,18 @@
 
 | 項目 | 設定値                             | Bicepプロパティ名 |
 | ---- | ---------------------------------- | ----------------- |
-| ID   | waf-[environmentName]-[systemName] | id                |
+| ID   | waf-[common.environmentName]-[common.systemName] | id                |
 
 # パブリックIPアドレス
 
 | IPアドレス名                           | 概要  |
 | -------------------------------------- | ----- |
-| pip-agw-[environmentName]-[systemName] | AGW用 |
+| pip-agw-[common.environmentName]-[common.systemName] | AGW用 |
 
 ##　基本
 | 項目 | 設定値 | Bicepプロパティ名 |
 |------|------|------|
-| 名前 | pip-agw-[environmentName]-[systemName] | name |
+| 名前 | pip-agw-[common.environmentName]-[common.systemName] | name |
 | 場所 | [common.location] | location |
 | sku | Standard | sku.name |
 | IPアドレス割り当て方法 | Static | properties.publicIPAllocationMethod |
@@ -132,7 +132,7 @@
 
 | 項目 | 設定値                             | Bicepプロパティ名 |
 | ---- | ---------------------------------- | ----------------- |
-| 名前 | waf-[environmentName]-[systemName] | name              |
+| 名前 | waf-[common.environmentName]-[common.systemName] | name              |
 | 場所 | [common.location]                  | location          |
 
 ## カスタムルール

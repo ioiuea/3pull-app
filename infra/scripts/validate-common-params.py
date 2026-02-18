@@ -139,6 +139,11 @@ def main() -> int:
         "network.enableGatewayRoutePropagation",
         errors,
     )
+    as_bool(
+        network_values.get("enableCentralizedPrivateDns"),
+        "network.enableCentralizedPrivateDns",
+        errors,
+    )
 
     ddos_plan_id = network_values.get("ddosProtectionPlanId")
     if not isinstance(ddos_plan_id, str):
@@ -227,6 +232,7 @@ def main() -> int:
         "subnets",
         "firewall",
         "applicationGateway",
+        "keyVault",
         "aks",
         "maintenanceVm",
     ]

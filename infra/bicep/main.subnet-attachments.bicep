@@ -17,6 +17,7 @@ resource subnetUpdate 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = [
     name: subnet.name
     properties: {
       addressPrefix: subnet.addressPrefix
+      defaultOutboundAccess: false
       networkSecurityGroup: empty(subnet.networkSecurityGroupName)
         ? null
         : {
@@ -27,6 +28,7 @@ resource subnetUpdate 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = [
         : {
             id: resourceId('Microsoft.Network/routeTables', subnet.routeTableName)
           }
+      privateEndpointNetworkPolicies: subnet.?privateEndpointNetworkPolicies
     }
   }
 ]

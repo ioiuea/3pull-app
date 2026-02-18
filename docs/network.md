@@ -4,7 +4,7 @@
 
 | 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection                                 | DDoS保護プラン                                                        |
 | ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [common.location] | [network.vnetAddressPrefixes] | [network.vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [network.enableDdosProtection] に応じて有効/無効        | [network.enableDdosProtection] と [network.ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
+| vnet-[common.environmentName]-[common.systemName] | rg-[common.environmentName]-[common.systemName]-nw | [common.location] | [network.vnetAddressPrefixes] | [network.vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [network.enableDdosProtection] に応じて有効/無効        | [network.enableDdosProtection] と [network.ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
 
 - ※ `network.enableDdosProtection=true` の場合
   - `network.ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
@@ -21,13 +21,18 @@
 
 | サブネット名               | プレフィクス | サービスエンドポイント | NSG名                                        | ルートテーブル名                           | 備考                                   |
 | -------------------------- | ------------ | ---------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
-| `UserNodeSubnet`           | `/24`        |                        | nsg-[environmentName]-[systemName]-usernode  | rt-[environmentName]-[systemName]-outbound-aks | アプリデプロイ領域                     |
-| `ApplicationGatewaySubnet` | `/25`        |                        |                                              | rt-[environmentName]-[systemName]-firewall | AGIC用サブネット                       |
-| `AgentNodeSubnet`          | `/26`        |                        | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound-aks | AKSのエージェントノード用サブネット    |
-| `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
+| `UserNodeSubnet`           | `/24`        |                        | nsg-[common.environmentName]-[common.systemName]-usernode  | rt-[common.environmentName]-[common.systemName]-outbound-aks | アプリデプロイ領域                     |
+| `ApplicationGatewaySubnet` | `/25`        |                        |                                              | rt-[common.environmentName]-[common.systemName]-firewall | AGIC用サブネット                       |
+| `AgentNodeSubnet`          | `/26`        |                        | nsg-[common.environmentName]-[common.systemName]-agentnode | rt-[common.environmentName]-[common.systemName]-outbound-aks | AKSのエージェントノード用サブネット    |
+| `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[common.environmentName]-[common.systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
 | `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
 | `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`network.sharedBastionIp` 未指定時のみ） |
-| `MaintenanceSubnet`        | `/29`        |                        | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound-maint | メンテVM用サブネット                   |
+| `MaintenanceSubnet`        | `/29`        |                        | nsg-[common.environmentName]-[common.systemName]-maint     | rt-[common.environmentName]-[common.systemName]-outbound-maint | メンテVM用サブネット                   |
+
+※ すべてのサブネットはプライベートサブネット（`defaultOutboundAccess=false`）として作成します。
+  暗黙の既定アウトバウンドは使用せず、UDR と Firewall/NAT などの明示的な経路制御で外向き通信を管理します。
+
+※ `PrivateEndpointSubnet` に NSG を適用して通信制御するため、サブネット設定の `privateEndpointNetworkPolicies` は有効化します。
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
 
@@ -122,7 +127,7 @@ TLS検査を有効化するためApplication GatewayからAzure Firewallを経�
 また、FW を前面に置くと **NAT で送信元が変わり**、AppGW + WAF が **クライアント情報を正しく識別できなくなる**ためです。  
 そのため、AppGW + WAF を前面に配置し、FW を経由して AKS に到達する構成にしています。
 
-## rt-[environmentName]-[systemName]-firewall
+## rt-[common.environmentName]-[common.systemName]-firewall
 
 Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeSubnet）を Firewall 経由にするためのルート
 
@@ -133,7 +138,7 @@ Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeS
 | udr-usernode-inbound            | `UserNodeSubnet`       | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
 | udr-agentnode-inbound           | `AgentNodeSubnet`      | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
 
-## rt-[environmentName]-[systemName]-outbound-aks
+## rt-[common.environmentName]-[common.systemName]-outbound-aks
 
 AKSからアウトバウンドへの通信
 
@@ -147,7 +152,7 @@ AKSからアウトバウンドへの通信
 - `udr-appgw-return` は `UserNodeSubnet` と `AgentNodeSubnet` に適用し、AppGW 宛て戻り通信を本環境 Firewall 経由に固定します。
 - `network.egressNextHopIp` が指定されると `udr-internet-outbound` の next hop は集約 FW 側になりますが、`ApplicationGatewaySubnet` 宛てはより長いプレフィックス（ロンゲストマッチ）で `udr-appgw-return` が優先されます。
 
-## rt-[environmentName]-[systemName]-outbound-maint
+## rt-[common.environmentName]-[common.systemName]-outbound-maint
 
 MaintenanceSubnet からアウトバウンドへの通信
 
@@ -194,7 +199,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 | Any         | -                                                                                         | \*               | Service Tag | Internet                                                                            | Custom   | \*             | Any        | 許可       | 65001  | AllowInternetOutBound |      |
 | Any         | -                                                                                         | \*               | Any         | \*                                                                                  | Custom   | \*             | Any        | 拒否       | 65500  | DenyAllOutBound       |      |
 
-## nsg-[environmentName]-[systemName]-usernode
+## nsg-[common.environmentName]-[common.systemName]-usernode
 
 ### 受信セキュリティ規則
 
@@ -210,7 +215,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 | Service Tag  | ActionGroup                                  | \*               | Any  | -                                        | Custom   | 8080           | TCP        | 許可       | 203    | Allow-HTTP-From-ActionGroup   | ログ収集のための通信許可         |
 | Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                       | その他全ての通信拒否             |
 
-## nsg-[environmentName]-[systemName]-agentnode
+## nsg-[common.environmentName]-[common.systemName]-agentnode
 
 ### 受信セキュリティ規則
 
@@ -226,7 +231,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 | Service Tag  | ActionGroup                                  | \*               | Any  | -                                        | Custom   | 8080           | TCP        | 許可       | 203    | Allow-HTTP-From-ActionGroup   | ログ収集のための通信許可         |
 | Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                       | その他全ての通信拒否             |
 
-## nsg-[environmentName]-[systemName]-pep
+## nsg-[common.environmentName]-[common.systemName]-pep
 
 ### 受信セキュリティ規則
 
@@ -243,7 +248,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 | Service Tag | VirtualNetwork                                                                            | \*               | Service Tag | VirtualNetwork                                                                      | Custom   | \*             | Any        | 許可       | 200    | Allow-Any-To-Vnet |      |
 | Any         | -                                                                                         | \*               | Any         | \*                                                                                  | Custom   | \*             | Any        | 拒否       | 4096   | Deny-Any-To-All   |      |
 
-## nsg-[environmentName]-[systemName]-maint
+## nsg-[common.environmentName]-[common.systemName]-maint
 
 ### 受信セキュリティ規則
 

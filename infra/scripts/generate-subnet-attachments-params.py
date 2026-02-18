@@ -157,15 +157,16 @@ for subnet in resolved_subnets:
         f"nsg-{environment_name}-{system_name}-{alias}" if alias in nsg_aliases else ""
     )
 
-    subnets_for_update.append(
-        {
-            "name": subnet["name"],
-            "alias": alias,
-            "addressPrefix": subnet["addressPrefix"],
-            "networkSecurityGroupName": network_security_group_name,
-            "routeTableName": route_table_name,
-        }
-    )
+    subnet_item = {
+        "name": subnet["name"],
+        "alias": alias,
+        "addressPrefix": subnet["addressPrefix"],
+        "networkSecurityGroupName": network_security_group_name,
+        "routeTableName": route_table_name,
+    }
+    if subnet["name"] == "PrivateEndpointSubnet":
+        subnet_item["privateEndpointNetworkPolicies"] = "Enabled"
+    subnets_for_update.append(subnet_item)
 
 # subnets トグルに連動して attach 更新の可否を決める。
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))

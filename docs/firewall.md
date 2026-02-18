@@ -6,16 +6,16 @@
 
 | 項目       | 設定値                              | Bicepプロパティ名         |
 | ---------- | ----------------------------------- | ------------------------- |
-| 名前       | afw-[environmentName]-[systemName]  | name                      |
+| 名前       | afw-[common.environmentName]-[common.systemName]  | name                      |
 | 場所       | [common.location]                   | location                  |
-| FWポリシー | afwp-[environmentName]-[systemName] | properties.FirewallPolicy |
+| FWポリシー | afwp-[common.environmentName]-[common.systemName] | properties.FirewallPolicy |
 
 ## IP構成
 
 | 項目                   | 設定値                                     | Bicepプロパティ名                                         |
 | ---------------------- | ------------------------------------------ | --------------------------------------------------------- |
-| 名前                   | ipconf-afw-[environmentName]-[systemName]  | properties.IpConfigurations.name                          |
-| パブリックIPアドレスID | id(pip-afw-[environmentName]-[systemName]) | properties.IpConfigurations.properties.publicIPAddress.id |
+| 名前                   | ipconf-afw-[common.environmentName]-[common.systemName]  | properties.IpConfigurations.name                          |
+| パブリックIPアドレスID | id(pip-afw-[common.environmentName]-[common.systemName]) | properties.IpConfigurations.properties.publicIPAddress.id |
 | サブネットID           | id(AzureFirewallSubnet)                    | properties.IpConfigurations.properties.subnet.id          |
 
 # Azure FireWall Policy
@@ -24,7 +24,7 @@
 
 | 項目                 | 設定値                              | Bicepプロパティ名          |
 | -------------------- | ----------------------------------- | -------------------------- |
-| 名前                 | afwp-[environmentName]-[systemName] | name                       |
+| 名前                 | afwp-[common.environmentName]-[common.systemName] | name                       |
 | 場所                 | [common.location]                   | location                   |
 | 脅威インテリジェンス | Deny                                | properties.threatIntelMode |
 
@@ -44,12 +44,12 @@
 
 | IPアドレス名                           | 概要                 |
 | -------------------------------------- | -------------------- |
-| pip-afw-[environmentName]-[systemName] | ファイヤーウォール用 |
+| pip-afw-[common.environmentName]-[common.systemName] | ファイヤーウォール用 |
 
 ##　基本
 | 項目 | 設定値 | Bicepプロパティ名 |
 |------|------|------|
-| 名前 | pip-afw-[environmentName]-[systemName] | name |
+| 名前 | pip-afw-[common.environmentName]-[common.systemName] | name |
 | 場所 | [common.location] | location |
 | sku | Standard | sku.name |
 | IPアドレス割り当て方法 | Static | properties.publicIPAllocationMethod |
