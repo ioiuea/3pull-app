@@ -7,7 +7,7 @@
 | 項目         | 設定値                             | Bicepプロパティ名 |
 | ------------ | ---------------------------------- | ----------------- |
 | 名前         | agw-[environmentName]-[systemName] | name              |
-| 場所         | [location]                         | location          |
+| 場所         | [common.location]                  | location          |
 | マネージドID | -                                  | identity          |
 
 ## SKU
@@ -120,11 +120,11 @@
 | 項目 | 設定値 | Bicepプロパティ名 |
 |------|------|------|
 | 名前 | pip-agw-[environmentName]-[systemName] | name |
-| 場所 | [location] | location |
+| 場所 | [common.location] | location |
 | sku | Standard | sku.name |
 | IPアドレス割り当て方法 | Static | properties.publicIPAllocationMethod |
 | IPアドレスバージョン | IPv4 | properties.publicIPAddressVersion |
-| DDOS保護 | `enableDdosProtection=true` の場合は Enabled、`false` の場合は Disabled | properties.ddosSettings.protectionMode |
+| DDOS保護 | `network.enableDdosProtection=true` の場合は Enabled、`false` の場合は Disabled | properties.ddosSettings.protectionMode |
 
 # WebApplicationFirewall Policy
 
@@ -133,7 +133,7 @@
 | 項目 | 設定値                             | Bicepプロパティ名 |
 | ---- | ---------------------------------- | ----------------- |
 | 名前 | waf-[environmentName]-[systemName] | name              |
-| 場所 | [location]                         | location          |
+| 場所 | [common.location]                  | location          |
 
 ## カスタムルール
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Maintenance VM 用 bicepparam を生成する。"""
+"""Maintenance VM 用 bicepparam を生成する。
+
+このスクリプトはメンテナンス VM の配置先サブネットを特定し、
+VM/NIC/OS Disk 作成に必要なパラメータを .bicepparam として出力する。
+"""
 
 import ipaddress
 import json
@@ -9,17 +13,20 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def key_literal(key: str) -> str:
+    """Bicep オブジェクトキーの表現を返す。"""
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
         return key
     return quote(key)
 
 
 def to_bicep(value, indent: int = 0) -> str:
+    """Python 値を Bicep リテラルへ変換する。"""
     pad = " " * indent
     if value is None:
         return "null"
@@ -42,31 +49,39 @@ def to_bicep(value, indent: int = 0) -> str:
     raise TypeError(f"Unsupported type: {type(value)}")
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
-if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
+if not environment_name or not system_name or not location:
+    raise SystemExit(
+        "common.parameter.json の common.environmentName / "
+        "common.systemName / common.location を設定してください"
+    )
+
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
 subnet_defs = subnets_config.get("subnetDefinitions", [])
 if not subnet_defs:
     raise SystemExit("subnets config の subnetDefinitions が空です")
 
-if common.get("sharedBastionIp", ""):
+if network_values.get("sharedBastionIp", ""):
     subnet_defs = [s for s in subnet_defs if s.get("alias", s.get("name")) != "bastion"]
 
 base_prefixes = [ipaddress.ip_network(p) for p in vnet_address_prefixes]
@@ -74,6 +89,7 @@ range_index = 0
 current = int(base_prefixes[0].network_address)
 maint_subnet_name = ""
 
+# サブネット割り当てを再計算し、MaintenanceSubnet を探索する。
 for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     prefix_len = subnet["prefixLength"]
     allocated = None
@@ -118,6 +134,7 @@ deploy = bool(common.get("resourceToggles", {}).get("maintenanceVm", True))
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "maintenance-vm.bicepparam"
 
+# main.maintenance-vm.bicep へ渡すパラメータを出力する。
 lines = [
     "using '../bicep/main.maintenance-vm.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -143,6 +160,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# 後続処理向けメタ情報。
 meta = {
     "resourceGroupName": service_rg_name,
     "deploy": deploy,

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""AKS 用 bicepparam を生成する。"""
+"""AKS 用 bicepparam を生成する。
+
+主な責務:
+1. common/config から AKS の可変値と固定値を統合する。
+2. serviceCidr から DNS Service IP(10 番目の利用可能 IP)を算出する。
+3. AKS 作成用 .bicepparam とメタ情報を出力する。
+"""
 
 import ipaddress
 import json
@@ -8,11 +14,13 @@ from pathlib import Path
 
 
 def quote(value: str) -> str:
+    """Bicep 文字列リテラル向けに single quote をエスケープする。"""
     escaped = str(value).replace("'", "''")
     return f"'{escaped}'"
 
 
 def to_bicep_array(values: list[str]) -> str:
+    """文字列配列を Bicep 配列表現へ変換する。"""
     if not values:
         return "[]"
     lines = ["["]
@@ -22,6 +30,7 @@ def to_bicep_array(values: list[str]) -> str:
     return "\n".join(lines)
 
 
+# main.sh から受け取る入出力パス。
 common_path = Path(os.environ["COMMON_FILE"])
 config_path = Path(os.environ["RESOURCE_CONFIG_FILE"])
 subnets_config_path = Path(os.environ["SUBNETS_CONFIG_FILE"])
@@ -29,30 +38,39 @@ application_gateway_meta_path = Path(os.environ["APPLICATION_GATEWAY_META_FILE"]
 params_dir = Path(os.environ["PARAMS_DIR"])
 out_meta_path = Path(os.environ["OUT_META_FILE"])
 
+# 入力設定を読み込む。
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 application_gateway_meta = json.loads(application_gateway_meta_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
+aks_values = common.get("aks", {})
+
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
 
 if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+    raise SystemExit(
+        "common.parameter.json の common.environmentName / "
+        "common.systemName / common.location を設定してください"
+    )
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
-service_cidr_raw = common.get("aksServiceCidr", "")
+service_cidr_raw = aks_values.get("serviceCidr", "")
 if not service_cidr_raw:
-    raise SystemExit("common.parameter.json の aksServiceCidr が空です")
+    raise SystemExit("common.parameter.json の aks.serviceCidr が空です")
 
+# service CIDR の 10 番目の利用可能 IP を DNS Service IP として使う。
 service_cidr_network = ipaddress.ip_network(service_cidr_raw, strict=True)
 service_hosts = list(service_cidr_network.hosts())
 if len(service_hosts) < 10:
-    raise SystemExit("aksServiceCidr does not have enough usable IPs to assign the 10th host")
+    raise SystemExit("serviceCidr does not have enough usable IPs to assign the 10th host")
 
 service_cidr = str(service_cidr_network)
 dns_service_ip = str(service_hosts[9])
@@ -68,18 +86,18 @@ vnet_name = f"vnet-{environment_name}-{system_name}"
 application_gateway_name = application_gateway_meta.get("applicationGatewayName", f"agw-{environment_name}-{system_name}")
 application_gateway_rg_name = application_gateway_meta.get("resourceGroupName", f"rg-{environment_name}-{system_name}-nw")
 
-pod_cidr = common.get("aksPodCidr", "")
+pod_cidr = aks_values.get("podCidr", "")
 if not pod_cidr:
-    raise SystemExit("common.parameter.json の aksPodCidr が空です")
+    raise SystemExit("common.parameter.json の aks.podCidr が空です")
 
-user_pool_vm_size = common.get("aksUserPoolVmSize", "")
-user_pool_count = int(common.get("aksUserPoolCount", 0))
-user_pool_min_count = int(common.get("aksUserPoolMinCount", 0))
-user_pool_max_count = int(common.get("aksUserPoolMaxCount", 0))
-user_pool_label = common.get("aksUserPoolLabel", "")
+user_pool_vm_size = aks_values.get("userPoolVmSize", "")
+user_pool_count = int(aks_values.get("userPoolCount", 0))
+user_pool_min_count = int(aks_values.get("userPoolMinCount", 0))
+user_pool_max_count = int(aks_values.get("userPoolMaxCount", 0))
+user_pool_label = aks_values.get("userPoolLabel", "")
 
 if not user_pool_vm_size or not user_pool_label:
-    raise SystemExit("common.parameter.json の aksUserPoolVmSize / aksUserPoolLabel を設定してください")
+    raise SystemExit("common.parameter.json の aks.userPoolVmSize / aks.userPoolLabel を設定してください")
 if user_pool_min_count > user_pool_count or user_pool_count > user_pool_max_count:
     raise SystemExit("aks user pool の count / min / max の大小関係が不正です")
 
@@ -87,11 +105,13 @@ aks_name = f"aks-{environment_name}-{system_name}"
 dns_prefix_base = config.get("dnsPrefix", "aks-dns")
 dns_prefix = f"{dns_prefix_base}-{environment_name}-{system_name}"
 
+# AKS の実行有無トグル。
 deploy = bool(common.get("resourceToggles", {}).get("aks", True))
 
 params_dir.mkdir(parents=True, exist_ok=True)
 params_file = params_dir / "aks.bicepparam"
 
+# AKS デプロイ用 .bicepparam を出力する。
 lines = [
     "using '../bicep/main.aks.bicep'",
     f"param environmentName = {quote(environment_name)}",
@@ -145,6 +165,7 @@ lines = [
 ]
 params_file.write_text("\n".join(lines), encoding="utf-8")
 
+# main.sh が参照するメタ情報。
 meta = {
     "resourceGroupName": aks_rg_name,
     "deploy": deploy,
