@@ -37,44 +37,65 @@
 
 # 構成図（生成パラメータ例）
 
-以下は `infra/log/tmp-*-20260215T120923.json` を基にした構成図です。
+![基本構成図](assets/basic-pattern.png)
+
+## 通信経路フロー（UDR）
+
+以下は、サブネットの UDR 経路を可視化した図です。
 
 ```mermaid
-flowchart TB
-  Internet[(Internet)]
-  ActionGroup[(ActionGroup)]
+flowchart LR
+  AG["ApplicationGatewaySubnet\n10.189.129.0/25"]
+  U["UserNodeSubnet\n10.189.128.0/24"]
+  N["AgentNodeSubnet\n10.189.130.64/26"]
+  M["MaintenanceSubnet\n10.189.130.128/29"]
+  FW["Azure Firewall\n10.189.129.196"]
+  NET["0.0.0.0/0 (Internet)"]
 
-  subgraph VNet["vnet (10.189.70.0/24, 10.189.71.0/24, 10.189.72.0/24, 10.189.73.0/24)"]
-    U["UserNodeSubnet\n10.189.70.0/24\nNSG: nsg-dev-3pull-usernode\nRT: rt-dev-3pull-outbound-aks"]
-    A["ApplicationGatewaySubnet\n10.189.71.0/25\nRT: rt-dev-3pull-firewall"]
-    B["AzureBastionSubnet\n10.189.71.128/26"]
-    F["AzureFirewallSubnet\n10.189.71.192/26\nFirewall IP: 10.189.71.193"]
-    P["PrivateEndpointSubnet\n10.189.72.0/26\nNSG: nsg-dev-3pull-pep"]
-    G["AgentNodeSubnet\n10.189.72.64/26\nNSG: nsg-dev-3pull-agentnode\nRT: rt-dev-3pull-outbound-aks"]
-    M["MaintenanceSubnet\n10.189.72.128/29\nNSG: nsg-dev-3pull-maint\nRT: rt-dev-3pull-outbound-maint"]
-  end
+  RTFW["rt-dev-3pull-firewall\nudr-usernode-inbound\nudr-agentnode-inbound"]
+  RTAKS["rt-dev-3pull-outbound-aks\nudr-appgw-return\nudr-internet-outbound"]
+  RTM["rt-dev-3pull-outbound-maint\nudr-internet-outbound"]
 
-  RTFW["rt-dev-3pull-firewall\nudr-usernode-inbound / udr-agentnode-inbound\nUserNodeSubnet/AgentNodeSubnet -> 10.189.71.193"]
-  RTOAKS["rt-dev-3pull-outbound-aks\nudr-appgw-return: ApplicationGatewaySubnet -> 10.189.71.193\nudr-internet-outbound: 0.0.0.0/0 -> 10.189.71.193 or egressNextHopIp"]
-  RTOM["rt-dev-3pull-outbound-maint\nudr-internet-outbound: 0.0.0.0/0 -> 10.189.71.193 or egressNextHopIp"]
+  AG ---|"紐づけ"| RTFW
+  U ---|"紐づけ"| RTAKS
+  N ---|"紐づけ"| RTAKS
+  M ---|"紐づけ"| RTM
 
-  A --- RTFW
-  U --- RTOAKS
-  G --- RTOAKS
-  M --- RTOM
+  RTFW -->|"UserNodeSubnet 宛 / AgentNodeSubnet 宛\nnext hop: 10.189.129.196"| FW
+  RTAKS -->|"ApplicationGatewaySubnet 宛\nnext hop: 10.189.129.196"| FW
+  RTAKS -->|"0.0.0.0/0\nnext hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  RTM -->|"0.0.0.0/0\nnext hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  FW --> NET
+```
 
-  B -->|"22,3389"| M
-  A -->|"8080,3000,3080"| U
-  A -->|"8080,3000,3080"| G
-  M -->|"any"| U
-  M -->|"any"| G
-  U -->|"any"| P
-  M -->|"any"| P
-  ActionGroup -->|"8080"| U
-  ActionGroup -->|"8080"| G
-  RTOAKS --> F
-  RTOM --> F
-  RTFW --> F
+## 通信制御フロー（NSG）
+
+以下は、サブネット間の許可通信（NSG 受信規則）を可視化した図です。
+
+```mermaid
+flowchart LR
+  AG["ApplicationGatewaySubnet\n10.189.129.0/25"]
+  U["UserNodeSubnet\n10.189.128.0/24\nNSG: usernode"]
+  N["AgentNodeSubnet\n10.189.130.64/26\nNSG: agentnode"]
+  P["PrivateEndpointSubnet\n10.189.130.0/26\nNSG: pep"]
+  M["MaintenanceSubnet\n10.189.130.128/29\nNSG: maint"]
+  B["AzureBastionSubnet\n10.189.129.128/26"]
+  ACT["ActionGroup"]
+
+  AG -->|"TCP 8080,3000,3080 許可"| U
+  AG -->|"TCP 8080,3000,3080 許可"| N
+  U -->|"TCP 443,4443 許可"| U
+  U -->|"TCP 443,4443 許可"| N
+  N -->|"TCP 443,4443 許可"| U
+  N -->|"TCP 443,4443 許可"| N
+  M -->|"Any 許可"| U
+  M -->|"Any 許可"| N
+  U -->|"Any 許可"| P
+  N -->|"Any 許可"| P
+  M -->|"Any 許可"| P
+  ACT -->|"TCP 8080 許可"| U
+  ACT -->|"TCP 8080 許可"| N
+  B -->|"TCP 22,3389 許可"| M
 ```
 
 # ルートテーブル
