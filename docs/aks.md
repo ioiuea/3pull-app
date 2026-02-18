@@ -11,7 +11,7 @@
 | 項目            | 設定値                                 | Bicepプロパティ名     |
 | --------------- | -------------------------------------- | --------------------- |
 | 名前            | aks-[environmentName]-[systemName]     | name                  |
-| 場所            | [location]                             | location              |
+| 場所            | [common.location]                      | location              |
 | ID              | SystemAssigned                         | identity.type         |
 | DNSプレフィクス | aks-dns-[environmentName]-[systemName] | properties.dnsPrefix  |
 | RBACの有効化    | true                                   | properties.enableRBAC |
@@ -38,16 +38,16 @@
 | ---------------- | ------------------------------------------------------ | ---------------------------------------------- |
 | 名前             | userpool                                               | properties.agentPoolProfiles.name              |
 | OSディスクサイズ | 0                                                      | properties.agentPoolProfiles.osDiskSizeGB      |
-| VMサイズ         | [aksUserPoolVmSize]                                    | properties.agentPoolProfiles.vmSize            |
+| VMサイズ         | [aks.userPoolVmSize]                                   | properties.agentPoolProfiles.vmSize            |
 | 可用性ゾーン     | 1,2,3                                                  | properties.agentPoolProfiles.avalavilityZones  |
 | OSタイプ         | Linux                                                  | properties.agentPoolProfiles.osType            |
 | モード           | User                                                   | properties.agentPoolProfiles.mode              |
-| カウント         | [aksUserPoolCount]                                     | properties.agentPoolProfiles.count             |
-| 最小VM数         | [aksUserPoolMinCount]                                  | properties.agentPoolProfiles.minCount          |
-| 最大VM数         | [aksUserPoolMaxCount]                                  | properties.agentPoolProfiles.maxCount          |
+| カウント         | [aks.userPoolCount]                                    | properties.agentPoolProfiles.count             |
+| 最小VM数         | [aks.userPoolMinCount]                                 | properties.agentPoolProfiles.minCount          |
+| 最大VM数         | [aks.userPoolMaxCount]                                 | properties.agentPoolProfiles.maxCount          |
 | 自動スケーリング | true                                                   | properties.agentPoolProfiles.enableAutoScaling |
 | サブネットID     | id(vnet-[environmentName]-[systemName]/UserNodeSubnet) | properties.agentPoolProfiles.vnetSubnetID      |
-| ラベル           | pool: [aksUserPoolLabel]                               | properties.agentPoolProfiles.nodeLabels        |
+| ラベル           | pool: [aks.userPoolLabel]                              | properties.agentPoolProfiles.nodeLabels        |
 
 ## アドオン：Azureポリシー
 
@@ -77,11 +77,11 @@
 | ネットワークポリシー         | azure                                       | properties.networkProfile.networkPolicy     |
 | ネットワークプラグインモード | overlay                                     | properties.networkProfile.networkPluginMode |
 | ロードバランサ―SKU           | standard                                    | properties.networkPraofile.loadBalancerSku  |
-| ポッドCIDR                   | [aksPodCidr]                                | properties.networkProfile.podCidr           |
-| サービスCIDR                 | [aksServiceCidr]                            | properties.networkProfile.serviceCidr       |
-| DNSサービスIP                | [aksServiceCidrのレンジの10個目のIP]        | properties.networkProfile.dnsServiceIP      |
+| ポッドCIDR                   | [aks.podCidr]                               | properties.networkProfile.podCidr           |
+| サービスCIDR                 | [aks.serviceCidr]                           | properties.networkProfile.serviceCidr       |
+| DNSサービスIP                | [aks.serviceCidrのレンジの10個目のIP]       | properties.networkProfile.dnsServiceIP      |
 
-※ ポッドCIDRはVNETのIPアドレスレンジとは別空間のため、`infra/common.parameter.json` の `aksPodCidr` で任意指定
+※ ポッドCIDRはVNETのIPアドレスレンジとは別空間のため、`infra/common.parameter.json` の `aks.podCidr` で任意指定
 
 ## 自動アップグレード情報
 

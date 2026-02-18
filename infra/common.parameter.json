@@ -1,25 +1,32 @@
 {
-  "location": "japaneast",
-  "environmentName": "dev",
-  "systemName": "3pull",
-  "enableFirewallIdps": true,
-  "enableDdosProtection": false,
-  "ddosProtectionPlanId": "",
-  "vnetAddressPrefixes": [
-    "10.189.128.0/24",
-    "10.189.129.0/24",
-    "10.189.130.0/24"
-  ],
-  "vnetDnsServers": [],
-  "egressNextHopIp": "",
-  "sharedBastionIp": "",
-  "aksUserPoolVmSize": "standard_d4s_v4",
-  "aksUserPoolCount": 3,
-  "aksUserPoolMinCount": 3,
-  "aksUserPoolMaxCount": 6,
-  "aksUserPoolLabel": "user",
-  "aksPodCidr": "10.189.0.0/17",
-  "aksServiceCidr": "10.47.0.0/24",
+  "common": {
+    "location": "japaneast",
+    "environmentName": "dev",
+    "systemName": "3pull"
+  },
+  "network": {
+    "enableFirewallIdps": true,
+    "enableGatewayRoutePropagation": false,
+    "enableDdosProtection": false,
+    "ddosProtectionPlanId": "",
+    "vnetAddressPrefixes": [
+      "10.189.128.0/24",
+      "10.189.129.0/24",
+      "10.189.130.0/24"
+    ],
+    "vnetDnsServers": [],
+    "sharedBastionIp": "",
+    "egressNextHopIp": ""
+  },
+  "aks": {
+    "userPoolVmSize": "standard_d4s_v4",
+    "userPoolCount": 3,
+    "userPoolMinCount": 3,
+    "userPoolMaxCount": 6,
+    "userPoolLabel": "user",
+    "podCidr": "10.189.0.0/17",
+    "serviceCidr": "10.47.0.0/24"
+  },
   "resourceToggles": {
     "logAnalytics": true,
     "applicationInsights": true,

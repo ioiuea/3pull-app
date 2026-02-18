@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
+# Path / file definitions
+# -----------------------------------------------------------------------------
+# このスクリプトは infra 配下の設定を読み込み、各 generate スクリプトで
+# .bicepparam と meta.json を生成したうえで、依存順に az deployment を実行する。
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 infra_root="$repo_root/infra"
 common_file="$infra_root/common.parameter.json"
@@ -49,6 +54,10 @@ maintenance_vm_config_file="$infra_root/config/maintenance-vm.json"
 maintenance_vm_script="$infra_root/scripts/generate-maintenance-vm-params.py"
 maintenance_vm_meta_file="$params_dir/maintenance-vm-meta.json"
 
+# -----------------------------------------------------------------------------
+# CLI option parsing
+# -----------------------------------------------------------------------------
+# --what-if 指定時は Azure へ実変更せず、差分確認のみ行う。
 what_if=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -64,6 +73,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# -----------------------------------------------------------------------------
+# Pre-flight checks
+# -----------------------------------------------------------------------------
+# 1) 共通パラメータファイルと validator の存在確認
+# 2) 共通パラメータの型・値検証
 if [[ ! -f "$common_file" ]]; then
   echo "common parameter file が見つかりません: $common_file" >&2
   exit 1
@@ -77,6 +91,7 @@ fi
 echo "==> Validate common parameters"
 "$common_validation_script" "$common_file"
 
+# 各リソースの固定設定ファイルが欠けていないかを先に検証する。
 if [[ ! -f "$log_config_file" ]]; then
   echo "log analytics config file が見つかりません: $log_config_file" >&2
   exit 1
@@ -132,6 +147,12 @@ if ! command -v az >/dev/null 2>&1; then
   exit 1
 fi
 
+# -----------------------------------------------------------------------------
+# Parameter generation phase
+# -----------------------------------------------------------------------------
+# 各 Python スクリプトが以下を出力する:
+# - params/*.bicepparam (Bicep 実行引数)
+# - params/*-meta.json  (deploy 可否、RG 名などの制御情報)
 timestamp="$(date +'%Y%m%dT%H%M%S')"
 mkdir -p "$params_dir"
 
@@ -222,6 +243,10 @@ OUT_META_FILE="$maintenance_vm_meta_file" \
 TIMESTAMP="$timestamp" \
 "$maintenance_vm_script"
 
+# -----------------------------------------------------------------------------
+# Meta loading phase
+# -----------------------------------------------------------------------------
+# 生成済み meta.json から、以降で使う実行情報（location / RG / paramsFile）を取得する。
 location="$(META_FILE="$log_meta_file" python - <<'PY'
 import json
 import os
@@ -332,6 +357,7 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+# 取得必須のメタ情報を検証する。ここで失敗させることで後続の実行時エラーを防ぐ。
 if [[ -z "$location" ]]; then
   echo "location が取得できませんでした。infra/common.parameter.json を確認してください。" >&2
   exit 1
@@ -393,6 +419,11 @@ if ! printf '%s\n' "$available_locations" | grep -qx "$location"; then
   exit 1
 fi
 
+# -----------------------------------------------------------------------------
+# Resource group ensure phase
+# -----------------------------------------------------------------------------
+# 各リソースが利用する RG を作成(存在する場合は noop)する。
+# 同名 RG への重複作成を避けるため、条件分岐で重複呼び出しを抑制している。
 echo "==> Ensure Resource Group: $resource_group_name"
 az group create \
   --name "$resource_group_name" \
@@ -459,6 +490,10 @@ if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$
     --location "$location" >/dev/null
 fi
 
+# -----------------------------------------------------------------------------
+# Monitor resources
+# -----------------------------------------------------------------------------
+# Log Analytics -> Application Insights の順で実行する。
 log_deploy="$(META_FILE="$log_meta_file" python - <<'PY'
 import json
 import os
@@ -521,6 +556,11 @@ else
   echo "==> Skip Application Insights (resourceToggles.applicationInsights=false)"
 fi
 
+# -----------------------------------------------------------------------------
+# Virtual Network (existing check aware)
+# -----------------------------------------------------------------------------
+# 既存 VNET がある環境では peering 等の手動設定を壊さないため、
+# 既存検出時は VNET の apply/update をスキップする。
 vnet_deploy="$(META_FILE="$vnet_meta_file" python - <<'PY'
 import json
 import os
@@ -635,6 +675,10 @@ else
   echo "==> Skip Virtual Network (resourceToggles.virtualNetwork=false)"
 fi
 
+# -----------------------------------------------------------------------------
+# Subnets (base creation)
+# -----------------------------------------------------------------------------
+# まずは NSG / UDR を付けずにサブネットだけ作成する。
 subnets_deploy="$(META_FILE="$subnets_meta_file" python - <<'PY'
 import json
 import os
@@ -666,6 +710,11 @@ else
   echo "==> Skip Subnets (resourceToggles.subnets=false)"
 fi
 
+# -----------------------------------------------------------------------------
+# Firewall (policy existing check aware)
+# -----------------------------------------------------------------------------
+# Firewall Policy が既存の場合、既存ポリシーを維持するため
+# ポリシー更新だけスキップして Firewall リソース本体を実行する。
 firewall_deploy="$(META_FILE="$firewall_meta_file" python - <<'PY'
 import json
 import os
@@ -795,6 +844,13 @@ else
   echo "==> Skip Firewall (resourceToggles.firewall=false)"
 fi
 
+# -----------------------------------------------------------------------------
+# Route table / NSG / subnet attachments
+# -----------------------------------------------------------------------------
+# 注意:
+# - network.egressNextHopIp 未指定時は、実際の Firewall Private IP を Azure から再取得し、
+#   その値で route-tables.bicepparam を再生成してから適用する。
+# - これにより nextHop の古い値で UDR が適用されることを防ぐ。
 application_gateway_deploy="$(META_FILE="$application_gateway_meta_file" python - <<'PY'
 import json
 import os
@@ -841,7 +897,7 @@ import os
 from pathlib import Path
 
 common = json.loads(Path(os.environ["COMMON_FILE"]).read_text(encoding="utf-8"))
-print(common.get("egressNextHopIp", ""))
+print(common.get("network", {}).get("egressNextHopIp", ""))
 PY
 )"
 
@@ -1022,6 +1078,13 @@ else
   echo "==> Skip Subnet Attachments (resourceToggles.subnets=false)"
 fi
 
+# -----------------------------------------------------------------------------
+# Application Gateway / AKS / Maintenance VM
+# -----------------------------------------------------------------------------
+# 依存順:
+# 1) Application Gateway
+# 2) AKS (AGIC 連携先が先に必要)
+# 3) Maintenance VM
 if [[ "$application_gateway_deploy" == "true" ]]; then
   echo "==> Deploy Application Gateway"
   az deployment group create \
@@ -1102,13 +1165,17 @@ else
   echo "==> Skip Maintenance VM (resourceToggles.maintenanceVm=false)"
 fi
 
+# -----------------------------------------------------------------------------
+# Post-deploy notices
+# -----------------------------------------------------------------------------
+# 初期構築で見落としやすい運用作業を、条件付きでメッセージ表示する。
 egress_next_hop_ip="$(COMMON_FILE="$common_file" python - <<'PY'
 import json
 import os
 from pathlib import Path
 
 common = json.loads(Path(os.environ["COMMON_FILE"]).read_text(encoding="utf-8"))
-print(common.get("egressNextHopIp", ""))
+print(common.get("network", {}).get("egressNextHopIp", ""))
 PY
 )"
 
@@ -1129,12 +1196,12 @@ if [[ "$firewall_deploy" == "true" && -z "$egress_next_hop_ip" && "$firewall_pol
   cat <<'EOF'
 ------------------------------------------------------------
 NOTICE: Firewall Outbound Rule (Initial Provisioning)
-[EN] Because egressNextHopIp is not specified, outbound traffic in Firewall Policy is temporarily allowed to Any
+[EN] Because network.egressNextHopIp is not specified, outbound traffic in Firewall Policy is temporarily allowed to Any
      to permit required external communication during the initial Azure Kubernetes Service provisioning.
      After provisioning, review and tighten Firewall Policy allow/deny rules according to your enterprise policy.
      Edit Firewall Policy from Azure Portal: https://portal.azure.com/
 
-[JA] egressNextHopIp が未指定のため、初期構築段階では Azure Kubernetes Service の構築に必要な外部通信を許可する目的で、
+[JA] network.egressNextHopIp が未指定のため、初期構築段階では Azure Kubernetes Service の構築に必要な外部通信を許可する目的で、
      Firewall Policy のアウトバウンド通信が宛先 Any で許可される構成になります。
      構築完了後は、企業ポリシーに合わせて Firewall Policy の許可/遮断ルールを見直して運用してください。
      Firewall Policy の編集は Azure Portal（https://portal.azure.com/）から実施してください。
