@@ -86,7 +86,10 @@ flowchart TB
 これにより AKS からの外向き通信経路を制御できます。  
 `network.egressNextHopIp` を指定しない場合は[設置したFirewallのプライベートIP]をインターネット向けアウトバウンド通信のネクストホップとして指定します。
 
-- 設計方針として、`network.egressNextHopIp` の指定有無に関わらず、`outbound-aks` / `outbound-maint` のルートテーブルでは **ゲートウェイルート伝搬（BGP ルート伝搬）を無効化** します。
+- ゲートウェイルート伝搬（BGP ルート伝搬）は `network.enableGatewayRoutePropagation` で制御します。
+  - `false`（デフォルト）: 無効
+  - `true`: 有効
+- 推奨値は `false`（無効）です。
 - 理由:
   - UDR で定義した next hop を常に優先し、意図しない BGP 経路混入を防止するため
   - ハブ側 ExpressRoute / VPN Gateway の経路広告による予期せぬ経路変更を避けるため
@@ -102,7 +105,7 @@ TLS検査を有効化するためApplication GatewayからAzure Firewallを経�
 
 Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeSubnet）を Firewall 経由にするためのルート
 
-ゲートウェイルート伝搬（BGP ルート伝搬）: 無効
+ゲートウェイルート伝搬（BGP ルート伝搬）: [network.enableGatewayRoutePropagation]（`false`: 無効 / `true`: 有効、推奨は `false`）
 
 | ルート名                        | アドレスプレフィックス | ネクストホップの種類 | ネクストホップ                     |
 | ------------------------------- | ---------------------- | -------------------- | ---------------------------------- |
@@ -113,7 +116,7 @@ Application Gateway Subnet から AKS 宛て通信（UserNodeSubnet / AgentNodeS
 
 AKSからアウトバウンドへの通信
 
-ゲートウェイルート伝搬（BGP ルート伝搬）: 無効
+ゲートウェイルート伝搬（BGP ルート伝搬）: [network.enableGatewayRoutePropagation]（`false`: 無効 / `true`: 有効、推奨は `false`）
 
 | ルート名              | アドレスプレフィックス  | ネクストホップの種類 | ネクストホップ                                          |
 | --------------------- | ----------------------- | -------------------- | ------------------------------------------------------- |
@@ -127,7 +130,7 @@ AKSからアウトバウンドへの通信
 
 MaintenanceSubnet からアウトバウンドへの通信
 
-ゲートウェイルート伝搬（BGP ルート伝搬）: 無効
+ゲートウェイルート伝搬（BGP ルート伝搬）: [network.enableGatewayRoutePropagation]（`false`: 無効 / `true`: 有効、推奨は `false`）
 
 | ルート名              | アドレスプレフィックス  | ネクストホップの種類 | ネクストホップ                                          |
 | --------------------- | ----------------------- | -------------------- | ------------------------------------------------------- |

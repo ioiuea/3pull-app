@@ -5,6 +5,7 @@
 - agic(=ApplicationGatewaySubnet) 用 inbound ルートを作る。
 - AKS 用と Maintenance 用で outbound ルートテーブルを分離する。
 - Firewall 実 IP をメタファイルから受け取り、next hop として埋め込む。
+- BGP ルート伝搬は common parameter で有効/無効を切り替える。
 """
 
 import ipaddress
@@ -147,6 +148,10 @@ try:
 except ValueError as exc:
     raise SystemExit("egressNextHopIp が不正な IP です") from exc
 
+# true: 伝搬有効、false: 伝搬無効（推奨）
+enable_gateway_route_propagation = bool(network_values.get("enableGatewayRoutePropagation", False))
+disable_bgp_route_propagation = not enable_gateway_route_propagation
+
 outbound_aks_targets = config.get("outboundAksSubnetAliases", ["agentnode", "usernode"])
 outbound_maint_targets = config.get("outboundMaintSubnetAliases", ["maint"])
 outbound_aks_subnet_aliases = [alias for alias in outbound_aks_targets if alias in known_aliases]
@@ -178,13 +183,13 @@ for alias in inbound_target_aliases:
 route_tables = [
     {
         "name": "firewall",
-        "disableBgpRoutePropagation": True,
+        "disableBgpRoutePropagation": disable_bgp_route_propagation,
         "routes": inbound_routes,
         "subnetNames": [agic_alias],
     },
     {
         "name": "outbound-aks",
-        "disableBgpRoutePropagation": True,
+        "disableBgpRoutePropagation": disable_bgp_route_propagation,
         "routes": [
             {
                 "name": config.get("appGatewayReturnRouteName", "udr-appgw-return"),
@@ -207,7 +212,7 @@ route_tables = [
     },
     {
         "name": "outbound-maint",
-        "disableBgpRoutePropagation": True,
+        "disableBgpRoutePropagation": disable_bgp_route_propagation,
         "routes": [
             {
                 "name": config.get("outboundRouteName", "udr-internet-outbound"),

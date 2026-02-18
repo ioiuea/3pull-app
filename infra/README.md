@@ -51,6 +51,20 @@ IDS/IPS を有効にするかどうかを指定します。
 `true` の場合は **Firewall SKU が Premium** になり、IDS/IPS を有効化します。  
 `false` の場合は **Firewall SKU が Standard** になります。
 
+### network.enableGatewayRoutePropagation
+
+ルートテーブルのゲートウェイルート伝搬（BGP ルート伝搬）を有効化するかどうかを指定します。
+
+- `false`（デフォルト）: 無効
+- `true`: 有効
+
+推奨は `false`（無効）です。  
+理由:
+
+- UDR の next hop を常に優先し、意図しない BGP 経路混入を防止しやすくなるため
+- ハブ側 ExpressRoute / VPN Gateway からの経路広告による予期せぬ経路変更を避けやすくなるため
+- 障害時の経路切り分けを単純化しやすくなるため
+
 ### network.enableDdosProtection
 
 DDoS Protection の有効/無効を指定します。  
@@ -90,7 +104,7 @@ VNET が参照する DNS リゾルバです（IP アドレス配列）。
 AKS ノード系サブネットやメンテナンス VM サブネットからのアウトバウンド経路を制御するための設定です。  
 基本（未指定）の場合は、新規作成した Firewall のプライベート IP を next hop とするユーザー定義ルート（UDR）を作成します。  
 企業ポリシー上、ハブ＆スポーク構成で VNET ピアリングされた集約アウトバウンド経路を使う必要がある場合は、この値に IP を指定することで UDR の宛先（next hop）をその IP に書き換えます。
-ルートテーブルは `outbound-aks` / `outbound-maint` に分離され、ゲートウェイルート伝搬（BGP ルート伝搬）は設計方針として無効化されます。
+ルートテーブルは `outbound-aks` / `outbound-maint` に分離され、ゲートウェイルート伝搬（BGP ルート伝搬）の有効/無効は `network.enableGatewayRoutePropagation` で制御します（推奨は無効）。
 
 ### network.sharedBastionIp
 

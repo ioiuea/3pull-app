@@ -134,6 +134,11 @@ def main() -> int:
     # ネットワーク/セキュリティ系のフラグ
     as_bool(network_values.get("enableFirewallIdps"), "network.enableFirewallIdps", errors)
     enable_ddos = as_bool(network_values.get("enableDdosProtection"), "network.enableDdosProtection", errors)
+    as_bool(
+        network_values.get("enableGatewayRoutePropagation"),
+        "network.enableGatewayRoutePropagation",
+        errors,
+    )
 
     ddos_plan_id = network_values.get("ddosProtectionPlanId")
     if not isinstance(ddos_plan_id, str):

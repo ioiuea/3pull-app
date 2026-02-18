@@ -6,6 +6,7 @@
   },
   "network": {
     "enableFirewallIdps": true,
+    "enableGatewayRoutePropagation": false,
     "enableDdosProtection": false,
     "ddosProtectionPlanId": "",
     "vnetAddressPrefixes": [
