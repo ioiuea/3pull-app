@@ -198,6 +198,7 @@ Kubernetes Service（ClusterIP）用の IP 範囲（CIDR）です。
   - `subnets`, `route-tables`, `nsgs`, `subnet-attachments` を一括制御
 - `firewall`
 - `applicationGateway`
+- `keyVault`
 - `aks`
 - `maintenanceVm`
 
@@ -242,6 +243,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
   - Subnet Attachments（RouteTable/NSG紐づけ）
   - Application Gateway
 - service
+  - Key Vault
   - AKS
   - Maintenance VM
 
@@ -256,6 +258,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `nsgs.bicepparam`
 - `subnet-attachments.bicepparam`
 - `application-gateway.bicepparam`
+- `key-vault.bicepparam`
 - `aks.bicepparam`
 - `maintenance-vm.bicepparam`
 

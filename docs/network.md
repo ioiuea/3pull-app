@@ -29,6 +29,9 @@
 | `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`network.sharedBastionIp` 未指定時のみ） |
 | `MaintenanceSubnet`        | `/29`        |                        | nsg-[common.environmentName]-[common.systemName]-maint     | rt-[common.environmentName]-[common.systemName]-outbound-maint | メンテVM用サブネット                   |
 
+※ すべてのサブネットはプライベートサブネット（`defaultOutboundAccess=false`）として作成します。
+  暗黙の既定アウトバウンドは使用せず、UDR と Firewall/NAT などの明示的な経路制御で外向き通信を管理します。
+
 ※ `PrivateEndpointSubnet` に NSG を適用して通信制御するため、サブネット設定の `privateEndpointNetworkPolicies` は有効化します。
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。

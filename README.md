@@ -311,3 +311,7 @@ uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app \
 ### Firewall
 
 [`docs/firewall.md`](docs/firewall.md)
+
+### Key Vault
+
+[`docs/kv.md`](docs/kv.md)
