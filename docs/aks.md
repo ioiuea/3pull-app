@@ -4,16 +4,16 @@
 
 | AKS名                              | 概要                |
 | ---------------------------------- | ------------------- |
-| aks-[environmentName]-[systemName] | アプリデプロイ用AKS |
+| aks-[common.environmentName]-[common.systemName] | アプリデプロイ用AKS |
 
 ## 基本
 
 | 項目            | 設定値                                 | Bicepプロパティ名     |
 | --------------- | -------------------------------------- | --------------------- |
-| 名前            | aks-[environmentName]-[systemName]     | name                  |
+| 名前            | aks-[common.environmentName]-[common.systemName]     | name                  |
 | 場所            | [common.location]                      | location              |
 | ID              | SystemAssigned                         | identity.type         |
-| DNSプレフィクス | aks-dns-[environmentName]-[systemName] | properties.dnsPrefix  |
+| DNSプレフィクス | aks-dns-[common.environmentName]-[common.systemName] | properties.dnsPrefix  |
 | RBACの有効化    | true                                   | properties.enableRBAC |
 
 ## エージェントプール
@@ -30,7 +30,7 @@
 | 最小VM数         | 3                                                       | properties.agentPoolProfiles.minCount          |
 | 最大VM数         | 6                                                       | properties.agentPoolProfiles.maxCount          |
 | 自動スケーリング | true                                                    | properties.agentPoolProfiles.enableAutoScaling |
-| サブネットID     | id(vnet-[environmentName]-[systemName]/AgentNodeSubnet) | properties.agentPoolProfiles.vnetSubnetID      |
+| サブネットID     | id(vnet-[common.environmentName]-[common.systemName]/AgentNodeSubnet) | properties.agentPoolProfiles.vnetSubnetID      |
 
 ## ユーザープール
 
@@ -46,7 +46,7 @@
 | 最小VM数         | [aks.userPoolMinCount]                                 | properties.agentPoolProfiles.minCount          |
 | 最大VM数         | [aks.userPoolMaxCount]                                 | properties.agentPoolProfiles.maxCount          |
 | 自動スケーリング | true                                                   | properties.agentPoolProfiles.enableAutoScaling |
-| サブネットID     | id(vnet-[environmentName]-[systemName]/UserNodeSubnet) | properties.agentPoolProfiles.vnetSubnetID      |
+| サブネットID     | id(vnet-[common.environmentName]-[common.systemName]/UserNodeSubnet) | properties.agentPoolProfiles.vnetSubnetID      |
 | ラベル           | pool: [aks.userPoolLabel]                              | properties.agentPoolProfiles.nodeLabels        |
 
 ## アドオン：Azureポリシー
@@ -60,7 +60,7 @@
 | 項目   | 設定値                                      | Bicepプロパティ名                                                              |
 | ------ | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | 有効化 | true                                        | properties.addonProfiles.ingressApplicationGateway.enabled                     |
-| AGWID  | id(agw-[environmentName]-[systemName]-agic) | properties.addonProfiles.ingressApplicationGateway.config.applicationGatewayId |
+| AGWID  | id(agw-[common.environmentName]-[common.systemName]-agic) | properties.addonProfiles.ingressApplicationGateway.config.applicationGatewayId |
 
 ## AAD情報
 

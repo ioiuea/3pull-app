@@ -7,6 +7,7 @@
   "network": {
     "enableFirewallIdps": true,
     "enableGatewayRoutePropagation": false,
+    "enableCentralizedPrivateDns": false,
     "enableDdosProtection": false,
     "ddosProtectionPlanId": "",
     "vnetAddressPrefixes": [
@@ -34,6 +35,7 @@
     "subnets": true,
     "firewall": true,
     "applicationGateway": true,
+    "keyVault": true,
     "aks": true,
     "maintenanceVm": true
   }

@@ -36,6 +36,10 @@ application_gateway_config_file="$infra_root/config/application-gateway.json"
 application_gateway_script="$infra_root/scripts/generate-application-gateway-params.py"
 application_gateway_meta_file="$params_dir/application-gateway-meta.json"
 
+key_vault_config_file="$infra_root/config/key-vault.json"
+key_vault_script="$infra_root/scripts/generate-key-vault-params.py"
+key_vault_meta_file="$params_dir/key-vault-meta.json"
+
 aks_config_file="$infra_root/config/aks.json"
 aks_script="$infra_root/scripts/generate-aks-params.py"
 aks_meta_file="$params_dir/aks-meta.json"
@@ -122,6 +126,11 @@ if [[ ! -f "$application_gateway_config_file" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$key_vault_config_file" ]]; then
+  echo "key vault config file が見つかりません: $key_vault_config_file" >&2
+  exit 1
+fi
+
 if [[ ! -f "$aks_config_file" ]]; then
   echo "aks config file が見つかりません: $aks_config_file" >&2
   exit 1
@@ -199,6 +208,13 @@ PARAMS_DIR="$params_dir" \
 OUT_META_FILE="$application_gateway_meta_file" \
 TIMESTAMP="$timestamp" \
 "$application_gateway_script"
+
+COMMON_FILE="$common_file" \
+RESOURCE_CONFIG_FILE="$key_vault_config_file" \
+PARAMS_DIR="$params_dir" \
+OUT_META_FILE="$key_vault_meta_file" \
+TIMESTAMP="$timestamp" \
+"$key_vault_script"
 
 COMMON_FILE="$common_file" \
 RESOURCE_CONFIG_FILE="$aks_config_file" \
@@ -307,6 +323,16 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+key_vault_resource_group_name="$(META_FILE="$key_vault_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("resourceGroupName", ""))
+PY
+)"
+
 aks_resource_group_name="$(META_FILE="$aks_meta_file" python - <<'PY'
 import json
 import os
@@ -388,6 +414,11 @@ if [[ -z "$application_gateway_resource_group_name" ]]; then
   exit 1
 fi
 
+if [[ -z "$key_vault_resource_group_name" ]]; then
+  echo "key vault resourceGroupName が取得できませんでした。config を確認してください。" >&2
+  exit 1
+fi
+
 if [[ -z "$aks_resource_group_name" ]]; then
   echo "aks resourceGroupName が取得できませんでした。config を確認してください。" >&2
   exit 1
@@ -455,7 +486,14 @@ if [[ "$application_gateway_resource_group_name" != "$vnet_resource_group_name" 
     --location "$location" >/dev/null
 fi
 
-if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" ]]; then
+if [[ "$key_vault_resource_group_name" != "$vnet_resource_group_name" && "$key_vault_resource_group_name" != "$subnets_resource_group_name" && "$key_vault_resource_group_name" != "$firewall_resource_group_name" && "$key_vault_resource_group_name" != "$application_gateway_resource_group_name" ]]; then
+  echo "==> Ensure Resource Group: $key_vault_resource_group_name"
+  az group create \
+    --name "$key_vault_resource_group_name" \
+    --location "$location" >/dev/null
+fi
+
+if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $aks_resource_group_name"
   az group create \
     --name "$aks_resource_group_name" \
@@ -483,7 +521,7 @@ if [[ "$subnet_attachments_resource_group_name" != "$vnet_resource_group_name" &
     --location "$location" >/dev/null
 fi
 
-if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
+if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $maintenance_vm_resource_group_name"
   az group create \
     --name "$maintenance_vm_resource_group_name" \
@@ -1079,12 +1117,44 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Application Gateway / AKS / Maintenance VM
+# Key Vault / Application Gateway / AKS / Maintenance VM
 # -----------------------------------------------------------------------------
 # 依存順:
-# 1) Application Gateway
-# 2) AKS (AGIC 連携先が先に必要)
-# 3) Maintenance VM
+# 1) Key Vault (Private Endpoint 用サブネットが先に必要)
+# 2) Application Gateway
+# 3) AKS (AGIC 連携先が先に必要)
+# 4) Maintenance VM
+key_vault_deploy="$(META_FILE="$key_vault_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(str(bool(meta.get("deploy", True))).lower())
+PY
+)"
+
+key_vault_params_file="$(META_FILE="$key_vault_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+
+if [[ "$key_vault_deploy" == "true" ]]; then
+  echo "==> Deploy Key Vault"
+  az deployment group create \
+    --name "main-service-key-vault-${timestamp}" \
+    --resource-group "$key_vault_resource_group_name" \
+    --parameters "$key_vault_params_file" \
+    ${what_if:+$what_if}
+else
+  echo "==> Skip Key Vault (resourceToggles.keyVault=false)"
+fi
+
 if [[ "$application_gateway_deploy" == "true" ]]; then
   echo "==> Deploy Application Gateway"
   az deployment group create \
