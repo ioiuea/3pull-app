@@ -2,14 +2,14 @@
 
 | NIC名                                       | 概要                  |
 | ------------------------------------------- | --------------------- |
-| nic-vm-[environmentName]-[systemName]-maint | メンテナンスVM用のNIC |
+| nic-vm-[common.environmentName]-[common.systemName]-maint | メンテナンスVM用のNIC |
 
 ## 基本
 
 | 項目 | 設定値                                      | Bicepプロパティ名 |
 | ---- | ------------------------------------------- | ----------------- |
-| 名前 | nic-vm-[environmentName]-[systemName]-maint | name              |
-| 場所 | [location]                                  | location          |
+| 名前 | nic-vm-[common.environmentName]-[common.systemName]-maint | name              |
+| 場所 | [common.location]                                  | location          |
 
 ## IP構成
 
@@ -23,14 +23,14 @@
 
 | VM名                                    | 概要           |
 | --------------------------------------- | -------------- |
-| vm-[environmentName]-[systemName]-maint | メンテナンスVM |
+| vm-[common.environmentName]-[common.systemName]-maint | メンテナンスVM |
 
 ## 基本
 
 | 項目 | 設定値                                  | Bicepプロパティ名 |
 | ---- | --------------------------------------- | ----------------- |
-| 名前 | vm-[environmentName]-[systemName]-maint | name              |
-| 場所 | [location]                              | location          |
+| 名前 | vm-[common.environmentName]-[common.systemName]-maint | name              |
+| 場所 | [common.location]                              | location          |
 | ID   | SystemAssigned                          | identity.type     |
 
 ## ハードウェア情報
@@ -43,7 +43,7 @@
 
 | 項目           | 設定値                                  | Bicepプロパティ名                  |
 | -------------- | --------------------------------------- | ---------------------------------- |
-| コンピュータ名 | vm-[environmentName]-[systemName]-maint | properties.osProfile.computerName  |
+| コンピュータ名 | vm-[common.environmentName]-[common.systemName]-maint | properties.osProfile.computerName  |
 | 管理者ユーザ名 | adminUser                               | properties.osProfile.adminUsername |
 
 ## ストレージ情報
@@ -62,7 +62,7 @@
 
 | 項目                             | 設定値                                          | Bicepプロパティ名                              |
 | -------------------------------- | ----------------------------------------------- | ---------------------------------------------- |
-| ネットワークインターフェースのID | id(nic-vm-[environmentName]-[systemName]-maint) | properties.networkProfile.networkInterfaces.id |
+| ネットワークインターフェースのID | id(nic-vm-[common.environmentName]-[common.systemName]-maint) | properties.networkProfile.networkInterfaces.id |
 
 ## 診断情報
 
@@ -103,8 +103,8 @@
 az vm extension set \
     --publisher Microsoft.Azure.ActiveDirectory \
     --name AADSSHLoginForLinux \
-    --resource-group rg-[environmentName]-[systemName]-maint \
-    --vm-name vm-[environmentName]-[systemName]-maint
+    --resource-group rg-[common.environmentName]-[common.systemName]-maint \
+    --vm-name vm-[common.environmentName]-[common.systemName]-maint
 ```
 
 ### ログイン手順
@@ -118,7 +118,7 @@ az login
 - VMへログインする。
 
 ```
-az ssh vm -n vm-[environmentName]-[systemName]-maint -g rg-[environmentName]-[systemName]-maint
+az ssh vm -n vm-[common.environmentName]-[common.systemName]-maint -g rg-[common.environmentName]-[common.systemName]-maint
 ```
 
 # パッケージインストール手順

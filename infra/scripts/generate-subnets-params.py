@@ -115,13 +115,14 @@ for subnet in sorted(subnet_defs, key=lambda s: s["prefixLength"]):
     if allocated is None:
         raise SystemExit(f"subnet '{subnet['name']}' does not fit in vnetAddressPrefixes")
 
-    resolved_subnets.append(
-        {
-            **subnet,
-            "alias": subnet.get("alias", subnet.get("name")),
-            "addressPrefix": str(allocated),
-        }
-    )
+    subnet_item = {
+        **subnet,
+        "alias": subnet.get("alias", subnet.get("name")),
+        "addressPrefix": str(allocated),
+    }
+    if subnet.get("name") == "PrivateEndpointSubnet":
+        subnet_item["privateEndpointNetworkPolicies"] = "Enabled"
+    resolved_subnets.append(subnet_item)
 
 # subnets トグルで作成可否を制御する。
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))
