@@ -4,14 +4,14 @@
 
 | 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection                                 | DDoS保護プラン                                                        |
 | ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [location] | [vnetAddressPrefixes] | [vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [enableDdosProtection] に応じて有効/無効        | [enableDdosProtection] と [ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
+| vnet-[environmentName]-[systemName] | rg-[environmentName]-[systemName]-nw | [common.location] | [network.vnetAddressPrefixes] | [network.vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [network.enableDdosProtection] に応じて有効/無効        | [network.enableDdosProtection] と [network.ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
 
-- ※ `enableDdosProtection=true` の場合
-  - `ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
-  - `ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
-- ※ `enableDdosProtection=false` の場合
+- ※ `network.enableDdosProtection=true` の場合
+  - `network.ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
+  - `network.ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
+- ※ `network.enableDdosProtection=false` の場合
   - DDoS 保護プランは作成せず、VNET への DDoS Protection 適用もしません
-- ※ `vnetDnsServers` 未指定（空配列）の場合は Azure 提供 DNS を利用し、指定した場合はその DNS サーバーを利用します。
+- ※ `network.vnetDnsServers` 未指定（空配列）の場合は Azure 提供 DNS を利用し、指定した場合はその DNS サーバーを利用します。
 - ※ ハブ&スポーク構成で集約 DNS を利用する場合、ハブ側 Firewall のプライベート IP など、到達可能な DNS サーバー IP を指定します。
 - ※最低限、以下のいずれかのアドレスレンジが必要です。
   - `/24` が 3 つ分
@@ -26,7 +26,7 @@
 | `AgentNodeSubnet`          | `/26`        |                        | nsg-[environmentName]-[systemName]-agentnode | rt-[environmentName]-[systemName]-outbound-aks | AKSのエージェントノード用サブネット    |
 | `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[environmentName]-[systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
 | `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
-| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`sharedBastionIp` 未指定時のみ） |
+| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`network.sharedBastionIp` 未指定時のみ） |
 | `MaintenanceSubnet`        | `/29`        |                        | nsg-[environmentName]-[systemName]-maint     | rt-[environmentName]-[systemName]-outbound-maint | メンテVM用サブネット                   |
 
 ※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
@@ -82,11 +82,11 @@ flowchart TB
 ## アウトバウンド通信
 
 ハブ&スポーク構成などで **集約された FW 経由のアウトバウンド**が必要な場合、  
-`infra/common.parameter.json`の`egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
+`infra/common.parameter.json`の`network.egressNextHopIp` に IP を指定すると **ユーザー定義ルート (UDR)** が作成されます。  
 これにより AKS からの外向き通信経路を制御できます。  
-`egressNextHopIp` を指定しない場合は[設置したFirewallのプライベートIP]をインターネット向けアウトバウンド通信のネクストホップとして指定します。
+`network.egressNextHopIp` を指定しない場合は[設置したFirewallのプライベートIP]をインターネット向けアウトバウンド通信のネクストホップとして指定します。
 
-- 設計方針として、`egressNextHopIp` の指定有無に関わらず、`outbound-aks` / `outbound-maint` のルートテーブルでは **ゲートウェイルート伝搬（BGP ルート伝搬）を無効化** します。
+- 設計方針として、`network.egressNextHopIp` の指定有無に関わらず、`outbound-aks` / `outbound-maint` のルートテーブルでは **ゲートウェイルート伝搬（BGP ルート伝搬）を無効化** します。
 - 理由:
   - UDR で定義した next hop を常に優先し、意図しない BGP 経路混入を防止するため
   - ハブ側 ExpressRoute / VPN Gateway の経路広告による予期せぬ経路変更を避けるため
@@ -118,10 +118,10 @@ AKSからアウトバウンドへの通信
 | ルート名              | アドレスプレフィックス  | ネクストホップの種類 | ネクストホップ                                          |
 | --------------------- | ----------------------- | -------------------- | ------------------------------------------------------- |
 | udr-appgw-return      | `ApplicationGatewaySubnet` | 仮想アプライアンス   | [設置したFirewallのプライベートIP] |
-| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [egressNextHopIp] or [設置したFirewallのプライベートIP] |
+| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [network.egressNextHopIp] or [設置したFirewallのプライベートIP] |
 
 - `udr-appgw-return` は `UserNodeSubnet` と `AgentNodeSubnet` に適用し、AppGW 宛て戻り通信を本環境 Firewall 経由に固定します。
-- `egressNextHopIp` が指定されると `udr-internet-outbound` の next hop は集約 FW 側になりますが、`ApplicationGatewaySubnet` 宛てはより長いプレフィックス（ロンゲストマッチ）で `udr-appgw-return` が優先されます。
+- `network.egressNextHopIp` が指定されると `udr-internet-outbound` の next hop は集約 FW 側になりますが、`ApplicationGatewaySubnet` 宛てはより長いプレフィックス（ロンゲストマッチ）で `udr-appgw-return` が優先されます。
 
 ## rt-[environmentName]-[systemName]-outbound-maint
 
@@ -131,7 +131,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 
 | ルート名              | アドレスプレフィックス  | ネクストホップの種類 | ネクストホップ                                          |
 | --------------------- | ----------------------- | -------------------- | ------------------------------------------------------- |
-| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [egressNextHopIp] or [設置したFirewallのプライベートIP] |
+| udr-internet-outbound | 0.0.0.0/0               | 仮想アプライアンス   | [network.egressNextHopIp] or [設置したFirewallのプライベートIP] |
 
 # ネットワークセキュリティグループ
 
@@ -225,7 +225,7 @@ MaintenanceSubnet からアウトバウンドへの通信
 
 | ソース       | ソースIPアドレス/CIDR範囲,ソースサービスタグ | ソースポート範囲 | 宛先 | 宛先IPアドレス/CIDR範囲,宛先サービスタグ | サービス | 宛先ポート範囲 | プロトコル | アクション | 優先度 | 名前                         | 説明                         |
 | ------------ | -------------------------------------------- | ---------------- | ---- | ---------------------------------------- | -------- | -------------- | ---------- | ---------- | ------ | ---------------------------- | ---------------------------- |
-| IPアドレス　 | [sharedBastionIp] または [AzureBastionSubnet] | \*               | Any  | -                                        | Custom   | 22,3389        | TCP        | 許可       | 200    | Allow-SSH-RDP-From-BastionServer | 踏み台からの SSH/RDP 通信許可 |
+| IPアドレス　 | [network.sharedBastionIp] または [AzureBastionSubnet] | \*               | Any  | -                                        | Custom   | 22,3389        | TCP        | 許可       | 200    | Allow-SSH-RDP-From-BastionServer | 踏み台からの SSH/RDP 通信許可 |
 | Any          | -                                            | \*               | Any  | -                                        | Custom   | \*             | Any        | 拒否       | 4096   | DenyAll                      | その他全ての通信拒否         |
 
-`sharedBastionIp` は IP または CIDR（例: `10.0.10.0/24`）で指定可能です。指定した場合は [sharedBastionIp] からの通信を許可し、未指定の場合は [AzureBastionSubnet] からの通信を許可します。
+`network.sharedBastionIp` は IP または CIDR（例: `10.0.10.0/24`）で指定可能です。指定した場合は [network.sharedBastionIp] からの通信を許可し、未指定の場合は [AzureBastionSubnet] からの通信を許可します。

@@ -848,7 +848,7 @@ fi
 # Route table / NSG / subnet attachments
 # -----------------------------------------------------------------------------
 # 注意:
-# - egressNextHopIp 未指定時は、実際の Firewall Private IP を Azure から再取得し、
+# - network.egressNextHopIp 未指定時は、実際の Firewall Private IP を Azure から再取得し、
 #   その値で route-tables.bicepparam を再生成してから適用する。
 # - これにより nextHop の古い値で UDR が適用されることを防ぐ。
 application_gateway_deploy="$(META_FILE="$application_gateway_meta_file" python - <<'PY'
@@ -897,7 +897,7 @@ import os
 from pathlib import Path
 
 common = json.loads(Path(os.environ["COMMON_FILE"]).read_text(encoding="utf-8"))
-print(common.get("egressNextHopIp", ""))
+print(common.get("network", {}).get("egressNextHopIp", ""))
 PY
 )"
 
@@ -1175,7 +1175,7 @@ import os
 from pathlib import Path
 
 common = json.loads(Path(os.environ["COMMON_FILE"]).read_text(encoding="utf-8"))
-print(common.get("egressNextHopIp", ""))
+print(common.get("network", {}).get("egressNextHopIp", ""))
 PY
 )"
 
@@ -1196,12 +1196,12 @@ if [[ "$firewall_deploy" == "true" && -z "$egress_next_hop_ip" && "$firewall_pol
   cat <<'EOF'
 ------------------------------------------------------------
 NOTICE: Firewall Outbound Rule (Initial Provisioning)
-[EN] Because egressNextHopIp is not specified, outbound traffic in Firewall Policy is temporarily allowed to Any
+[EN] Because network.egressNextHopIp is not specified, outbound traffic in Firewall Policy is temporarily allowed to Any
      to permit required external communication during the initial Azure Kubernetes Service provisioning.
      After provisioning, review and tighten Firewall Policy allow/deny rules according to your enterprise policy.
      Edit Firewall Policy from Azure Portal: https://portal.azure.com/
 
-[JA] egressNextHopIp が未指定のため、初期構築段階では Azure Kubernetes Service の構築に必要な外部通信を許可する目的で、
+[JA] network.egressNextHopIp が未指定のため、初期構築段階では Azure Kubernetes Service の構築に必要な外部通信を許可する目的で、
      Firewall Policy のアウトバウンド通信が宛先 Any で許可される構成になります。
      構築完了後は、企業ポリシーに合わせて Firewall Policy の許可/遮断ルールを見直して運用してください。
      Firewall Policy の編集は Azure Portal（https://portal.azure.com/）から実施してください。

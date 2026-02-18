@@ -39,19 +39,25 @@ common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
+
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
 
 if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+    raise SystemExit(
+        "common.parameter.json の common.environmentName / "
+        "common.systemName / common.location を設定してください"
+    )
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
 subnet_defs = subnets_config.get("subnetDefinitions", [])
-if common.get("sharedBastionIp", ""):
+if network_values.get("sharedBastionIp", ""):
     subnet_defs = [s for s in subnet_defs if s.get("alias", s.get("name")) != "bastion"]
 
 base_prefixes = [ipaddress.ip_network(p) for p in vnet_address_prefixes]
@@ -111,9 +117,9 @@ vnet_name = f"vnet-{environment_name}-{system_name}"
 log_analytics_name = f"log-{environment_name}-{system_name}"
 log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
-enable_firewall_idps = bool(common.get("enableFirewallIdps", False))
-enable_ddos_protection = bool(common.get("enableDdosProtection", True))
-egress_next_hop_ip = common.get("egressNextHopIp", "")
+enable_firewall_idps = bool(network_values.get("enableFirewallIdps", False))
+enable_ddos_protection = bool(network_values.get("enableDdosProtection", True))
+egress_next_hop_ip = network_values.get("egressNextHopIp", "")
 deploy = bool(common.get("resourceToggles", {}).get("firewall", True))
 
 # Firewall ポリシーで AKS 由来通信を扱うための送信元レンジ。

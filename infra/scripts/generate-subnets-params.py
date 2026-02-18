@@ -60,15 +60,18 @@ common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 subnet_defs = config.get("subnetDefinitions", [])
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
-shared_bastion_ip = common.get("sharedBastionIp", "")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
+
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
+shared_bastion_ip = network_values.get("sharedBastionIp", "")
 
 if not environment_name or not system_name:
-    raise SystemExit("common.parameter.json に environmentName / systemName を設定してください")
+    raise SystemExit("common.parameter.json の common.environmentName / common.systemName を設定してください")
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 if not subnet_defs:
     raise SystemExit("subnets config の subnetDefinitions が空です")
 

@@ -112,29 +112,45 @@ def main() -> int:
         print("[ERROR] common parameter file のトップレベルは object である必要があります。", file=sys.stderr)
         return 1
 
+    common_values = common.get("common")
+    network_values = common.get("network")
+    aks_values = common.get("aks")
+
+    if not isinstance(common_values, dict):
+        errors.append("common: object で指定してください。")
+        common_values = {}
+    if not isinstance(network_values, dict):
+        errors.append("network: object で指定してください。")
+        network_values = {}
+    if not isinstance(aks_values, dict):
+        errors.append("aks: object で指定してください。")
+        aks_values = {}
+
     # 基本識別子
-    as_non_empty_str(common.get("location"), "location", errors)
-    as_non_empty_str(common.get("environmentName"), "environmentName", errors)
-    as_non_empty_str(common.get("systemName"), "systemName", errors)
+    as_non_empty_str(common_values.get("location"), "common.location", errors)
+    as_non_empty_str(common_values.get("environmentName"), "common.environmentName", errors)
+    as_non_empty_str(common_values.get("systemName"), "common.systemName", errors)
 
     # ネットワーク/セキュリティ系のフラグ
-    as_bool(common.get("enableFirewallIdps"), "enableFirewallIdps", errors)
-    enable_ddos = as_bool(common.get("enableDdosProtection"), "enableDdosProtection", errors)
+    as_bool(network_values.get("enableFirewallIdps"), "network.enableFirewallIdps", errors)
+    enable_ddos = as_bool(network_values.get("enableDdosProtection"), "network.enableDdosProtection", errors)
 
-    ddos_plan_id = common.get("ddosProtectionPlanId")
+    ddos_plan_id = network_values.get("ddosProtectionPlanId")
     if not isinstance(ddos_plan_id, str):
-        errors.append("ddosProtectionPlanId: 文字列で指定してください（未指定は空文字）。")
+        errors.append("network.ddosProtectionPlanId: 文字列で指定してください（未指定は空文字）。")
     elif enable_ddos and ddos_plan_id and not ddos_plan_id.startswith("/subscriptions/"):
-        errors.append("ddosProtectionPlanId: 指定時は Azure リソース ID 形式（/subscriptions/...）で指定してください。")
+        errors.append(
+            "network.ddosProtectionPlanId: 指定時は Azure リソース ID 形式（/subscriptions/...）で指定してください。"
+        )
 
     # VNET アドレス空間の検証（形式と重複チェック）
-    vnet_prefixes_raw = common.get("vnetAddressPrefixes")
+    vnet_prefixes_raw = network_values.get("vnetAddressPrefixes")
     vnet_prefixes: list[ipaddress._BaseNetwork] = []
     if not isinstance(vnet_prefixes_raw, list) or not vnet_prefixes_raw:
-        errors.append("vnetAddressPrefixes: 1件以上の CIDR 配列で指定してください。")
+        errors.append("network.vnetAddressPrefixes: 1件以上の CIDR 配列で指定してください。")
     else:
         for i, raw in enumerate(vnet_prefixes_raw):
-            net = as_cidr(raw, f"vnetAddressPrefixes[{i}]", errors)
+            net = as_cidr(raw, f"network.vnetAddressPrefixes[{i}]", errors)
             if net is not None:
                 vnet_prefixes.append(net)
 
@@ -142,50 +158,59 @@ def main() -> int:
             for j in range(i + 1, len(vnet_prefixes)):
                 if vnet_prefixes[i].overlaps(vnet_prefixes[j]):
                     errors.append(
-                        "vnetAddressPrefixes: レンジが重複しています "
+                        "network.vnetAddressPrefixes: レンジが重複しています "
                         f"({vnet_prefixes[i]} と {vnet_prefixes[j]})"
                     )
 
     # 任意指定 IP
-    as_optional_ip(common.get("egressNextHopIp", ""), "egressNextHopIp", errors)
-    as_optional_ip_or_cidr(common.get("sharedBastionIp", ""), "sharedBastionIp", errors)
+    as_optional_ip(network_values.get("egressNextHopIp", ""), "network.egressNextHopIp", errors)
+    as_optional_ip_or_cidr(network_values.get("sharedBastionIp", ""), "network.sharedBastionIp", errors)
+    vnet_dns_servers = network_values.get("vnetDnsServers")
+    if not isinstance(vnet_dns_servers, list):
+        errors.append("network.vnetDnsServers: IPv4 アドレス配列で指定してください（未指定は空配列）。")
+    else:
+        for i, raw in enumerate(vnet_dns_servers):
+            as_optional_ip(raw, f"network.vnetDnsServers[{i}]", errors)
 
     # AKS user pool 設定
-    as_non_empty_str(common.get("aksUserPoolVmSize"), "aksUserPoolVmSize", errors)
-    count = as_int(common.get("aksUserPoolCount"), "aksUserPoolCount", errors)
-    min_count = as_int(common.get("aksUserPoolMinCount"), "aksUserPoolMinCount", errors)
-    max_count = as_int(common.get("aksUserPoolMaxCount"), "aksUserPoolMaxCount", errors)
-    as_non_empty_str(common.get("aksUserPoolLabel"), "aksUserPoolLabel", errors)
+    as_non_empty_str(aks_values.get("userPoolVmSize"), "aks.userPoolVmSize", errors)
+    count = as_int(aks_values.get("userPoolCount"), "aks.userPoolCount", errors)
+    min_count = as_int(aks_values.get("userPoolMinCount"), "aks.userPoolMinCount", errors)
+    max_count = as_int(aks_values.get("userPoolMaxCount"), "aks.userPoolMaxCount", errors)
+    as_non_empty_str(aks_values.get("userPoolLabel"), "aks.userPoolLabel", errors)
 
     if count is not None and count < 0:
-        errors.append("aksUserPoolCount: 0 以上を指定してください。")
+        errors.append("aks.userPoolCount: 0 以上を指定してください。")
     if min_count is not None and min_count < 0:
-        errors.append("aksUserPoolMinCount: 0 以上を指定してください。")
+        errors.append("aks.userPoolMinCount: 0 以上を指定してください。")
     if max_count is not None and max_count < 0:
-        errors.append("aksUserPoolMaxCount: 0 以上を指定してください。")
+        errors.append("aks.userPoolMaxCount: 0 以上を指定してください。")
 
     if count is not None and min_count is not None and max_count is not None:
         if not (min_count <= count <= max_count):
-            errors.append("aksUserPoolCount / aksUserPoolMinCount / aksUserPoolMaxCount: min <= count <= max を満たしてください。")
+                errors.append(
+                "aks.userPoolCount / aks.userPoolMinCount / "
+                "aks.userPoolMaxCount: min <= count <= max を満たしてください。"
+            )
 
     # AKS ネットワーク設定
-    pod_cidr = as_cidr(common.get("aksPodCidr"), "aksPodCidr", errors)
-    service_cidr = as_cidr(common.get("aksServiceCidr"), "aksServiceCidr", errors)
+    pod_cidr = as_cidr(aks_values.get("podCidr"), "aks.podCidr", errors)
+    service_cidr = as_cidr(aks_values.get("serviceCidr"), "aks.serviceCidr", errors)
 
     if service_cidr is not None:
         host_count = sum(1 for _ in service_cidr.hosts())
         if host_count < 10:
-            errors.append("aksServiceCidr: DNS service IP 算出のため、利用可能 IP が 10 個以上必要です。")
+            errors.append("aks.serviceCidr: DNS service IP 算出のため、利用可能 IP が 10 個以上必要です。")
 
     if pod_cidr is not None and service_cidr is not None and pod_cidr.overlaps(service_cidr):
-        errors.append("aksPodCidr と aksServiceCidr は重複できません。")
+        errors.append("aks.podCidr と aks.serviceCidr は重複できません。")
 
     if service_cidr is not None:
         for vnet in vnet_prefixes:
             if service_cidr.overlaps(vnet):
                 errors.append(
-                    "aksServiceCidr は vnetAddressPrefixes と重複できません: "
-                    f"aksServiceCidr={service_cidr}, vnet={vnet}"
+                    "aks.serviceCidr は network.vnetAddressPrefixes と重複できません: "
+                    f"serviceCidr={service_cidr}, vnet={vnet}"
                 )
 
     # リソース実行トグル

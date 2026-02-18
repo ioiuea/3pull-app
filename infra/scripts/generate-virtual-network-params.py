@@ -58,19 +58,25 @@ out_meta_path = Path(os.environ["OUT_META_FILE"])
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+common_values = common.get("common", {})
+network_values = common.get("network", {})
+
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 
 if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+    raise SystemExit(
+        "common.parameter.json の common.environmentName / "
+        "common.systemName / common.location を設定してください"
+    )
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
 modules_name = config.get("modulesName", "nw")
 lock_kind = config.get("lockKind", "CanNotDelete")
-vnet_dns_servers = config.get("vnetDnsServers", [])
+vnet_dns_servers = network_values.get("vnetDnsServers", [])
 
 network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
 vnet_name = f"vnet-{environment_name}-{system_name}"
@@ -79,8 +85,8 @@ ddos_plan_name = f"ddos-{environment_name}-{system_name}"
 log_analytics_name = f"log-{environment_name}-{system_name}"
 log_analytics_rg_name = f"rg-{environment_name}-{system_name}-monitor"
 
-ddos_protection_plan_id = common.get("ddosProtectionPlanId", "")
-enable_ddos_protection = bool(common.get("enableDdosProtection", True))
+ddos_protection_plan_id = network_values.get("ddosProtectionPlanId", "")
+enable_ddos_protection = bool(network_values.get("enableDdosProtection", True))
 # virtualNetwork のトグルでデプロイ可否を制御する。
 deploy = bool(common.get("resourceToggles", {}).get("virtualNetwork", True))
 

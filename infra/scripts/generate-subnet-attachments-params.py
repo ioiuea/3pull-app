@@ -65,20 +65,23 @@ subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 route_tables_config = json.loads(route_tables_config_path.read_text(encoding="utf-8"))
 nsgs_config = json.loads(nsgs_config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-if not environment_name or not system_name:
-    raise SystemExit("common.parameter.json に environmentName / systemName を設定してください")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+if not environment_name or not system_name:
+    raise SystemExit("common.parameter.json の common.environmentName / common.systemName を設定してください")
+
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
 subnet_defs = subnets_config.get("subnetDefinitions", [])
 if not subnet_defs:
     raise SystemExit("subnets config の subnetDefinitions が空です")
 
-shared_bastion_ip = common.get("sharedBastionIp", "")
+shared_bastion_ip = network_values.get("sharedBastionIp", "")
 if shared_bastion_ip:
     subnet_defs = [s for s in subnet_defs if s.get("alias", s.get("name")) != "bastion"]
 

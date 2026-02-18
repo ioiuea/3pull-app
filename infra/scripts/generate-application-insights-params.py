@@ -28,12 +28,13 @@ out_meta_path = Path(os.environ["OUT_META_FILE"])
 common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
+common_values = common.get("common", {})
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
 
 if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+    raise SystemExit("common.parameter.json の common.environmentName / common.systemName / common.location を設定してください")
 
 modules_name = config.get("modulesName", "monitor")
 resource_group_name = f"rg-{environment_name}-{system_name}-{modules_name}"

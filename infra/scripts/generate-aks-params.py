@@ -3,7 +3,7 @@
 
 主な責務:
 1. common/config から AKS の可変値と固定値を統合する。
-2. aksServiceCidr から DNS Service IP(10 番目の利用可能 IP)を算出する。
+2. serviceCidr から DNS Service IP(10 番目の利用可能 IP)を算出する。
 3. AKS 作成用 .bicepparam とメタ情報を出力する。
 """
 
@@ -44,26 +44,33 @@ config = json.loads(config_path.read_text(encoding="utf-8"))
 subnets_config = json.loads(subnets_config_path.read_text(encoding="utf-8"))
 application_gateway_meta = json.loads(application_gateway_meta_path.read_text(encoding="utf-8"))
 
-environment_name = common.get("environmentName", "")
-system_name = common.get("systemName", "")
-location = common.get("location", "")
+common_values = common.get("common", {})
+network_values = common.get("network", {})
+aks_values = common.get("aks", {})
+
+environment_name = common_values.get("environmentName", "")
+system_name = common_values.get("systemName", "")
+location = common_values.get("location", "")
 
 if not environment_name or not system_name or not location:
-    raise SystemExit("common.parameter.json に environmentName / systemName / location を設定してください")
+    raise SystemExit(
+        "common.parameter.json の common.environmentName / "
+        "common.systemName / common.location を設定してください"
+    )
 
-vnet_address_prefixes = common.get("vnetAddressPrefixes", [])
+vnet_address_prefixes = network_values.get("vnetAddressPrefixes", [])
 if not vnet_address_prefixes:
-    raise SystemExit("common.parameter.json の vnetAddressPrefixes が空です")
+    raise SystemExit("common.parameter.json の network.vnetAddressPrefixes が空です")
 
-service_cidr_raw = common.get("aksServiceCidr", "")
+service_cidr_raw = aks_values.get("serviceCidr", "")
 if not service_cidr_raw:
-    raise SystemExit("common.parameter.json の aksServiceCidr が空です")
+    raise SystemExit("common.parameter.json の aks.serviceCidr が空です")
 
 # service CIDR の 10 番目の利用可能 IP を DNS Service IP として使う。
 service_cidr_network = ipaddress.ip_network(service_cidr_raw, strict=True)
 service_hosts = list(service_cidr_network.hosts())
 if len(service_hosts) < 10:
-    raise SystemExit("aksServiceCidr does not have enough usable IPs to assign the 10th host")
+    raise SystemExit("serviceCidr does not have enough usable IPs to assign the 10th host")
 
 service_cidr = str(service_cidr_network)
 dns_service_ip = str(service_hosts[9])
@@ -79,18 +86,18 @@ vnet_name = f"vnet-{environment_name}-{system_name}"
 application_gateway_name = application_gateway_meta.get("applicationGatewayName", f"agw-{environment_name}-{system_name}")
 application_gateway_rg_name = application_gateway_meta.get("resourceGroupName", f"rg-{environment_name}-{system_name}-nw")
 
-pod_cidr = common.get("aksPodCidr", "")
+pod_cidr = aks_values.get("podCidr", "")
 if not pod_cidr:
-    raise SystemExit("common.parameter.json の aksPodCidr が空です")
+    raise SystemExit("common.parameter.json の aks.podCidr が空です")
 
-user_pool_vm_size = common.get("aksUserPoolVmSize", "")
-user_pool_count = int(common.get("aksUserPoolCount", 0))
-user_pool_min_count = int(common.get("aksUserPoolMinCount", 0))
-user_pool_max_count = int(common.get("aksUserPoolMaxCount", 0))
-user_pool_label = common.get("aksUserPoolLabel", "")
+user_pool_vm_size = aks_values.get("userPoolVmSize", "")
+user_pool_count = int(aks_values.get("userPoolCount", 0))
+user_pool_min_count = int(aks_values.get("userPoolMinCount", 0))
+user_pool_max_count = int(aks_values.get("userPoolMaxCount", 0))
+user_pool_label = aks_values.get("userPoolLabel", "")
 
 if not user_pool_vm_size or not user_pool_label:
-    raise SystemExit("common.parameter.json の aksUserPoolVmSize / aksUserPoolLabel を設定してください")
+    raise SystemExit("common.parameter.json の aks.userPoolVmSize / aks.userPoolLabel を設定してください")
 if user_pool_min_count > user_pool_count or user_pool_count > user_pool_max_count:
     raise SystemExit("aks user pool の count / min / max の大小関係が不正です")
 
