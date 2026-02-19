@@ -17,6 +17,22 @@
   - `/24` が 3 つ分
   - 連続するサブネットレンジを確保できる場合は `/23` が 1 つ分 + `/24` が 1 つ分、もしくは `/22` が 1 つ分（`/24` 3 つ分相当）
 
+## 診断設定
+
+- Virtual Network（`Microsoft.Network/virtualNetworks`）
+  - ログ: `allLogs`
+  - メトリック: `AllMetrics`
+- Network Security Group（`Microsoft.Network/networkSecurityGroups`）
+  - ログ: `allLogs`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- Virtual Network に削除ロックを適用
+- DDoS Protection Plan に削除ロックを適用（`network.enableDdosProtection=true` かつ `network.ddosProtectionPlanId` 未指定時）
+- NSG に削除ロックを適用
+- Route Table に削除ロックを適用
+
 # サブネット
 
 | サブネット名               | プレフィクス | サービスエンドポイント | NSG名                                        | ルートテーブル名                           | 備考                                   |

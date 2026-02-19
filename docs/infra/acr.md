@@ -10,6 +10,19 @@
 | パブリックアクセス   | Disabled                                       | properties.publicNetworkAccess      |
 | ネットワークバイパス | AzureServices                                  | properties.networkRuleBypassOptions |
 
+## 診断設定
+
+- 対象: ACR 本体（`Microsoft.ContainerRegistry/registries`）
+- ログ: `audit`, `allLogs`
+- メトリック: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- ACR 本体に削除ロックを適用
+- Private Endpoint に削除ロックを適用
+- Private DNS ゾーンに削除ロックを適用（`network.enableCentralizedPrivateDns=false` の場合のみ）
+
 ## リソース命名規則
 
 - CAF の省略形ルールに準拠し、Container Registry は `cr` を利用します。
