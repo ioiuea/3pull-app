@@ -13,6 +13,15 @@
 | 非 TLS ポート | false | properties.enableNonSslPort |
 | パブリックアクセス | Disabled | properties.publicNetworkAccess |
 
+## 診断設定
+
+- 診断設定は有効化します（`allLogs` / `AllMetrics`）。
+- 実装時は、利用するリソースプロバイダーでサポートされるカテゴリに合わせて設定します。
+
+## 削除ロック
+
+- Redis / Private Endpoint / Private DNS ゾーンに削除ロックを適用します。
+
 ## リソース命名規則
 
 - CAF の省略形ルールに準拠し、Azure Cache for Redis は `redis` を利用します。
@@ -101,8 +110,6 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 
 ## 運用保護項目（要件に応じて選択）
 
-- 診断設定（`allLogs` / `AllMetrics`）の有効化
-- Redis/PEP/DNS の削除ロック
 - メンテナンスウィンドウの固定化
 - バックアップ/復旧方針（必要な場合）
 

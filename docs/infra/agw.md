@@ -10,6 +10,19 @@
 | 場所         | [common.location]                  | location          |
 | マネージドID | -                                  | identity          |
 
+## 診断設定
+
+- 対象: Application Gateway（`Microsoft.Network/applicationGateways`）
+- ログ: `allLogs`
+- メトリック: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- Application Gateway 本体に削除ロックを適用
+- WAF Policy に削除ロックを適用
+- Public IP に削除ロックを適用
+
 ## SKU
 
 | 項目   | 設定値 | Bicepプロパティ名 |

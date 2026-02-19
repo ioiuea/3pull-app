@@ -13,6 +13,15 @@
 | 可用性ゾーン         | [要件に応じて設定]                                | properties.availabilityZone            |
 | パブリックアクセス   | Disabled                                          | properties.network.publicNetworkAccess |
 
+## 診断設定
+
+- 診断設定は有効化します（`allLogs` / `AllMetrics`）。
+- 実装時は、利用するリソースプロバイダーでサポートされるカテゴリに合わせて設定します。
+
+## 削除ロック
+
+- サーバー / Private Endpoint / Private DNS ゾーンに削除ロックを適用します。
+
 ## リソース命名規則
 
 - CAF の省略形ルールに準拠し、PostgreSQL は `psql` を利用します。
@@ -104,8 +113,6 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 
 - 高可用性（HA）
 - PITR を考慮したバックアップ保持日数
-- 診断設定（`allLogs` / `AllMetrics`）の有効化
-- サーバー/PEP/DNS の削除ロック
 - メンテナンスウィンドウの固定化
 
 ## 未確定項目（実装前に決定）

@@ -12,6 +12,15 @@
 | 自動フェールオーバー   | [要件に応じて設定]                                 | properties.enableAutomaticFailover      |
 | 複数リージョン書き込み | [要件に応じて設定]                                 | properties.enableMultipleWriteLocations |
 
+## 診断設定
+
+- 診断設定は有効化します（`allLogs` / `AllMetrics`）。
+- 実装時は、利用するリソースプロバイダーでサポートされるカテゴリに合わせて設定します。
+
+## 削除ロック
+
+- Cosmos アカウント / Private Endpoint / Private DNS ゾーンに削除ロックを適用します。
+
 ## リソース命名規則
 
 - CAF 準拠の省略形を利用します。
@@ -107,14 +116,8 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 | 自動登録           | false                                                           | properties.registrationEnabled |
 | 仮想ネットワークID | id(vnet-[common.environmentName]-[common.systemName])           | properties.virtualNetwork.id   |
 
-## 診断設定（推奨）
-
-- `allLogs` と `AllMetrics` を Log Analytics へ送信
-- 監査要件がある場合は保持期間・アーカイブ先も設計に含める
-
 ## 運用保護項目（要件に応じて選択）
 
-- 削除ロック（Cosmos アカウント / PEP / DNS）
 - バックアップポリシー（連続バックアップ or 定期バックアップ）
 - キー管理方式（カスタマーマネージドキーの採用有無）
 - 多地域構成（DR 要件）
