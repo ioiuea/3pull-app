@@ -48,6 +48,10 @@ storage_config_file="$infra_root/config/storage.json"
 storage_script="$infra_root/scripts/generate-storage-params.py"
 storage_meta_file="$params_dir/storage-meta.json"
 
+postgres_config_file="$infra_root/config/postgres-database.json"
+postgres_script="$infra_root/scripts/generate-postgres-database-params.py"
+postgres_meta_file="$params_dir/postgres-database-meta.json"
+
 aks_config_file="$infra_root/config/aks.json"
 aks_script="$infra_root/scripts/generate-aks-params.py"
 aks_meta_file="$params_dir/aks-meta.json"
@@ -149,6 +153,11 @@ if [[ ! -f "$storage_config_file" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$postgres_config_file" ]]; then
+  echo "postgres config file が見つかりません: $postgres_config_file" >&2
+  exit 1
+fi
+
 if [[ ! -f "$aks_config_file" ]]; then
   echo "aks config file が見つかりません: $aks_config_file" >&2
   exit 1
@@ -247,6 +256,13 @@ PARAMS_DIR="$params_dir" \
 OUT_META_FILE="$storage_meta_file" \
 TIMESTAMP="$timestamp" \
 "$storage_script"
+
+COMMON_FILE="$common_file" \
+RESOURCE_CONFIG_FILE="$postgres_config_file" \
+PARAMS_DIR="$params_dir" \
+OUT_META_FILE="$postgres_meta_file" \
+TIMESTAMP="$timestamp" \
+"$postgres_script"
 
 COMMON_FILE="$common_file" \
 RESOURCE_CONFIG_FILE="$aks_config_file" \
@@ -385,6 +401,16 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+postgres_resource_group_name="$(META_FILE="$postgres_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("resourceGroupName", ""))
+PY
+)"
+
 aks_resource_group_name="$(META_FILE="$aks_meta_file" python - <<'PY'
 import json
 import os
@@ -481,6 +507,11 @@ if [[ -z "$storage_resource_group_name" ]]; then
   exit 1
 fi
 
+if [[ -z "$postgres_resource_group_name" ]]; then
+  echo "postgres resourceGroupName が取得できませんでした。config を確認してください。" >&2
+  exit 1
+fi
+
 if [[ -z "$aks_resource_group_name" ]]; then
   echo "aks resourceGroupName が取得できませんでした。config を確認してください。" >&2
   exit 1
@@ -569,7 +600,14 @@ if [[ "$storage_resource_group_name" != "$vnet_resource_group_name" && "$storage
     --location "$location" >/dev/null
 fi
 
-if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" && "$aks_resource_group_name" != "$acr_resource_group_name" && "$aks_resource_group_name" != "$storage_resource_group_name" ]]; then
+if [[ "$postgres_resource_group_name" != "$vnet_resource_group_name" && "$postgres_resource_group_name" != "$subnets_resource_group_name" && "$postgres_resource_group_name" != "$firewall_resource_group_name" && "$postgres_resource_group_name" != "$application_gateway_resource_group_name" && "$postgres_resource_group_name" != "$key_vault_resource_group_name" && "$postgres_resource_group_name" != "$acr_resource_group_name" && "$postgres_resource_group_name" != "$storage_resource_group_name" ]]; then
+  echo "==> Ensure Resource Group: $postgres_resource_group_name"
+  az group create \
+    --name "$postgres_resource_group_name" \
+    --location "$location" >/dev/null
+fi
+
+if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" && "$aks_resource_group_name" != "$acr_resource_group_name" && "$aks_resource_group_name" != "$storage_resource_group_name" && "$aks_resource_group_name" != "$postgres_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $aks_resource_group_name"
   az group create \
     --name "$aks_resource_group_name" \
@@ -597,7 +635,7 @@ if [[ "$subnet_attachments_resource_group_name" != "$vnet_resource_group_name" &
     --location "$location" >/dev/null
 fi
 
-if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$acr_resource_group_name" && "$maintenance_vm_resource_group_name" != "$storage_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
+if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$acr_resource_group_name" && "$maintenance_vm_resource_group_name" != "$storage_resource_group_name" && "$maintenance_vm_resource_group_name" != "$postgres_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $maintenance_vm_resource_group_name"
   az group create \
     --name "$maintenance_vm_resource_group_name" \
@@ -1262,6 +1300,44 @@ if [[ "$storage_deploy" == "true" ]]; then
     ${what_if:+$what_if}
 else
   echo "==> Skip Storage Account (resourceToggles.storage=false)"
+fi
+
+postgres_deploy="$(META_FILE="$postgres_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(str(bool(meta.get("deploy", True))).lower())
+PY
+)"
+
+postgres_params_file="$(META_FILE="$postgres_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+
+if [[ "$postgres_deploy" == "true" ]]; then
+  if [[ -z "${POSTGRES_ADMIN_PASSWORD:-}" ]]; then
+    echo "POSTGRES_ADMIN_PASSWORD が未設定です。" >&2
+    echo "例: POSTGRES_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh --what-if" >&2
+    exit 1
+  fi
+
+  echo "==> Deploy PostgreSQL Flexible Server"
+  az deployment group create \
+    --name "main-service-postgres-database-${timestamp}" \
+    --resource-group "$postgres_resource_group_name" \
+    --parameters "$postgres_params_file" \
+    --parameters administratorPassword="$POSTGRES_ADMIN_PASSWORD" \
+    ${what_if:+$what_if}
+else
+  echo "==> Skip PostgreSQL Flexible Server (resourceToggles.postgresDatabase=false)"
 fi
 
 key_vault_deploy="$(META_FILE="$key_vault_meta_file" python - <<'PY'

@@ -29,17 +29,33 @@
     "podCidr": "10.189.0.0/17",
     "serviceCidr": "10.47.0.0/24"
   },
+  "postgres": {
+    "skuTier": "Burstable",
+    "skuName": "Standard_B2s",
+    "storageSizeGB": 32,
+    "enableStorageAutoGrow": false,
+    "enableZoneRedundantHa": false,
+    "enableGeoRedundantBackup": false,
+    "backupRetentionDays": 7,
+    "enableCustomMaintenanceWindow": false,
+    "maintenanceWindow": {
+      "dayOfWeek": 0,
+      "startHour": 3,
+      "startMinute": 0
+    }
+  },
   "resourceToggles": {
-    "logAnalytics": true,
-    "applicationInsights": true,
-    "virtualNetwork": true,
-    "subnets": true,
-    "firewall": true,
-    "applicationGateway": true,
-    "acr": true,
-    "storage": true,
-    "keyVault": true,
-    "aks": true,
-    "maintenanceVm": true
+    "logAnalytics": false,
+    "applicationInsights": false,
+    "virtualNetwork": false,
+    "subnets": false,
+    "firewall": false,
+    "applicationGateway": false,
+    "acr": false,
+    "storage": false,
+    "postgresDatabase": true,
+    "keyVault": false,
+    "aks": false,
+    "maintenanceVm": false
   }
 }

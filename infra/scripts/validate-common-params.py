@@ -115,6 +115,7 @@ def main() -> int:
     common_values = common.get("common")
     network_values = common.get("network")
     aks_values = common.get("aks")
+    postgres_values = common.get("postgres")
 
     if not isinstance(common_values, dict):
         errors.append("common: object で指定してください。")
@@ -125,6 +126,9 @@ def main() -> int:
     if not isinstance(aks_values, dict):
         errors.append("aks: object で指定してください。")
         aks_values = {}
+    if not isinstance(postgres_values, dict):
+        errors.append("postgres: object で指定してください。")
+        postgres_values = {}
 
     # 基本識別子
     as_non_empty_str(common_values.get("location"), "common.location", errors)
@@ -224,6 +228,66 @@ def main() -> int:
                     f"serviceCidr={service_cidr}, vnet={vnet}"
                 )
 
+    # PostgreSQL 設定
+    sku_tier = as_non_empty_str(postgres_values.get("skuTier"), "postgres.skuTier", errors)
+    if sku_tier is not None and sku_tier not in ["Burstable", "GeneralPurpose", "MemoryOptimized"]:
+        errors.append(
+            "postgres.skuTier: Burstable / GeneralPurpose / MemoryOptimized のいずれかを指定してください。"
+        )
+
+    as_non_empty_str(postgres_values.get("skuName"), "postgres.skuName", errors)
+
+    storage_size_gb = as_int(postgres_values.get("storageSizeGB"), "postgres.storageSizeGB", errors)
+    if storage_size_gb is not None and storage_size_gb < 32:
+        errors.append("postgres.storageSizeGB: 32 以上の整数を指定してください。")
+
+    as_bool(postgres_values.get("enableStorageAutoGrow"), "postgres.enableStorageAutoGrow", errors)
+    as_bool(postgres_values.get("enableZoneRedundantHa"), "postgres.enableZoneRedundantHa", errors)
+    as_bool(
+        postgres_values.get("enableGeoRedundantBackup"),
+        "postgres.enableGeoRedundantBackup",
+        errors,
+    )
+    backup_retention_days = as_int(postgres_values.get("backupRetentionDays"), "postgres.backupRetentionDays", errors)
+    if backup_retention_days is not None and not (7 <= backup_retention_days <= 35):
+        errors.append("postgres.backupRetentionDays: 7〜35 の範囲で指定してください。")
+
+    enable_custom_mw = as_bool(
+        postgres_values.get("enableCustomMaintenanceWindow"),
+        "postgres.enableCustomMaintenanceWindow",
+        errors,
+    )
+    maintenance_window = postgres_values.get("maintenanceWindow")
+    if enable_custom_mw:
+        if not isinstance(maintenance_window, dict):
+            errors.append(
+                "postgres.maintenanceWindow: object で指定してください。"
+                "（enableCustomMaintenanceWindow=true の場合は必須）"
+            )
+        else:
+            day_of_week = as_int(
+                maintenance_window.get("dayOfWeek"),
+                "postgres.maintenanceWindow.dayOfWeek",
+                errors,
+            )
+            start_hour = as_int(
+                maintenance_window.get("startHour"),
+                "postgres.maintenanceWindow.startHour",
+                errors,
+            )
+            start_minute = as_int(
+                maintenance_window.get("startMinute"),
+                "postgres.maintenanceWindow.startMinute",
+                errors,
+            )
+
+            if day_of_week is not None and not (0 <= day_of_week <= 6):
+                errors.append("postgres.maintenanceWindow.dayOfWeek: 0〜6 の範囲で指定してください。")
+            if start_hour is not None and not (0 <= start_hour <= 23):
+                errors.append("postgres.maintenanceWindow.startHour: 0〜23 の範囲で指定してください。")
+            if start_minute is not None and not (0 <= start_minute <= 59):
+                errors.append("postgres.maintenanceWindow.startMinute: 0〜59 の範囲で指定してください。")
+
     # リソース実行トグル
     toggles = common.get("resourceToggles")
     expected_toggle_keys = [
@@ -235,6 +299,7 @@ def main() -> int:
         "applicationGateway",
         "acr",
         "storage",
+        "postgresDatabase",
         "keyVault",
         "aks",
         "maintenanceVm",

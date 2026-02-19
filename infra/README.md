@@ -11,7 +11,7 @@
   - エントリーポイント。パラメータ生成とデプロイを順序制御します。
 - `common.parameter.json`
   - 共通パラメータと、どのリソースをデプロイ対象にするか（実行可否）を管理します。
-  - `common` / `network` / `aks` / `resourceToggles` の親オブジェクトで分類しています。
+  - `common` / `network` / `aks` / `postgres` / `resourceToggles` の親オブジェクトで分類しています。
 - `bicep/`
   - リソース単位の Bicep 本体。
 - `scripts/`
@@ -200,6 +200,100 @@ Kubernetes Service（ClusterIP）用の IP 範囲（CIDR）です。
   - `aks.podCidr` と重複不可
   - 利用可能 IP が 10 個以上必要
 
+### postgres.enableZoneRedundantHa
+
+Azure Database for PostgreSQL Flexible Server のゾーン冗長HA（ZoneRedundant）を有効化するかどうかを指定します。
+
+- `false`（デフォルト）: HA無効（`highAvailability.mode=Disabled`）
+- `true`: HA有効（`highAvailability.mode=ZoneRedundant`）
+
+注意:
+
+- `true` の場合、リージョン/AZのサポート可否に依存します。
+- `true` の場合、`postgres.skuTier=Burstable` は利用できません（HA 非対応）。
+  - HA を有効にする場合は `postgres.skuTier` を `GeneralPurpose` または `MemoryOptimized` に設定してください。
+- `true` はコスト増となるため、可用性要件と費用を確認して設定してください。
+
+### postgres.skuTier
+
+Azure Database for PostgreSQL Flexible Server の価格レベル（SKU Tier）です。
+
+- デフォルト: `Burstable`
+- 主な選択肢: `Burstable` / `GeneralPurpose` / `MemoryOptimized`
+
+### postgres.skuName
+
+Azure Database for PostgreSQL Flexible Server のコンピューティングサイズです。
+
+- デフォルト: `Standard_B2s`
+- 例（デフォルト）: `Standard_B2s`（2 vCore / 4 GiB メモリ / SKU仕様上の最大 IOPS 1280）
+
+`skuName` の候補は Azure CLI で確認できます。
+
+```bash
+az postgres flexible-server list-skus \
+  --location <common.location> \
+  -o table
+```
+
+例:
+
+```bash
+az postgres flexible-server list-skus --location japaneast -o table
+```
+
+`skuTier` と `skuName` の組み合わせ例（`Burstable`）:
+
+- `Burstable` + `Standard_B1ms`
+- `Burstable` + `Standard_B2s`（デフォルト）
+- `Burstable` + `Standard_B2ms`
+
+### postgres.storageSizeGB
+
+Azure Database for PostgreSQL Flexible Server のストレージ容量（GiB）です。
+
+- デフォルト: `32`
+
+### postgres.enableStorageAutoGrow
+
+Azure Database for PostgreSQL Flexible Server のストレージ自動拡張を有効化するかどうかを指定します。
+
+- `false`（デフォルト）: 無効
+- `true`: 有効
+
+### postgres.enableGeoRedundantBackup
+
+Azure Database for PostgreSQL Flexible Server の Geo 冗長バックアップを有効化するかどうかを指定します。
+
+- `false`（デフォルト）: 無効（同一リージョン内のバックアップ）
+- `true`: 有効（別リージョンにもバックアップを複製）
+
+注意:
+
+- `true` はコスト増となるため、DR 要件と費用を確認して設定してください。
+
+### postgres.backupRetentionDays
+
+Azure Database for PostgreSQL Flexible Server の PITR 保持日数です。
+
+- デフォルト: `7`
+- 設定可能範囲: `7` 〜 `35`（整数）
+
+### postgres.enableCustomMaintenanceWindow
+
+Azure Database for PostgreSQL Flexible Server のメンテナンスウィンドウをカスタム指定するかどうかです。
+
+- `false`（デフォルト）: システム管理スケジュールを利用
+- `true`: `postgres.maintenanceWindow` の値を利用して固定化
+
+### postgres.maintenanceWindow
+
+`postgres.enableCustomMaintenanceWindow=true` の場合に利用するメンテナンスウィンドウ設定です。
+
+- `dayOfWeek`: `0`〜`6`（曜日）
+- `startHour`: `0`〜`23`（UTC）
+- `startMinute`: `0`〜`59`（UTC）
+
 ### resourceToggles
 
 リソース単位の実行可否です。
@@ -213,6 +307,7 @@ Kubernetes Service（ClusterIP）用の IP 範囲（CIDR）です。
 - `applicationGateway`
 - `acr`
 - `storage`
+- `postgresDatabase`
 - `keyVault`
 - `aks`
 - `maintenanceVm`
@@ -240,7 +335,9 @@ az account show
 
 ```bash
 cd infra
+POSTGRES_ADMIN_PASSWORD='YourStrongPassword!' \
 MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh --what-if
+POSTGRES_ADMIN_PASSWORD='YourStrongPassword!' \
 MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 ```
 
@@ -260,6 +357,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - service
   - ACR
   - Storage Account
+  - PostgreSQL Flexible Server
   - Key Vault
   - AKS
   - Maintenance VM
@@ -277,6 +375,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `application-gateway.bicepparam`
 - `acr.bicepparam`
 - `storage.bicepparam`
+- `postgres-database.bicepparam`
 - `key-vault.bicepparam`
 - `aks.bicepparam`
 - `maintenance-vm.bicepparam`

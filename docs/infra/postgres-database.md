@@ -2,16 +2,24 @@
 
 ## PostgreSQL Flexible Server 本体
 
-| 項目                 | 設定値                                            | Bicepプロパティ名                      |
-| -------------------- | ------------------------------------------------- | -------------------------------------- |
-| 名前                 | psql-[common.environmentName]-[common.systemName] | name                                   |
-| 場所                 | [common.location]                                 | location                               |
-| バージョン           | 16 (例)                                           | properties.version                     |
-| SKU                  | Standard_D2ds_v5 (例)                             | sku.name                               |
-| ストレージサイズ     | 128 GiB (例)                                      | properties.storage.storageSizeGB       |
-| バックアップ保持日数 | 7〜35日 (例: 14)                                  | properties.backup.backupRetentionDays  |
-| 可用性ゾーン         | [要件に応じて設定]                                | properties.availabilityZone            |
-| パブリックアクセス   | Disabled                                          | properties.network.publicNetworkAccess |
+| 項目                           | 設定値                                                                          | Bicepプロパティ名                                    |
+| ------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 名前                           | psql-[common.environmentName]-[common.systemName]                               | name                                                 |
+| 場所                           | [common.location]                                                               | location                                             |
+| バージョン                     | 16 (例)                                                                         | properties.version                                   |
+| 価格レベル                     | [postgres.skuTier]（デフォルト: Burstable）                                     | sku.tier                                             |
+| コンピューティングサイズ       | [postgres.skuName]（デフォルト: Standard_B2s）                                  | sku.name                                             |
+| 性能目安（デフォルト）         | 2 vCore / 4 GiB メモリ / 最大 IOPS 1280                                         | SKU仕様による                                        |
+| ストレージサイズ               | [postgres.storageSizeGB] GiB（デフォルト: 32）                                  | properties.storage.storageSizeGB                     |
+| ストレージ自動拡張             | [postgres.enableStorageAutoGrow]（デフォルト: false）                           | properties.storage.autoGrow                          |
+| バックアップ保持日数           | [postgres.backupRetentionDays]                                                  | properties.backup.backupRetentionDays                |
+| Geo冗長バックアップ            | [postgres.enableGeoRedundantBackup] (`true`/`false`)                            | properties.backup.geoRedundantBackup                 |
+| ゾーン冗長 HA                  | [postgres.enableZoneRedundantHa] (`true`/`false`)                               | properties.highAvailability.mode                     |
+| スタンバイAZ                   | [要件に応じて設定]                                                              | properties.highAvailability.standbyAvailabilityZone  |
+| カスタムメンテナンスウィンドウ | [postgres.enableCustomMaintenanceWindow] (`true`/`false`)                       | properties.maintenanceWindow.customWindow            |
+| メンテナンス曜日               | [postgres.maintenanceWindow.dayOfWeek]                                          | properties.maintenanceWindow.dayOfWeek               |
+| メンテナンス開始時（UTC）      | [postgres.maintenanceWindow.startHour]:[postgres.maintenanceWindow.startMinute] | properties.maintenanceWindow.startHour / startMinute |
+| パブリックアクセス             | Disabled                                                                        | properties.network.publicNetworkAccess               |
 
 ## 診断設定
 
@@ -21,6 +29,32 @@
 ## 削除ロック
 
 - サーバー / Private Endpoint / Private DNS ゾーンに削除ロックを適用します。
+
+## 高可用性（HA）設定
+
+- `infra/common.parameter.json` の `postgres.enableZoneRedundantHa` で制御します。
+  - `true`: `highAvailability.mode = ZoneRedundant`
+  - `false`（デフォルト）: `highAvailability.mode = Disabled`
+- `true` の場合は、リージョン/AZのサポート可否とコスト影響を事前に確認します。
+
+### バックアップ設定
+
+- `infra/common.parameter.json` の `postgres.backupRetentionDays` で PITR 保持日数を指定します（`7`〜`35`、デフォルト `7`）。
+- `infra/common.parameter.json` の `postgres.enableGeoRedundantBackup` で Geo 冗長バックアップの有効/無効を指定します（デフォルト `false`）。
+
+### メンテナンスウィンドウ設定
+
+- `infra/common.parameter.json` の `postgres.enableCustomMaintenanceWindow` でカスタム指定の有効/無効を制御します。
+  - `false`（デフォルト）: システム管理スケジュール
+  - `true`: `postgres.maintenanceWindow` の値で固定化
+- `postgres.maintenanceWindow.dayOfWeek` / `startHour` / `startMinute` を指定します（UTC）。
+
+### SKU / ストレージ設定
+
+- `infra/common.parameter.json` の `postgres.skuTier` で価格レベルを指定します（デフォルト `Burstable`）。
+- `infra/common.parameter.json` の `postgres.skuName` でコンピューティングサイズを指定します（デフォルト `Standard_B2s`）。
+- `infra/common.parameter.json` の `postgres.storageSizeGB` でストレージ容量を指定します（デフォルト `32` GiB）。
+- `infra/common.parameter.json` の `postgres.enableStorageAutoGrow` でストレージ自動拡張の有効/無効を指定します（デフォルト `false`）。
 
 ## リソース命名規則
 
@@ -35,9 +69,18 @@
 
 ## 認証・アクセス方針
 
-- PostgreSQL 管理者アカウント（`administratorLogin` / `administratorLoginPassword`）を利用します。
-- Microsoft Entra 認証や DB ロールの詳細設計は、要件確定後に追記します。
-- アプリ接続ユーザーの作成・権限付与は、デプロイ後の初期化手順で実施します。
+- 認証方式は **併用（Microsoft Entra 認証 + パスワード認証）** を採用します。
+- AKS 上のアプリ（Next.js / FastAPI）からの通常接続は、原則として Entra 認証（Workload Identity / Managed Identity）を利用します。
+- パスワード認証は、移行期間や障害時オペレーション（break-glass）向けの補助経路として残します。
+- スキーマ責務に合わせて、接続主体と権限を分離します。
+  - Next.js（`auth` スキーマ）用の DB ロール
+  - FastAPI（`core` スキーマ）用の DB ロール
+- アプリ接続ユーザー/ロールの作成・権限付与は、デプロイ後の初期化手順で実施します。
+
+### IaC 実装時の入力方法
+
+- `resourceToggles.postgresDatabase=true` の場合のみ PostgreSQL をデプロイします。
+- 管理者パスワードは `common.parameter.json` に保持せず、`main.sh` 実行時に `POSTGRES_ADMIN_PASSWORD` 環境変数で注入します。
 
 ## データベース / スキーマ作成方針
 
@@ -109,16 +152,7 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 | 自動登録           | false                                                          | properties.registrationEnabled |
 | 仮想ネットワークID | id(vnet-[common.environmentName]-[common.systemName])          | properties.virtualNetwork.id   |
 
-## 運用保護項目（要件に応じて選択）
-
-- 高可用性（HA）
-- PITR を考慮したバックアップ保持日数
-- メンテナンスウィンドウの固定化
-
 ## 未確定項目（実装前に決定）
 
-- SKU/性能（vCore, メモリ, IOPS）
-- バックアップ保持日数
-- HA の有無
-- Entra 認証の有無
-- 運用時の接続元（AKS のみ / メンテVM含む）
+- Entra 管理者に割り当てる主体（ユーザー / グループ / サービスプリンシパル）
+- break-glass 用パスワード認証の運用ルール（保管先、ローテーション手順、利用手順）

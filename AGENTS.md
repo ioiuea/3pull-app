@@ -35,10 +35,19 @@
 
 ## 4. インフラ構成（infra/）
 
-### 4-1. Dockerfile
+### 4-1. Bicep 実行基盤
+
+- `infra/main.sh` : インフラデプロイのエントリーポイント
+- `infra/common.parameter.json` : 共通パラメータ（`common` / `network` / `aks` / `postgres` / `resourceToggles`）
+- `infra/bicep/` : リソース単位の Bicep
+- `infra/scripts/` : `.bicepparam` / `*-meta.json` の生成スクリプト
+- `infra/config/` : 固定設定
+- `infra/params/` : 生成物出力先（`.gitkeep` のみ管理対象）
+
+### 4-2. Dockerfile
 
 - `docker/api.Dockerfile` : FastAPI 用
-- `docker/web.Dockerfile` : Next.js 用  
+- `docker/web.Dockerfile` : Next.js 用
 → 役割ごとに分離し、ビルドコンテキストや依存を混ぜないようにしてください。
 
 
