@@ -21,6 +21,12 @@ param vnetName string
 @description('ロック')
 param lockKind string = 'CanNotDelete'
 
+@description('ログアナリティクス名')
+param logAnalyticsName string
+
+@description('ログアナリティクスのリソースグループ名')
+param logAnalyticsResourceGroupName string
+
 @description('maint 用 NIC 名')
 param maintNicName string
 
@@ -139,6 +145,25 @@ resource nicDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind
   scope: nic
   properties: {
     level: lockKind
+  }
+}
+
+resource nicDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'diagnostic-to-${logAnalyticsName}'
+  scope: nic
+  properties: {
+    workspaceId: resourceId(logAnalyticsResourceGroupName, 'Microsoft.OperationalInsights/workspaces', logAnalyticsName)
+    logAnalyticsDestinationType: 'Dedicated'
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+    ]
   }
 }
 

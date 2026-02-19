@@ -121,7 +121,7 @@
 - 取得した `dict` はクライアントコンポーネントに props で渡す（例: `LoginClient` など）。
 - クライアント側の `dict` 型は `type Dictionary = typeof import(\"@/dictionaries/en.json\")` を利用する。
 - 内部リンクは `/${lang}/...` を基本とし、言語を保持して遷移する。
-- 詳細な構成・依存関係・利用例は `docs/i18n.md` を参照する。
+- 詳細な構成・依存関係・利用例は `docs/apps/i18n.md` を参照する。
 
 ### 6-3. Zustand 利用ルール
 
@@ -221,16 +221,16 @@ external systems
 
 Codex は実装方針の判断時に、以下のドキュメントを優先参照してください。
 
-- 認証: `docs/auth.md`
-- API保護: `docs/api-protect.md`
-- i18n（国際化）: `docs/i18n.md`
-- フォームバリデーション: `docs/form-validation.md`
-- UIデザイン: `docs/ui-design.md`
-- ステート管理: `docs/state.md`
-- データフェッチ戦略（SWR）: `docs/fetch-strategy.md`
-- テストコード: `docs/test-code.md`
-- ネットワーク: `docs/network.md`
-- PR（Push）前チェック: `docs/pre-check.md`
+- 認証: `docs/apps/auth.md`
+- API保護: `docs/apps/api-protect.md`
+- i18n（国際化）: `docs/apps/i18n.md`
+- フォームバリデーション: `docs/apps/form-validation.md`
+- UIデザイン: `docs/apps/ui-design.md`
+- ステート管理: `docs/apps/state.md`
+- データフェッチ戦略（SWR）: `docs/apps/fetch-strategy.md`
+- テストコード: `docs/apps/test-code.md`
+- ネットワーク: `docs/infra/network.md`
+- PR（Push）前チェック: `docs/apps/pre-check.md`
 
 ## 11. AGENTS.md の運用ルール（必ず読んでください）
 

@@ -116,6 +116,6 @@ await mutate(`/backend/${API_VERSION}/items`);
 
 ## 関連ドキュメント
 
-- `docs/state.md`
-- `docs/api-protect.md`
-- `docs/form-validation.md`
+- `docs/apps/state.md`
+- `docs/apps/api-protect.md`
+- `docs/apps/form-validation.md`

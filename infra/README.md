@@ -3,7 +3,7 @@
 このディレクトリは、Azure インフラを Bicep でデプロイする実行基盤です。  
 `main.sh` が `common.parameter.json` を読み込み、前処理で `.bicepparam` を動的生成して各リソースをデプロイします。
 
-ネットワーク構成の設計は [docs/network.md](../docs/network.md) を参照してください。
+ネットワーク構成の設計は [docs/infra/network.md](../docs/infra/network.md) を参照してください。
 
 ## このフォルダ配下の説明
 
@@ -47,11 +47,21 @@ az account list-locations --query "[].name" -o tsv
 
 システム名です。リソース名とタグに反映されます。
 
+### common.enableResourceLock
+
+リソース削除ロックを有効化するかどうかを指定します。
+
+- `true`（デフォルト）: すべての対象リソースに削除ロックを適用
+- `false`: 削除ロックを適用しない（検証環境での作成/削除を優先する場合）
+
 ### network.enableFirewallIdps
 
 IDS/IPS を有効にするかどうかを指定します。  
 `true` の場合は **Firewall SKU が Premium** になり、IDS/IPS を有効化します。  
 `false` の場合は **Firewall SKU が Standard** になります。
+
+- `false`（デフォルト）
+- 注意: `true`（Premium）は比較的高額な料金が発生するため、コスト影響を確認してから有効化してください。
 
 ### network.enableGatewayRoutePropagation
 
@@ -83,6 +93,9 @@ Private DNS ゾーンをハブ側（共通基盤側）に集約して一元管�
 DDoS Protection の有効/無効を指定します。  
 `true` の場合は、DDoS Protection Plan を（既存利用または新規作成して）VNET に適用します。  
 `false` の場合は、DDoS Protection Plan の作成をスキップし、VNET への DDoS Protection 適用もしません。
+
+- `false`（デフォルト）
+- 注意: `true` にすると DDoS Protection Plan の利用料金が発生し、比較的高額になるため、事前に費用を確認してください。
 
 ### network.ddosProtectionPlanId
 
@@ -198,13 +211,15 @@ Kubernetes Service（ClusterIP）用の IP 範囲（CIDR）です。
   - `subnets`, `route-tables`, `nsgs`, `subnet-attachments` を一括制御
 - `firewall`
 - `applicationGateway`
+- `acr`
+- `storage`
 - `keyVault`
 - `aks`
 - `maintenanceVm`
 
 ## ネットワーク構成ドキュメント
 
-サブネット構成やルート/NSG の設計方針は [docs/network.md](../docs/network.md) を参照してください。
+サブネット構成やルート/NSG の設計方針は [docs/infra/network.md](../docs/infra/network.md) を参照してください。
 
 ## デプロイ手順
 
@@ -243,6 +258,8 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
   - Subnet Attachments（RouteTable/NSG紐づけ）
   - Application Gateway
 - service
+  - ACR
+  - Storage Account
   - Key Vault
   - AKS
   - Maintenance VM
@@ -258,6 +275,8 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `nsgs.bicepparam`
 - `subnet-attachments.bicepparam`
 - `application-gateway.bicepparam`
+- `acr.bicepparam`
+- `storage.bicepparam`
 - `key-vault.bicepparam`
 - `aks.bicepparam`
 - `maintenance-vm.bicepparam`
@@ -317,4 +336,4 @@ sudo apt-get update
 sudo apt-get install azure-cli
 ```
 
-- メンテVM仕様の詳細: [docs/maint-vm.md](../docs/maint-vm.md)
+- メンテVM仕様の詳細: [docs/infra/maint-vm.md](../docs/infra/maint-vm.md)
