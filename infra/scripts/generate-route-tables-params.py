@@ -228,7 +228,8 @@ route_tables = [
 ]
 
 modules_name = config.get("modulesName", "nw")
-lock_kind = config.get("lockKind", "CanNotDelete")
+enable_resource_lock = bool(common_values.get("enableResourceLock", True))
+lock_kind = config.get("lockKind", "CanNotDelete") if enable_resource_lock else ""
 network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
 # subnets トグルに連動して route table の作成可否を決める。
 deploy = bool(common.get("resourceToggles", {}).get("subnets", True))

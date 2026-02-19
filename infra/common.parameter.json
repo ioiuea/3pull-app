@@ -1,11 +1,12 @@
 {
   "common": {
     "location": "japaneast",
-    "environmentName": "dev",
-    "systemName": "3pull"
+    "environmentName": "basic",
+    "systemName": "3pull",
+    "enableResourceLock": false
   },
   "network": {
-    "enableFirewallIdps": true,
+    "enableFirewallIdps": false,
     "enableGatewayRoutePropagation": false,
     "enableCentralizedPrivateDns": false,
     "enableDdosProtection": false,
@@ -35,6 +36,8 @@
     "subnets": true,
     "firewall": true,
     "applicationGateway": true,
+    "acr": true,
+    "storage": true,
     "keyVault": true,
     "aks": true,
     "maintenanceVm": true

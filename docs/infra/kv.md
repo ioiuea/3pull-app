@@ -14,6 +14,17 @@
 | パージ保護 | true | properties.enablePurgeProtection |
 | 論理削除保持日数 | 90 | properties.softDeleteRetentionInDays |
 
+## リソース命名規則
+
+- CAF の省略形ルールに準拠し、Key Vault は `kv` を利用します。
+- そのため命名は `kv-[common.environmentName]-[common.systemName]` を基本とします。
+- 文字数制約（3〜24文字）を超える場合は、`environmentName` / `systemName` を短縮して調整します。
+
+参考:
+
+- Azure CAF Resource Abbreviations
+  - https://learn.microsoft.com/ja-jp/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
+
 ## アクセス権（RBAC）方針
 
 - Key Vault は `enableRbacAuthorization=true` を前提とします。
@@ -26,7 +37,7 @@
 | --- | --- | --- |
 | 名前 | pep-kv-[common.environmentName]-[common.systemName] | name |
 | 場所 | [common.location] | location |
-| プライベートリンク接続名 | pepconn-kv-[common.environmentName]-[common.systemName] | properties.privateLinkServiceConnections.name |
+| プライベートリンク接続名 | pep-kv-[common.environmentName]-[common.systemName] | properties.privateLinkServiceConnections.name |
 | プライベートリンク対象ID | id(kv-[common.environmentName]-[common.systemName]) | properties.privateLinkServiceConnections.properties.privateLinkServiceId |
 | グループID | vault | properties.privateLinkServiceConnections.properties.groupIds |
 | サブネットID | vnet-[common.environmentName]-[common.systemName]/PrivateEndpointSubnet | properties.subnet.id |
@@ -35,7 +46,7 @@
 
 - Key Vault Private Endpoint 宛ては AKS サブネットからのみ許可します。
 - 許可ソースは `UserNodeSubnet` と `AgentNodeSubnet` の両方です。
-- 受信規則は `docs/network.md` の `nsg-[common.environmentName]-[common.systemName]-pep` に従います。
+- 受信規則は `docs/infra/network.md` の `nsg-[common.environmentName]-[common.systemName]-pep` に従います。
 
 ## Private DNS ゾーン
 
@@ -71,7 +82,7 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 | 項目 | 設定値 | Bicepプロパティ名 |
 | --- | --- | --- |
 | 親 | privatelink.vaultcore.azure.net | parent |
-| 名前 | link-to-vnet-[common.environmentName]-[common.systemName] | name |
+| 名前 | link-kv-to-vnet-[common.environmentName]-[common.systemName] | name |
 | 場所 | global | location |
 | 自動登録 | false | properties.registrationEnabled |
 | 仮想ネットワークID | id(vnet-[common.environmentName]-[common.systemName]) | properties.virtualNetwork.id |

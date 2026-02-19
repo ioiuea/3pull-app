@@ -15,6 +15,12 @@ param modulesName string = 'nw'
 @description('ロック')
 param lockKind string = 'CanNotDelete'
 
+@description('ログアナリティクス名')
+param logAnalyticsName string
+
+@description('ログアナリティクスのリソースグループ名')
+param logAnalyticsResourceGroupName string
+
 @description('VNETの名称')
 param vnetName string
 
@@ -174,7 +180,7 @@ resource publicIPDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (loc
   }
 }
 
-resource wafPolicy 'Microsoft.Network/applicationGatewayWebApplicationFirewallPolicies@2022-09-01' = {
+resource wafPolicy 'Microsoft.Network/applicationGatewayWebApplicationFirewallPolicies@2024-07-01' = {
   name: wafPolicyName
   location: location
   tags: modulesTags
@@ -333,6 +339,35 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2022-09-01' =
     firewallPolicy: {
       id: wafPolicy.id
     }
+  }
+}
+
+resource applicationGatewayDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'diagnostic-to-${logAnalyticsName}'
+  scope: applicationGateway
+  properties: {
+    workspaceId: resourceId(logAnalyticsResourceGroupName, 'Microsoft.OperationalInsights/workspaces', logAnalyticsName)
+    logAnalyticsDestinationType: 'Dedicated'
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+    ]
   }
 }
 

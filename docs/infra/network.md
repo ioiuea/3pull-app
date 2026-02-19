@@ -42,7 +42,7 @@
 
 # 構成図（生成パラメータ例）
 
-![基本構成図](assets/basic-pattern.png)
+![基本構成図](../assets/basic-pattern.png)
 
 ## 通信経路フロー（UDR）
 

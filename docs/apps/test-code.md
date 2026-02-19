@@ -140,6 +140,6 @@ def test_host_port_from_url_returns_none_on_invalid_port() -> None:
 
 ## 関連ドキュメント
 
-- `docs/form-validation.md`
-- `docs/state.md`
-- `docs/api-protect.md`
+- `docs/apps/form-validation.md`
+- `docs/apps/state.md`
+- `docs/apps/api-protect.md`

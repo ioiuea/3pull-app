@@ -124,7 +124,7 @@ const formSchema = z
 ## i18n とバリデーション文言
 
 - 画面文言と同様に、バリデーションメッセージも辞書（`dictionaries/*.json`）から受け取る運用を推奨します。
-- `app/[lang]/.../page.tsx` で辞書を取得し、`features/.../index.tsx` に `dict` として渡してください（詳細: `docs/i18n.md`）。
+- `app/[lang]/.../page.tsx` で辞書を取得し、`features/.../index.tsx` に `dict` として渡してください（詳細: `docs/apps/i18n.md`）。
 
 ## 運用ルール
 
@@ -135,5 +135,5 @@ const formSchema = z
 
 ## 関連ドキュメント
 
-- `docs/i18n.md`
-- `docs/auth.md`
+- `docs/apps/i18n.md`
+- `docs/apps/auth.md`

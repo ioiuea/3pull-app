@@ -130,6 +130,7 @@ def main() -> int:
     as_non_empty_str(common_values.get("location"), "common.location", errors)
     as_non_empty_str(common_values.get("environmentName"), "common.environmentName", errors)
     as_non_empty_str(common_values.get("systemName"), "common.systemName", errors)
+    as_bool(common_values.get("enableResourceLock"), "common.enableResourceLock", errors)
 
     # ネットワーク/セキュリティ系のフラグ
     as_bool(network_values.get("enableFirewallIdps"), "network.enableFirewallIdps", errors)
@@ -232,6 +233,8 @@ def main() -> int:
         "subnets",
         "firewall",
         "applicationGateway",
+        "acr",
+        "storage",
         "keyVault",
         "aks",
         "maintenanceVm",

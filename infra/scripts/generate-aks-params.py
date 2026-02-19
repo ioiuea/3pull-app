@@ -76,8 +76,11 @@ service_cidr = str(service_cidr_network)
 dns_service_ip = str(service_hosts[9])
 
 modules_name = config.get("modulesName", "svc")
-lock_kind = config.get("lockKind", "CanNotDelete")
+enable_resource_lock = bool(common_values.get("enableResourceLock", True))
+lock_kind = config.get("lockKind", "CanNotDelete") if enable_resource_lock else ""
 aks_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
+log_analytics_name = f"log-{environment_name}-{system_name}"
+log_analytics_resource_group_name = f"rg-{environment_name}-{system_name}-monitor"
 
 vnet_modules_name = subnets_config.get("modulesName", "nw")
 vnet_rg_name = f"rg-{environment_name}-{system_name}-{vnet_modules_name}"
@@ -119,6 +122,8 @@ lines = [
     f"param location = {quote(location)}",
     f"param modulesName = {quote(modules_name)}",
     f"param lockKind = {quote(lock_kind)}",
+    f"param logAnalyticsName = {quote(log_analytics_name)}",
+    f"param logAnalyticsResourceGroupName = {quote(log_analytics_resource_group_name)}",
     f"param aksName = {quote(aks_name)}",
     f"param dnsPrefix = {quote(dns_prefix)}",
     f"param enableRbac = {'true' if bool(config.get('enableRbac', True)) else 'false'}",
