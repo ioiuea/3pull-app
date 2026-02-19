@@ -260,58 +260,66 @@ uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app \
 
 ### 認証
 
-[`docs/auth.md`](docs/auth.md)
+[`docs/apps/auth.md`](docs/apps/auth.md)
 
 ### API保護
 
-[`docs/api-protect.md`](docs/api-protect.md)
+[`docs/apps/api-protect.md`](docs/apps/api-protect.md)
 
 ### i18n（国際化）
 
-[`docs/i18n.md`](docs/i18n.md)
+[`docs/apps/i18n.md`](docs/apps/i18n.md)
 
 ### フォームバリデーション
 
-[`docs/form-validation.md`](docs/form-validation.md)
+[`docs/apps/form-validation.md`](docs/apps/form-validation.md)
 
 ### UIデザイン
 
-[`docs/ui-design.md`](docs/ui-design.md)
+[`docs/apps/ui-design.md`](docs/apps/ui-design.md)
 
 ### ステート管理
 
-[`docs/state.md`](docs/state.md)
+[`docs/apps/state.md`](docs/apps/state.md)
 
 ### データフェッチ戦略（SWR）
 
-[`docs/fetch-strategy.md`](docs/fetch-strategy.md)
+[`docs/apps/fetch-strategy.md`](docs/apps/fetch-strategy.md)
 
 ### テストコード
 
-[`docs/test-code.md`](docs/test-code.md)
+[`docs/apps/test-code.md`](docs/apps/test-code.md)
 
 ### PR（Push）前チェック
 
-[`docs/pre-check.md`](docs/pre-check.md)
+[`docs/apps/pre-check.md`](docs/apps/pre-check.md)
 
 ## インフラ構成ガイド
 
 ### ネットワーク
 
-[`docs/network.md`](docs/network.md)
+[`docs/infra/network.md`](docs/infra/network.md)
 
 ### Azure Kubernetes Service
 
-[`docs/aks.md`](docs/aks.md)
+[`docs/infra/aks.md`](docs/infra/aks.md)
 
 ### Application Gateway / WAF
 
-[`docs/agw.md`](docs/agw.md)
+[`docs/infra/agw.md`](docs/infra/agw.md)
 
 ### Firewall
 
-[`docs/firewall.md`](docs/firewall.md)
+[`docs/infra/firewall.md`](docs/infra/firewall.md)
+
+### Azure Container Registry
+
+[`docs/infra/acr.md`](docs/infra/acr.md)
+
+### Storage
+
+[`docs/infra/storage.md`](docs/infra/storage.md)
 
 ### Key Vault
 
-[`docs/kv.md`](docs/kv.md)
+[`docs/infra/kv.md`](docs/infra/kv.md)

@@ -95,9 +95,12 @@ if len(hosts) < 10:
 frontend_private_ip = str(hosts[9])
 
 modules_name = config.get("modulesName", "nw")
-lock_kind = config.get("lockKind", "CanNotDelete")
+enable_resource_lock = bool(common_values.get("enableResourceLock", True))
+lock_kind = config.get("lockKind", "CanNotDelete") if enable_resource_lock else ""
 network_rg_name = f"rg-{environment_name}-{system_name}-{modules_name}"
 vnet_name = f"vnet-{environment_name}-{system_name}"
+log_analytics_name = f"log-{environment_name}-{system_name}"
+log_analytics_resource_group_name = f"rg-{environment_name}-{system_name}-monitor"
 
 enable_ddos_protection = bool(network_values.get("enableDdosProtection", True))
 deploy = bool(common.get("resourceToggles", {}).get("applicationGateway", True))
@@ -117,6 +120,8 @@ lines = [
     f"param location = {quote(location)}",
     f"param modulesName = {quote(modules_name)}",
     f"param lockKind = {quote(lock_kind)}",
+    f"param logAnalyticsName = {quote(log_analytics_name)}",
+    f"param logAnalyticsResourceGroupName = {quote(log_analytics_resource_group_name)}",
     f"param vnetName = {quote(vnet_name)}",
     f"param applicationGatewayName = {quote(application_gateway_name)}",
     f"param publicIPName = {quote(public_ip_name)}",

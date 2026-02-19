@@ -15,6 +15,12 @@ param modulesName string = 'svc'
 @description('ロック')
 param lockKind string = 'CanNotDelete'
 
+@description('ログアナリティクス名')
+param logAnalyticsName string
+
+@description('ログアナリティクスのリソースグループ名')
+param logAnalyticsResourceGroupName string
+
 @description('AKS クラスター名')
 param aksName string
 
@@ -245,6 +251,79 @@ resource aksDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind
   scope: aks
   properties: {
     level: lockKind
+  }
+}
+
+resource aksDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'diagnostic-to-${logAnalyticsName}'
+  scope: aks
+  properties: {
+    workspaceId: resourceId(logAnalyticsResourceGroupName, 'Microsoft.OperationalInsights/workspaces', logAnalyticsName)
+    logAnalyticsDestinationType: 'Dedicated'
+    logs: [
+      {
+        category: 'kube-apiserver'
+        enabled: true
+      }
+      {
+        category: 'kube-audit'
+        enabled: true
+      }
+      {
+        category: 'kube-audit-admin'
+        enabled: true
+      }
+      {
+        category: 'kube-controller-manager'
+        enabled: true
+      }
+      {
+        category: 'kube-scheduler'
+        enabled: true
+      }
+      {
+        category: 'cluster-autoscaler'
+        enabled: true
+      }
+      {
+        category: 'cloud-controller-manager'
+        enabled: true
+      }
+      {
+        category: 'guard'
+        enabled: true
+      }
+      {
+        category: 'csi-azuredisk-controller'
+        enabled: true
+      }
+      {
+        category: 'csi-azurefile-controller'
+        enabled: true
+      }
+      {
+        category: 'csi-snapshot-controller'
+        enabled: true
+      }
+      {
+        category: 'fleet-member-agent'
+        enabled: true
+      }
+      {
+        category: 'fleet-member-net-controller-manager'
+        enabled: true
+      }
+      {
+        category: 'fleet-mcs-controller-manager'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
 

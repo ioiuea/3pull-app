@@ -27,14 +27,14 @@ param vnetName string
 @description('VNET のリソースグループ名')
 param vnetResourceGroupName string
 
-@description('Key Vault 名')
-param keyVaultName string
+@description('Container Registry 名')
+param containerRegistryName string
 
 @description('Private Endpoint 名')
 param privateEndpointName string
 
 @description('Private DNS ゾーン名')
-param privateDnsZoneName string = 'privatelink.vaultcore.azure.net'
+param privateDnsZoneName string = 'privatelink.azurecr.io'
 
 @description('Private DNS ゾーングループ名')
 param privateDnsZoneGroupName string
@@ -42,26 +42,20 @@ param privateDnsZoneGroupName string
 @description('Private DNS 仮想ネットワークリンク名')
 param privateDnsVnetLinkName string
 
-@description('Key Vault SKU family')
-param keyVaultSkuFamily string = 'A'
+@description('ACR SKU 名')
+param acrSkuName string = 'Premium'
 
-@description('Key Vault SKU name')
-param keyVaultSkuName string = 'standard'
-
-@description('Key Vault の public network access')
+@description('ACR の public network access')
 param publicNetworkAccess string = 'Disabled'
 
-@description('RBAC 有効化')
-param enableRbacAuthorization bool = true
+@description('ACR ネットワークバイパス')
+param networkRuleBypassOptions string = 'AzureServices'
 
-@description('Soft Delete 有効化')
-param enableSoftDelete bool = true
+@description('ACR ネットワークルール既定動作')
+param networkRuleDefaultAction string = 'Allow'
 
-@description('Purge Protection 有効化')
-param enablePurgeProtection bool = true
-
-@description('Soft Delete の保持日数')
-param softDeleteRetentionInDays int = 90
+@description('ACR ネットワークルールの許可 IP/CIDR')
+param networkRuleIpRules array = []
 
 @description('集約 Private DNS を利用する場合は true')
 param enableCentralizedPrivateDns bool = false
@@ -74,6 +68,11 @@ var modulesTags = {
   billing: 'infra'
 }
 
+var ipRules = [for ip in networkRuleIpRules: {
+  action: 'Allow'
+  value: string(ip)
+}]
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' existing = {
   scope: resourceGroup(vnetResourceGroupName)
   name: vnetName
@@ -84,45 +83,41 @@ resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-0
   name: 'PrivateEndpointSubnet'
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: keyVaultName
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+  name: containerRegistryName
   location: location
   tags: modulesTags
+  sku: {
+    name: acrSkuName
+  }
   properties: {
-    tenantId: tenant().tenantId
-    sku: {
-      family: keyVaultSkuFamily
-      name: keyVaultSkuName
-    }
-    enableRbacAuthorization: enableRbacAuthorization
     publicNetworkAccess: publicNetworkAccess
-    enableSoftDelete: enableSoftDelete
-    enablePurgeProtection: enablePurgeProtection
-    softDeleteRetentionInDays: softDeleteRetentionInDays
-    networkAcls: {
-      bypass: 'None'
-      defaultAction: 'Deny'
+    networkRuleBypassOptions: networkRuleBypassOptions
+    networkRuleSet: {
+      defaultAction: networkRuleDefaultAction
+      ipRules: ipRules
     }
+    adminUserEnabled: false
   }
 }
 
-resource keyVaultDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind != '') {
-  name: 'del-lock-${keyVaultName}'
-  scope: keyVault
+resource containerRegistryDeleteLock 'Microsoft.Authorization/locks@2020-05-01' = if (lockKind != '') {
+  name: 'del-lock-${containerRegistryName}'
+  scope: containerRegistry
   properties: {
     level: lockKind
   }
 }
 
-resource keyVaultDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+resource containerRegistryDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'diagnostic-to-${logAnalyticsName}'
-  scope: keyVault
+  scope: containerRegistry
   properties: {
     workspaceId: resourceId(logAnalyticsResourceGroupName, 'Microsoft.OperationalInsights/workspaces', logAnalyticsName)
     logAnalyticsDestinationType: 'Dedicated'
     logs: [
       {
-        categoryGroup: 'allLogs'
+        categoryGroup: 'audit'
         enabled: true
         retentionPolicy: {
           enabled: false
@@ -130,7 +125,7 @@ resource keyVaultDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-
         }
       }
       {
-        categoryGroup: 'audit'
+        categoryGroup: 'allLogs'
         enabled: true
         retentionPolicy: {
           enabled: false
@@ -163,9 +158,9 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
       {
         name: privateEndpointName
         properties: {
-          privateLinkServiceId: keyVault.id
+          privateLinkServiceId: containerRegistry.id
           groupIds: [
-            'vault'
+            'registry'
           ]
         }
       }
@@ -213,7 +208,7 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   properties: {
     privateDnsZoneConfigs: [
       {
-        name: 'privatelink-vaultcore-azure-net'
+        name: 'privatelink-azurecr-io'
         properties: {
           privateDnsZoneId: privateDnsZone.id
         }
@@ -222,5 +217,5 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
 }
 
-output keyVaultNameOutput string = keyVault.name
-output keyVaultIdOutput string = keyVault.id
+output containerRegistryNameOutput string = containerRegistry.name
+output containerRegistryIdOutput string = containerRegistry.id

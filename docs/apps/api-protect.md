@@ -118,9 +118,9 @@
 - フロントのトークンキャッシュはメモリのみです。ページリロードで消える前提です。
 - API 保護の責務はバックエンドにあります。フロント側の判定だけに依存しないでください。
 
-## docs/auth.md との差分（実装準拠）
+## docs/apps/auth.md との差分（実装準拠）
 
-`docs/auth.md` では旧ファイル名の記載が一部残っていますが、実装上の正は次です。
+`docs/apps/auth.md` では旧ファイル名の記載が一部残っていますが、実装上の正は次です。
 
 - `apps/frontend/lib/auth.ts` → `apps/frontend/lib/auth/server.ts`
 - `apps/frontend/lib/auth-client.ts` → `apps/frontend/lib/auth/client.ts`

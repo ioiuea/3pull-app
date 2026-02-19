@@ -163,7 +163,7 @@ export const CounterClient = () => {
 
 ## 関連ドキュメント
 
-- `docs/form-validation.md`
-- `docs/fetch-strategy.md`
-- `docs/ui-design.md`
-- `docs/i18n.md`
+- `docs/apps/form-validation.md`
+- `docs/apps/fetch-strategy.md`
+- `docs/apps/ui-design.md`
+- `docs/apps/i18n.md`
