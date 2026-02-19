@@ -11,6 +11,18 @@
 | 名前 | nic-vm-[common.environmentName]-[common.systemName]-maint | name              |
 | 場所 | [common.location]                                  | location          |
 
+## 診断設定
+
+- 対象: NIC（`Microsoft.Network/networkInterfaces`）
+- メトリック: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- NIC に削除ロックを適用
+- OS Disk に削除ロックを適用
+- VM 本体に削除ロックを適用
+
 ## IP構成
 
 | 項目                       | 設定値                | Bicepプロパティ名                                                |

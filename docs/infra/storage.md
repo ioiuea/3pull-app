@@ -11,6 +11,23 @@
 | Access Tier | Hot | properties.accessTier |
 | パブリックアクセス | Disabled | properties.publicNetworkAccess |
 
+## 診断設定
+
+- 対象:
+  - Blob Service（`Microsoft.Storage/storageAccounts/blobServices`）
+  - File Service（`Microsoft.Storage/storageAccounts/fileServices`）
+  - Queue Service（`Microsoft.Storage/storageAccounts/queueServices`）
+  - Table Service（`Microsoft.Storage/storageAccounts/tableServices`）
+- ログ（各サービス共通）: `audit`, `allLogs`
+- メトリック（各サービス共通）: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- Storage Account 本体に削除ロックを適用
+- 各 Private Endpoint（blob/file/queue/table）に削除ロックを適用
+- 各 Private DNS ゾーンに削除ロックを適用（`network.enableCentralizedPrivateDns=false` の場合のみ）
+
 ## Blob サービスのデータ保護
 
 誤削除や上書き時の復旧性を高めるため、以下を有効化します。

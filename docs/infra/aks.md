@@ -16,6 +16,31 @@
 | DNSプレフィクス | aks-dns-[common.environmentName]-[common.systemName] | properties.dnsPrefix  |
 | RBACの有効化    | true                                   | properties.enableRBAC |
 
+## 診断設定
+
+- 対象: AKS クラスター（`Microsoft.ContainerService/managedClusters`）
+- ログカテゴリ:
+  - `kube-apiserver`
+  - `kube-audit`
+  - `kube-audit-admin`
+  - `kube-controller-manager`
+  - `kube-scheduler`
+  - `cluster-autoscaler`
+  - `cloud-controller-manager`
+  - `guard`
+  - `csi-azuredisk-controller`
+  - `csi-azurefile-controller`
+  - `csi-snapshot-controller`
+  - `fleet-member-agent`
+  - `fleet-member-net-controller-manager`
+  - `fleet-mcs-controller-manager`
+- メトリック: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- AKS クラスター本体に削除ロックを適用
+
 ## エージェントプール
 
 | 項目             | 設定値                                                  | Bicepプロパティ名                              |
