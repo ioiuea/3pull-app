@@ -1,61 +1,5 @@
 # 仮想ネットワーク
 
-- ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
-
-| 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection                                 | DDoS保護プラン                                                        |
-| ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| vnet-[common.environmentName]-[common.systemName] | rg-[common.environmentName]-[common.systemName]-nw | [common.location] | [network.vnetAddressPrefixes] | [network.vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [network.enableDdosProtection] に応じて有効/無効        | [network.enableDdosProtection] と [network.ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
-
-- ※ `network.enableDdosProtection=true` の場合
-  - `network.ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
-  - `network.ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
-- ※ `network.enableDdosProtection=false` の場合
-  - DDoS 保護プランは作成せず、VNET への DDoS Protection 適用もしません
-- ※ `network.vnetDnsServers` 未指定（空配列）の場合は Azure 提供 DNS を利用し、指定した場合はその DNS サーバーを利用します。
-- ※ ハブ&スポーク構成で集約 DNS を利用する場合、ハブ側 Firewall のプライベート IP など、到達可能な DNS サーバー IP を指定します。
-- ※最低限、以下のいずれかのアドレスレンジが必要です。
-  - `/24` が 3 つ分
-  - 連続するサブネットレンジを確保できる場合は `/23` が 1 つ分 + `/24` が 1 つ分、もしくは `/22` が 1 つ分（`/24` 3 つ分相当）
-
-## 診断設定
-
-- Virtual Network（`Microsoft.Network/virtualNetworks`）
-  - ログ: `allLogs`
-  - メトリック: `AllMetrics`
-- Network Security Group（`Microsoft.Network/networkSecurityGroups`）
-  - ログ: `allLogs`
-- 送信先: Log Analytics
-
-## 削除ロック
-
-- Virtual Network に削除ロックを適用
-- DDoS Protection Plan に削除ロックを適用（`network.enableDdosProtection=true` かつ `network.ddosProtectionPlanId` 未指定時）
-- NSG に削除ロックを適用
-- Route Table に削除ロックを適用
-
-# サブネット
-
-| サブネット名               | プレフィクス | サービスエンドポイント | NSG名                                        | ルートテーブル名                           | 備考                                   |
-| -------------------------- | ------------ | ---------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
-| `UserNodeSubnet`           | `/24`        |                        | nsg-[common.environmentName]-[common.systemName]-usernode  | rt-[common.environmentName]-[common.systemName]-outbound-aks | アプリデプロイ領域                     |
-| `ApplicationGatewaySubnet` | `/25`        |                        |                                              | rt-[common.environmentName]-[common.systemName]-firewall | AGIC用サブネット                       |
-| `AgentNodeSubnet`          | `/26`        |                        | nsg-[common.environmentName]-[common.systemName]-agentnode | rt-[common.environmentName]-[common.systemName]-outbound-aks | AKSのエージェントノード用サブネット    |
-| `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[common.environmentName]-[common.systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
-| `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
-| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`network.sharedBastionIp` 未指定時のみ） |
-| `MaintenanceSubnet`        | `/29`        |                        | nsg-[common.environmentName]-[common.systemName]-maint     | rt-[common.environmentName]-[common.systemName]-outbound-maint | メンテVM用サブネット                   |
-
-※ すべてのサブネットはプライベートサブネット（`defaultOutboundAccess=false`）として作成します。
-  暗黙の既定アウトバウンドは使用せず、UDR と Firewall/NAT などの明示的な経路制御で外向き通信を管理します。
-
-※ `PrivateEndpointSubnet` に NSG を適用して通信制御するため、サブネット設定の `privateEndpointNetworkPolicies` は有効化します。
-
-※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
-
-- `AzureFirewallSubnet`
-- `ApplicationGatewaySubnet`
-- `AzureBastionSubnet`
-
 # 構成図（生成パラメータ例）
 
 ![基本構成図](../assets/basic-pattern.png)
@@ -118,6 +62,62 @@ flowchart LR
   ACT -->|"TCP 8080 許可"| N
   B -->|"TCP 22,3389 許可"| M
 ```
+
+- ※[]内は`infra/common.parameter.json`の設定値に従って設定されます。
+
+| 仮想ネットワーク名                  | リソースグループ名                   | 場所       | アドレス空間          | DNSサーバー | DDoS Protection                                 | DDoS保護プラン                                                        |
+| ----------------------------------- | ------------------------------------ | ---------- | --------------------- | ----------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| vnet-[common.environmentName]-[common.systemName] | rg-[common.environmentName]-[common.systemName]-nw | [common.location] | [network.vnetAddressPrefixes] | [network.vnetDnsServers] 未指定時は Azure提供、指定時は指定DNSサーバー | [network.enableDdosProtection] に応じて有効/無効        | [network.enableDdosProtection] と [network.ddosProtectionPlanId] に応じて既存利用/新規作成/未適用 |
+
+- ※ `network.enableDdosProtection=true` の場合
+  - `network.ddosProtectionPlanId` 指定あり: 指定した既存 DDoS 保護プランを適用
+  - `network.ddosProtectionPlanId` 未指定: DDoS 保護プランを新規作成して適用
+- ※ `network.enableDdosProtection=false` の場合
+  - DDoS 保護プランは作成せず、VNET への DDoS Protection 適用もしません
+- ※ `network.vnetDnsServers` 未指定（空配列）の場合は Azure 提供 DNS を利用し、指定した場合はその DNS サーバーを利用します。
+- ※ ハブ&スポーク構成で集約 DNS を利用する場合、ハブ側 Firewall のプライベート IP など、到達可能な DNS サーバー IP を指定します。
+- ※最低限、以下のいずれかのアドレスレンジが必要です。
+  - `/24` が 3 つ分
+  - 連続するサブネットレンジを確保できる場合は `/23` が 1 つ分 + `/24` が 1 つ分、もしくは `/22` が 1 つ分（`/24` 3 つ分相当）
+
+## 診断設定
+
+- Virtual Network（`Microsoft.Network/virtualNetworks`）
+  - ログ: `allLogs`
+  - メトリック: `AllMetrics`
+- Network Security Group（`Microsoft.Network/networkSecurityGroups`）
+  - ログ: `allLogs`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- Virtual Network に削除ロックを適用
+- DDoS Protection Plan に削除ロックを適用（`network.enableDdosProtection=true` かつ `network.ddosProtectionPlanId` 未指定時）
+- NSG に削除ロックを適用
+- Route Table に削除ロックを適用
+
+# サブネット
+
+| サブネット名               | プレフィクス | サービスエンドポイント | NSG名                                        | ルートテーブル名                           | 備考                                   |
+| -------------------------- | ------------ | ---------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------- |
+| `UserNodeSubnet`           | `/24`        |                        | nsg-[common.environmentName]-[common.systemName]-usernode  | rt-[common.environmentName]-[common.systemName]-outbound-aks | アプリデプロイ領域                     |
+| `ApplicationGatewaySubnet` | `/25`        |                        |                                              | rt-[common.environmentName]-[common.systemName]-firewall | AGIC用サブネット                       |
+| `AgentNodeSubnet`          | `/26`        |                        | nsg-[common.environmentName]-[common.systemName]-agentnode | rt-[common.environmentName]-[common.systemName]-outbound-aks | AKSのエージェントノード用サブネット    |
+| `PrivateEndpointSubnet`    | `/26`        |                        | nsg-[common.environmentName]-[common.systemName]-pep       |                                            | プライベートエンドポイント用サブネット |
+| `AzureFirewallSubnet`      | `/26`        |                        |                                              |                                            | ファイヤーウォール用サブネット         |
+| `AzureBastionSubnet`       | `/26`        |                        |                                              |                                            | Bastion用サブネット（`network.sharedBastionIp` 未指定時のみ） |
+| `MaintenanceSubnet`        | `/29`        |                        | nsg-[common.environmentName]-[common.systemName]-maint     | rt-[common.environmentName]-[common.systemName]-outbound-maint | メンテVM用サブネット                   |
+
+※ すべてのサブネットはプライベートサブネット（`defaultOutboundAccess=false`）として作成します。
+  暗黙の既定アウトバウンドは使用せず、UDR と Firewall/NAT などの明示的な経路制御で外向き通信を管理します。
+
+※ `PrivateEndpointSubnet` に NSG を適用して通信制御するため、サブネット設定の `privateEndpointNetworkPolicies` は有効化します。
+
+※ 以下のサブネットへのネットワークセキュリティグループの設定はAzure非推奨であり予期せぬエラーが発生する可能性があるため設定しません。
+
+- `AzureFirewallSubnet`
+- `ApplicationGatewaySubnet`
+- `AzureBastionSubnet`
 
 # ルートテーブル
 
