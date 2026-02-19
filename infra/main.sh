@@ -52,6 +52,10 @@ postgres_config_file="$infra_root/config/postgres-database.json"
 postgres_script="$infra_root/scripts/generate-postgres-database-params.py"
 postgres_meta_file="$params_dir/postgres-database-meta.json"
 
+cosmos_config_file="$infra_root/config/cosmos-database.json"
+cosmos_script="$infra_root/scripts/generate-cosmos-database-params.py"
+cosmos_meta_file="$params_dir/cosmos-database-meta.json"
+
 aks_config_file="$infra_root/config/aks.json"
 aks_script="$infra_root/scripts/generate-aks-params.py"
 aks_meta_file="$params_dir/aks-meta.json"
@@ -155,6 +159,11 @@ fi
 
 if [[ ! -f "$postgres_config_file" ]]; then
   echo "postgres config file が見つかりません: $postgres_config_file" >&2
+  exit 1
+fi
+
+if [[ ! -f "$cosmos_config_file" ]]; then
+  echo "cosmos config file が見つかりません: $cosmos_config_file" >&2
   exit 1
 fi
 
@@ -263,6 +272,13 @@ PARAMS_DIR="$params_dir" \
 OUT_META_FILE="$postgres_meta_file" \
 TIMESTAMP="$timestamp" \
 "$postgres_script"
+
+COMMON_FILE="$common_file" \
+RESOURCE_CONFIG_FILE="$cosmos_config_file" \
+PARAMS_DIR="$params_dir" \
+OUT_META_FILE="$cosmos_meta_file" \
+TIMESTAMP="$timestamp" \
+"$cosmos_script"
 
 COMMON_FILE="$common_file" \
 RESOURCE_CONFIG_FILE="$aks_config_file" \
@@ -411,6 +427,16 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+cosmos_resource_group_name="$(META_FILE="$cosmos_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("resourceGroupName", ""))
+PY
+)"
+
 aks_resource_group_name="$(META_FILE="$aks_meta_file" python - <<'PY'
 import json
 import os
@@ -512,6 +538,11 @@ if [[ -z "$postgres_resource_group_name" ]]; then
   exit 1
 fi
 
+if [[ -z "$cosmos_resource_group_name" ]]; then
+  echo "cosmos resourceGroupName が取得できませんでした。config を確認してください。" >&2
+  exit 1
+fi
+
 if [[ -z "$aks_resource_group_name" ]]; then
   echo "aks resourceGroupName が取得できませんでした。config を確認してください。" >&2
   exit 1
@@ -607,7 +638,14 @@ if [[ "$postgres_resource_group_name" != "$vnet_resource_group_name" && "$postgr
     --location "$location" >/dev/null
 fi
 
-if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" && "$aks_resource_group_name" != "$acr_resource_group_name" && "$aks_resource_group_name" != "$storage_resource_group_name" && "$aks_resource_group_name" != "$postgres_resource_group_name" ]]; then
+if [[ "$cosmos_resource_group_name" != "$vnet_resource_group_name" && "$cosmos_resource_group_name" != "$subnets_resource_group_name" && "$cosmos_resource_group_name" != "$firewall_resource_group_name" && "$cosmos_resource_group_name" != "$application_gateway_resource_group_name" && "$cosmos_resource_group_name" != "$key_vault_resource_group_name" && "$cosmos_resource_group_name" != "$acr_resource_group_name" && "$cosmos_resource_group_name" != "$storage_resource_group_name" && "$cosmos_resource_group_name" != "$postgres_resource_group_name" ]]; then
+  echo "==> Ensure Resource Group: $cosmos_resource_group_name"
+  az group create \
+    --name "$cosmos_resource_group_name" \
+    --location "$location" >/dev/null
+fi
+
+if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" && "$aks_resource_group_name" != "$acr_resource_group_name" && "$aks_resource_group_name" != "$storage_resource_group_name" && "$aks_resource_group_name" != "$postgres_resource_group_name" && "$aks_resource_group_name" != "$cosmos_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $aks_resource_group_name"
   az group create \
     --name "$aks_resource_group_name" \
@@ -635,7 +673,7 @@ if [[ "$subnet_attachments_resource_group_name" != "$vnet_resource_group_name" &
     --location "$location" >/dev/null
 fi
 
-if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$acr_resource_group_name" && "$maintenance_vm_resource_group_name" != "$storage_resource_group_name" && "$maintenance_vm_resource_group_name" != "$postgres_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
+if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$acr_resource_group_name" && "$maintenance_vm_resource_group_name" != "$storage_resource_group_name" && "$maintenance_vm_resource_group_name" != "$postgres_resource_group_name" && "$maintenance_vm_resource_group_name" != "$cosmos_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $maintenance_vm_resource_group_name"
   az group create \
     --name "$maintenance_vm_resource_group_name" \
@@ -1231,15 +1269,17 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# ACR / Storage Account / Key Vault / Application Gateway / AKS / Maintenance VM
+# ACR / Storage / PostgreSQL / Cosmos DB / Key Vault / Application Gateway / AKS / Maintenance VM
 # -----------------------------------------------------------------------------
 # 依存順:
 # 1) ACR (Private Endpoint 用サブネットが先に必要)
 # 2) Storage Account (Private Endpoint 用サブネットが先に必要)
-# 3) Key Vault (Private Endpoint 用サブネットが先に必要)
-# 4) Application Gateway
-# 5) AKS (AGIC 連携先が先に必要)
-# 6) Maintenance VM
+# 3) PostgreSQL Flexible Server (Private Endpoint 用サブネットが先に必要)
+# 4) Cosmos DB (Private Endpoint 用サブネットが先に必要)
+# 5) Key Vault (Private Endpoint 用サブネットが先に必要)
+# 6) Application Gateway
+# 7) AKS (AGIC 連携先が先に必要)
+# 8) Maintenance VM
 acr_deploy="$(META_FILE="$acr_meta_file" python - <<'PY'
 import json
 import os
@@ -1338,6 +1378,37 @@ if [[ "$postgres_deploy" == "true" ]]; then
     ${what_if:+$what_if}
 else
   echo "==> Skip PostgreSQL Flexible Server (resourceToggles.postgresDatabase=false)"
+fi
+
+cosmos_deploy="$(META_FILE="$cosmos_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(str(bool(meta.get("deploy", True))).lower())
+PY
+)"
+
+cosmos_params_file="$(META_FILE="$cosmos_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+
+if [[ "$cosmos_deploy" == "true" ]]; then
+  echo "==> Deploy Cosmos DB (NoSQL)"
+  az deployment group create \
+    --name "main-service-cosmos-database-${timestamp}" \
+    --resource-group "$cosmos_resource_group_name" \
+    --parameters "$cosmos_params_file" \
+    ${what_if:+$what_if}
+else
+  echo "==> Skip Cosmos DB (resourceToggles.cosmosDatabase=false)"
 fi
 
 key_vault_deploy="$(META_FILE="$key_vault_meta_file" python - <<'PY'

@@ -2,15 +2,19 @@
 
 ## Cosmos DB アカウント本体
 
-| 項目                   | 設定値                                             | Bicepプロパティ名                       |
-| ---------------------- | -------------------------------------------------- | --------------------------------------- |
-| 名前                   | cosno-[common.environmentName]-[common.systemName] | name                                    |
-| 場所                   | [common.location]                                  | location                                |
-| API 種別               | NoSQL (SQL API)                                    | kind / properties.capabilities          |
-| SKU                    | Standard                                           | properties.databaseAccountOfferType     |
-| パブリックアクセス     | Disabled                                           | properties.publicNetworkAccess          |
-| 自動フェールオーバー   | [要件に応じて設定]                                 | properties.enableAutomaticFailover      |
-| 複数リージョン書き込み | [要件に応じて設定]                                 | properties.enableMultipleWriteLocations |
+| 項目                           | 設定値                                                          | Bicepプロパティ名                                    |
+| ------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------- |
+| 名前                           | cosno-[common.environmentName]-[common.systemName]              | name                                                 |
+| 場所                           | [common.location]                                               | location                                             |
+| API 種別                       | NoSQL (SQL API)                                                 | kind / properties.capabilities                       |
+| SKU                            | Standard                                                        | properties.databaseAccountOfferType                  |
+| パブリックアクセス             | Disabled                                                        | properties.publicNetworkAccess                       |
+| 自動フェールオーバー           | [cosno.enableAutomaticFailover]（デフォルト: false）            | properties.enableAutomaticFailover                   |
+| 複数リージョン書き込み         | [cosno.enableMultipleWriteLocations]（デフォルト: false）       | properties.enableMultipleWriteLocations              |
+| セカンダリリージョン           | [cosno.failoverRegions]（デフォルト: `[]`）                     | properties.locations                                 |
+| 整合性レベル                   | [cosno.consistencyLevel]（デフォルト: Session）                 | properties.consistencyPolicy.defaultConsistencyLevel |
+| ローカル認証無効化             | [cosno.disableLocalAuth]（デフォルト: false）                   | properties.disableLocalAuth                          |
+| キーベースメタデータ書込無効化 | [cosno.disableKeyBasedMetadataWriteAccess]（デフォルト: false） | properties.disableKeyBasedMetadataWriteAccess        |
 
 ## 診断設定
 
@@ -36,22 +40,59 @@
 
 ## データベース名 / コンテナ名（論理リソース）
 
-この設計では、データベースおよびコンテナは **IaCの構築対象外** とします。  
-Cosmos DB アカウントのみを IaC で作成し、データベース名・コンテナ名・パーティションキー・スループットは
-デプロイ後に Azure Portal または運用手順で作成/設定します。
+この設計では、Cosmos DB アカウントに加えて **SQL Database は IaC で作成** します。  
+一方、コンテナはアプリ要件（パーティションキー、TTL、インデックス設計）に依存するため、
+**IaC 対象外** としてデプロイ後に作成します。
 
-| 項目               | 設定方針                                               |
-| ------------------ | ------------------------------------------------------ |
-| データベース名     | デプロイ後に運用者が作成                               |
-| コンテナ名         | デプロイ後に運用者が作成                               |
-| パーティションキー | コンテナ作成時にアプリ要件で設定                       |
-| スループット       | 手動 / Autoscale / Serverless を運用方針に合わせて設定 |
+| 項目               | 設定方針                                         |
+| ------------------ | ------------------------------------------------ |
+| データベース名     | `common.systemName` を利用して IaC で作成        |
+| コンテナ名         | デプロイ後に運用者が作成                         |
+| パーティションキー | コンテナ作成時にアプリ要件で設定                 |
+| スループット       | `cosno.throughputMode` などを利用して IaC で設定 |
+
+### バックアップポリシー設定（`infra/common.parameter.json`）
+
+`cosno` オブジェクトで、バックアップ方式と保持条件を利用者が変更できるようにします。
+
+| 項目                                           | 設定値（デフォルト） | 説明                                                                                      |
+| ---------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| `cosno.throughputMode`                         | `Serverless`         | スループット方式（`Manual` / `Autoscale` / `Serverless`）                                 |
+| `cosno.manualThroughputRu`                     | `400`                | `Manual` 時の RU/s                                                                        |
+| `cosno.autoscaleMaxThroughputRu`               | `1000`               | `Autoscale` 時の最大 RU/s                                                                 |
+| `cosno.backupPolicyType`                       | `Periodic`           | バックアップ方式。`Periodic` または `Continuous`                                          |
+| `cosno.periodicBackupIntervalInMinutes`        | `240`                | `Periodic` 時のバックアップ間隔（分）                                                     |
+| `cosno.periodicBackupRetentionIntervalInHours` | `8`                  | `Periodic` 時の保持時間（時間）                                                           |
+| `cosno.periodicBackupStorageRedundancy`        | `Geo`                | `Periodic` 時のバックアップ保存先冗長性（`Geo` / `Local` / `Zone`）                       |
+| `cosno.continuousBackupTier`                   | `Continuous30Days`   | `Continuous` 時の保持ティア（`Continuous7Days` / `Continuous30Days`）                     |
+| `cosno.failoverRegions`                        | `[]`                 | DR 用セカンダリリージョン一覧（優先順）                                                   |
+| `cosno.enableAutomaticFailover`                | `false`              | 自動フェールオーバー有効化                                                                |
+| `cosno.enableMultipleWriteLocations`           | `false`              | 複数リージョン書き込み有効化                                                              |
+| `cosno.consistencyLevel`                       | `Session`            | 既定整合性（`Strong` / `BoundedStaleness` / `Session` / `ConsistentPrefix` / `Eventual`） |
+| `cosno.disableLocalAuth`                       | `false`              | ローカル認証（キー/SAS）無効化                                                            |
+| `cosno.disableKeyBasedMetadataWriteAccess`     | `false`              | キーベースのメタデータ書き込み無効化                                                      |
+
+補足:
+
+- `backupPolicyType=Periodic` の場合は `periodic*` パラメータを利用します。
+- `backupPolicyType=Continuous` の場合は `continuousBackupTier` を利用します。
+- 単一リージョン運用は `failoverRegions=[]`（デフォルト）です。
+- `throughputMode=Manual` の場合は `manualThroughputRu` を利用します。
+- `throughputMode=Autoscale` の場合は `autoscaleMaxThroughputRu` を利用します。
+- `throughputMode=Serverless` の場合は RU/s パラメータを利用しません。
 
 ## 認証・アクセス方針
 
 - 本番用途ではキー直接配布を避け、Managed Identity + RBAC を優先します。
-- 必要に応じて `disableLocalAuth=true` を検討します。
-- Data Plane RBAC（Cosmos DB Built-in Data Reader/Contributor など）は、デプロイ後に Azure Portal / IaC で付与します。
+- `cosno.disableLocalAuth` でローカル認証（キー/SAS）を制御します（デフォルト: `false`）。
+- `cosno.disableKeyBasedMetadataWriteAccess` でキーベースのメタデータ更新可否を制御します（デフォルト: `false`）。
+- Data Plane RBAC（Cosmos DB Built-in Data Reader/Contributor など）の具体的なロール割り当ては **IaC 対象外** とし、デプロイ後に Azure Portal で設定します。
+
+## キー管理方式
+
+- 本設計では **MMK（Microsoft-managed key）を前提** とします。
+- そのため、Cosmos DB 側で `keyVaultKeyUri` は設定しません。
+- CMK（Customer-managed key）は本設計の対象外とし、将来要件が出た場合に別途設計します。
 
 ## ネットワーク方針
 
@@ -115,17 +156,3 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 | 場所               | global                                                          | location                       |
 | 自動登録           | false                                                           | properties.registrationEnabled |
 | 仮想ネットワークID | id(vnet-[common.environmentName]-[common.systemName])           | properties.virtualNetwork.id   |
-
-## 運用保護項目（要件に応じて選択）
-
-- バックアップポリシー（連続バックアップ or 定期バックアップ）
-- キー管理方式（カスタマーマネージドキーの採用有無）
-- 多地域構成（DR 要件）
-
-## 未確定項目（実装前に決定）
-
-- API 種別（NoSQL / MongoDB / Cassandra / Gremlin / Table）
-- SQL Database / Container の命名とパーティション設計
-- スループット方式（手動 / Autoscale / Serverless）
-- バックアップ方式と保持要件
-- アクセス制御方式（RBAC / キーベース / Local Auth 無効化）

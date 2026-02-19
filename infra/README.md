@@ -11,7 +11,7 @@
   - エントリーポイント。パラメータ生成とデプロイを順序制御します。
 - `common.parameter.json`
   - 共通パラメータと、どのリソースをデプロイ対象にするか（実行可否）を管理します。
-  - `common` / `network` / `aks` / `postgres` / `resourceToggles` の親オブジェクトで分類しています。
+  - `common` / `network` / `aks` / `postgres` / `cosno` / `resourceToggles` の親オブジェクトで分類しています。
 - `bicep/`
   - リソース単位の Bicep 本体。
 - `scripts/`
@@ -294,6 +294,104 @@ Azure Database for PostgreSQL Flexible Server のメンテナンスウィンド�
 - `startHour`: `0`〜`23`（UTC）
 - `startMinute`: `0`〜`59`（UTC）
 
+### cosno.backupPolicyType
+
+Cosmos DB のバックアップ方式を指定します。
+
+- `Periodic`（デフォルト）: 定期バックアップ
+- `Continuous`: 連続バックアップ（PITR）
+
+### cosno.throughputMode
+
+Cosmos DB（NoSQL API）のスループット方式を指定します。
+
+- デフォルト: `Serverless`
+- 選択肢: `Manual` / `Autoscale` / `Serverless`
+
+### cosno.manualThroughputRu
+
+`cosno.throughputMode=Manual` の場合に利用する RU/s です。
+
+- デフォルト: `400`
+- 推奨下限: `400`
+
+### cosno.autoscaleMaxThroughputRu
+
+`cosno.throughputMode=Autoscale` の場合に利用する最大 RU/s です。
+
+- デフォルト: `1000`
+- 推奨下限: `1000`
+
+### cosno.periodicBackupIntervalInMinutes
+
+`cosno.backupPolicyType=Periodic` の場合に利用するバックアップ間隔（分）です。
+
+- デフォルト: `240`（4時間）
+- 設定範囲: `60`〜`1440`
+
+### cosno.periodicBackupRetentionIntervalInHours
+
+`cosno.backupPolicyType=Periodic` の場合に利用するバックアップ保持時間（時間）です。
+
+- デフォルト: `8`（2世代相当）
+- 設定範囲: `8`〜`720`
+- 注意: 値は `periodicBackupIntervalInMinutes` の2倍以上が必要です。
+
+### cosno.periodicBackupStorageRedundancy
+
+`cosno.backupPolicyType=Periodic` の場合に利用するバックアップ保存先冗長性です。
+
+- デフォルト: `Geo`
+- 主な選択肢: `Geo` / `Local` / `Zone`
+
+### cosno.continuousBackupTier
+
+`cosno.backupPolicyType=Continuous` の場合に利用する連続バックアップ層です。
+
+- デフォルト: `Continuous30Days`
+- 選択肢: `Continuous7Days` / `Continuous30Days`
+
+### cosno.failoverRegions
+
+Cosmos DB の DR 用セカンダリリージョン一覧です（優先順）。
+
+- デフォルト: `[]`（単一リージョン運用）
+- 例: `["japanwest"]`
+
+### cosno.enableAutomaticFailover
+
+Cosmos DB の自動フェールオーバーを有効化するかどうかです。
+
+- デフォルト: `false`
+- `true` の場合、`cosno.failoverRegions` に1件以上のリージョン設定が必要です。
+
+### cosno.enableMultipleWriteLocations
+
+Cosmos DB の複数リージョン書き込み（マルチマスター）を有効化するかどうかです。
+
+- デフォルト: `false`
+
+### cosno.consistencyLevel
+
+Cosmos DB の既定整合性レベルです。
+
+- デフォルト: `Session`
+- 選択肢: `Strong` / `BoundedStaleness` / `Session` / `ConsistentPrefix` / `Eventual`
+
+### cosno.disableLocalAuth
+
+Cosmos DB のキー/SAS などローカル認証を無効化するかどうかです。
+
+- デフォルト: `false`（ローカル認証有効）
+- `true`: ローカル認証を無効化（Entra/RBAC 中心運用）
+
+### cosno.disableKeyBasedMetadataWriteAccess
+
+Cosmos DB のキーによるメタデータ書き込みを無効化するかどうかです。
+
+- デフォルト: `false`
+- `true`: キーベースのメタデータ更新を制限
+
 ### resourceToggles
 
 リソース単位の実行可否です。
@@ -307,6 +405,7 @@ Azure Database for PostgreSQL Flexible Server のメンテナンスウィンド�
 - `applicationGateway`
 - `acr`
 - `storage`
+- `cosmosDatabase`
 - `postgresDatabase`
 - `keyVault`
 - `aks`
@@ -358,6 +457,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
   - ACR
   - Storage Account
   - PostgreSQL Flexible Server
+  - Cosmos DB (NoSQL)
   - Key Vault
   - AKS
   - Maintenance VM
@@ -375,6 +475,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `application-gateway.bicepparam`
 - `acr.bicepparam`
 - `storage.bicepparam`
+- `cosmos-database.bicepparam`
 - `postgres-database.bicepparam`
 - `key-vault.bicepparam`
 - `aks.bicepparam`

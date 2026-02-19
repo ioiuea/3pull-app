@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -116,6 +117,7 @@ def main() -> int:
     network_values = common.get("network")
     aks_values = common.get("aks")
     postgres_values = common.get("postgres")
+    cosno_values = common.get("cosno")
 
     if not isinstance(common_values, dict):
         errors.append("common: object で指定してください。")
@@ -129,6 +131,9 @@ def main() -> int:
     if not isinstance(postgres_values, dict):
         errors.append("postgres: object で指定してください。")
         postgres_values = {}
+    if not isinstance(cosno_values, dict):
+        errors.append("cosno: object で指定してください。")
+        cosno_values = {}
 
     # 基本識別子
     as_non_empty_str(common_values.get("location"), "common.location", errors)
@@ -288,6 +293,122 @@ def main() -> int:
             if start_minute is not None and not (0 <= start_minute <= 59):
                 errors.append("postgres.maintenanceWindow.startMinute: 0〜59 の範囲で指定してください。")
 
+    # Cosmos DB(NoSQL) スループット設定
+    throughput_mode = as_non_empty_str(
+        cosno_values.get("throughputMode"),
+        "cosno.throughputMode",
+        errors,
+    )
+    if throughput_mode is not None and throughput_mode not in ["Manual", "Autoscale", "Serverless"]:
+        errors.append("cosno.throughputMode: Manual / Autoscale / Serverless のいずれかを指定してください。")
+
+    manual_throughput = as_int(
+        cosno_values.get("manualThroughputRu"),
+        "cosno.manualThroughputRu",
+        errors,
+    )
+    if manual_throughput is not None and manual_throughput < 400:
+        errors.append("cosno.manualThroughputRu: 400 以上の整数を指定してください。")
+
+    autoscale_max_throughput = as_int(
+        cosno_values.get("autoscaleMaxThroughputRu"),
+        "cosno.autoscaleMaxThroughputRu",
+        errors,
+    )
+    if autoscale_max_throughput is not None and autoscale_max_throughput < 1000:
+        errors.append("cosno.autoscaleMaxThroughputRu: 1000 以上の整数を指定してください。")
+
+    # Cosmos DB(NoSQL) バックアップ設定
+    backup_policy_type = as_non_empty_str(cosno_values.get("backupPolicyType"), "cosno.backupPolicyType", errors)
+    if backup_policy_type is not None and backup_policy_type not in ["Periodic", "Continuous"]:
+        errors.append("cosno.backupPolicyType: Periodic または Continuous を指定してください。")
+
+    periodic_interval = as_int(
+        cosno_values.get("periodicBackupIntervalInMinutes"),
+        "cosno.periodicBackupIntervalInMinutes",
+        errors,
+    )
+    if periodic_interval is not None and not (60 <= periodic_interval <= 1440):
+        errors.append("cosno.periodicBackupIntervalInMinutes: 60〜1440 の範囲で指定してください。")
+
+    periodic_retention = as_int(
+        cosno_values.get("periodicBackupRetentionIntervalInHours"),
+        "cosno.periodicBackupRetentionIntervalInHours",
+        errors,
+    )
+    if periodic_retention is not None and not (8 <= periodic_retention <= 720):
+        errors.append("cosno.periodicBackupRetentionIntervalInHours: 8〜720 の範囲で指定してください。")
+
+    periodic_redundancy = as_non_empty_str(
+        cosno_values.get("periodicBackupStorageRedundancy"),
+        "cosno.periodicBackupStorageRedundancy",
+        errors,
+    )
+    if periodic_redundancy is not None and periodic_redundancy not in ["Geo", "Local", "Zone"]:
+        errors.append("cosno.periodicBackupStorageRedundancy: Geo / Local / Zone のいずれかを指定してください。")
+
+    continuous_tier = as_non_empty_str(
+        cosno_values.get("continuousBackupTier"),
+        "cosno.continuousBackupTier",
+        errors,
+    )
+    if continuous_tier is not None and continuous_tier not in ["Continuous7Days", "Continuous30Days"]:
+        errors.append("cosno.continuousBackupTier: Continuous7Days / Continuous30Days のいずれかを指定してください。")
+
+    if backup_policy_type == "Periodic" and periodic_interval is not None and periodic_retention is not None:
+        min_retention_hours = math.ceil((periodic_interval * 2) / 60)
+        if periodic_retention < min_retention_hours:
+            errors.append(
+                "cosno.periodicBackupRetentionIntervalInHours: "
+                "periodicBackupIntervalInMinutes の2倍以上の保持時間を指定してください。"
+            )
+
+    failover_regions = cosno_values.get("failoverRegions")
+    if not isinstance(failover_regions, list):
+        errors.append("cosno.failoverRegions: 文字列配列で指定してください（未指定は空配列）。")
+    else:
+        for i, region in enumerate(failover_regions):
+            if not isinstance(region, str) or region.strip() == "":
+                errors.append(f"cosno.failoverRegions[{i}]: 空でないリージョン名文字列を指定してください。")
+
+    as_bool(
+        cosno_values.get("enableAutomaticFailover"),
+        "cosno.enableAutomaticFailover",
+        errors,
+    )
+    as_bool(
+        cosno_values.get("enableMultipleWriteLocations"),
+        "cosno.enableMultipleWriteLocations",
+        errors,
+    )
+    as_bool(
+        cosno_values.get("disableLocalAuth"),
+        "cosno.disableLocalAuth",
+        errors,
+    )
+    as_bool(
+        cosno_values.get("disableKeyBasedMetadataWriteAccess"),
+        "cosno.disableKeyBasedMetadataWriteAccess",
+        errors,
+    )
+
+    consistency_level = as_non_empty_str(
+        cosno_values.get("consistencyLevel"),
+        "cosno.consistencyLevel",
+        errors,
+    )
+    if consistency_level is not None and consistency_level not in [
+        "Strong",
+        "BoundedStaleness",
+        "Session",
+        "ConsistentPrefix",
+        "Eventual",
+    ]:
+        errors.append(
+            "cosno.consistencyLevel: "
+            "Strong / BoundedStaleness / Session / ConsistentPrefix / Eventual のいずれかを指定してください。"
+        )
+
     # リソース実行トグル
     toggles = common.get("resourceToggles")
     expected_toggle_keys = [
@@ -299,6 +420,7 @@ def main() -> int:
         "applicationGateway",
         "acr",
         "storage",
+        "cosmosDatabase",
         "postgresDatabase",
         "keyVault",
         "aks",

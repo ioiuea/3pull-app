@@ -44,6 +44,22 @@
       "startMinute": 0
     }
   },
+  "cosno": {
+    "throughputMode": "Serverless",
+    "manualThroughputRu": 400,
+    "autoscaleMaxThroughputRu": 1000,
+    "backupPolicyType": "Periodic",
+    "periodicBackupIntervalInMinutes": 240,
+    "periodicBackupRetentionIntervalInHours": 8,
+    "periodicBackupStorageRedundancy": "Geo",
+    "continuousBackupTier": "Continuous30Days",
+    "failoverRegions": [],
+    "enableAutomaticFailover": false,
+    "enableMultipleWriteLocations": false,
+    "consistencyLevel": "Session",
+    "disableLocalAuth": false,
+    "disableKeyBasedMetadataWriteAccess": false
+  },
   "resourceToggles": {
     "logAnalytics": false,
     "applicationInsights": false,
@@ -53,7 +69,8 @@
     "applicationGateway": false,
     "acr": false,
     "storage": false,
-    "postgresDatabase": true,
+    "cosmosDatabase": true,
+    "postgresDatabase": false,
     "keyVault": false,
     "aks": false,
     "maintenanceVm": false
