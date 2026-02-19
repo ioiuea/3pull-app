@@ -14,6 +14,19 @@
 | パージ保護 | true | properties.enablePurgeProtection |
 | 論理削除保持日数 | 90 | properties.softDeleteRetentionInDays |
 
+## 診断設定
+
+- 対象: Key Vault 本体（`Microsoft.KeyVault/vaults`）
+- ログ: `allLogs`, `audit`
+- メトリック: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- Key Vault 本体に削除ロックを適用
+- Private Endpoint に削除ロックを適用
+- Private DNS ゾーンに削除ロックを適用（`network.enableCentralizedPrivateDns=false` の場合のみ）
+
 ## リソース命名規則
 
 - CAF の省略形ルールに準拠し、Key Vault は `kv` を利用します。

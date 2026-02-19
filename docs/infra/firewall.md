@@ -10,6 +10,21 @@
 | 場所       | [common.location]                   | location                  |
 | FWポリシー | afwp-[common.environmentName]-[common.systemName] | properties.FirewallPolicy |
 
+## 診断設定
+
+- 対象1: Azure Firewall（`Microsoft.Network/azureFirewalls`）
+  - ログ: `allLogs`
+  - メトリック: `allMetrics`
+- 対象2: Firewall 用 Public IP（`Microsoft.Network/publicIPAddresses`）
+  - メトリック: `AllMetrics`
+- 送信先: Log Analytics
+
+## 削除ロック
+
+- Azure Firewall 本体に削除ロックを適用
+- Firewall Policy に削除ロックを適用（Policy 新規作成時のみ）
+- Firewall 用 Public IP に削除ロックを適用
+
 ## IP構成
 
 | 項目                   | 設定値                                     | Bicepプロパティ名                                         |
