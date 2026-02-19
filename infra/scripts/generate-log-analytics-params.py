@@ -29,6 +29,8 @@ common = json.loads(common_path.read_text(encoding="utf-8"))
 config = json.loads(config_path.read_text(encoding="utf-8"))
 
 common_values = common.get("common", {})
+enable_resource_lock = bool(common_values.get("enableResourceLock", True))
+lock_kind = config.get("lockKind", "CanNotDelete") if enable_resource_lock else ""
 environment_name = common_values.get("environmentName", "")
 system_name = common_values.get("systemName", "")
 location = common_values.get("location", "")
@@ -60,7 +62,7 @@ params_file.write_text(
             + quote(config.get("publicNetworkAccessForIngestion", "Disabled")),
             "param publicNetworkAccessForQuery = "
             + quote(config.get("publicNetworkAccessForQuery", "Enabled")),
-            f"param lockKind = {quote(config.get('lockKind', 'CanNotDelete'))}",
+            f"param lockKind = {quote(lock_kind)}",
             f"param logAnalyticsSku = {quote(config.get('logAnalyticsSku', 'PerGB2018'))}",
             f"param logAnalyticsName = {quote(log_analytics_name)}",
             "",

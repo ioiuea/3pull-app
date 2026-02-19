@@ -80,4 +80,4 @@ make all-ci
 
 - `.github/workflows/ci.yml`
 - `Makefile`
-- `docs/test-code.md`
+- `docs/apps/test-code.md`

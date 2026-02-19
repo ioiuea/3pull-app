@@ -62,15 +62,7 @@ resource nsgDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-previe
       logAnalyticsDestinationType: 'Dedicated'
       logs: [
         {
-          category: 'NetworkSecurityGroupEvent'
-          enabled: true
-          retentionPolicy: {
-            enabled: false
-            days: 0
-          }
-        }
-        {
-          category: 'NetworkSecurityGroupRuleCounter'
+          categoryGroup: 'allLogs'
           enabled: true
           retentionPolicy: {
             enabled: false
