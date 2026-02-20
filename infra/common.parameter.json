@@ -1,14 +1,30 @@
 {
   "common": {
     "location": "japaneast",
-    "environmentName": "hubspo",
+    "environmentName": "dev",
     "systemName": "3pull",
-    "enableResourceLock": false
+    "enableResourceLock": true
+  },
+  "resourceToggles": {
+    "logAnalytics": true,
+    "applicationInsights": true,
+    "virtualNetwork": true,
+    "subnets": true,
+    "firewall": true,
+    "applicationGateway": true,
+    "acr": true,
+    "storage": true,
+    "redis": true,
+    "cosmosDatabase": true,
+    "postgresDatabase": true,
+    "keyVault": true,
+    "aks": true,
+    "maintenanceVm": true
   },
   "network": {
     "enableFirewallIdps": false,
     "enableGatewayRoutePropagation": false,
-    "enableCentralizedPrivateDns": true,
+    "enableCentralizedPrivateDns": false,
     "enableDdosProtection": false,
     "ddosProtectionPlanId": "",
     "vnetAddressPrefixes": [
@@ -16,9 +32,9 @@
       "10.189.129.0/24",
       "10.189.130.0/24"
     ],
-    "vnetDnsServers": ["10.47.80.10"],
-    "sharedBastionIp": "10.47.80.20",
-    "egressNextHopIp": "10.47.80.10"
+    "vnetDnsServers": [],
+    "sharedBastionIp": "",
+    "egressNextHopIp": ""
   },
   "aks": {
     "userPoolVmSize": "standard_d4s_v4",
@@ -46,13 +62,14 @@
   },
   "redis": {
     "skuName": "Basic",
-    "capacity": 1,
+    "capacity": 0,
     "shardCount": 1,
     "scaleStrategy": "vertical",
     "zonalAllocationPolicy": "Automatic",
     "zones": [],
     "replicasPerMaster": 1,
     "enableGeoReplication": false,
+    "enableMicrosoftEntraAuthentication": true,
     "disableAccessKeyAuthentication": false,
     "enableCustomMaintenanceWindow": false,
     "maintenanceWindow": {
@@ -80,21 +97,5 @@
     "consistencyLevel": "Session",
     "disableLocalAuth": false,
     "disableKeyBasedMetadataWriteAccess": false
-  },
-  "resourceToggles": {
-    "logAnalytics": true,
-    "applicationInsights": true,
-    "virtualNetwork": true,
-    "subnets": true,
-    "firewall": true,
-    "applicationGateway": true,
-    "acr": true,
-    "storage": true,
-    "redis": true,
-    "cosmosDatabase": true,
-    "postgresDatabase": true,
-    "keyVault": true,
-    "aks": true,
-    "maintenanceVm": true
   }
 }

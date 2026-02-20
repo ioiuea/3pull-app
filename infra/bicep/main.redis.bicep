@@ -63,6 +63,9 @@ param replicasPerMaster int = 1
 @description('Geo レプリケーションを有効化するか（現時点では将来拡張用）')
 param enableGeoReplication bool = false
 
+@description('Microsoft Entra 認証を有効化するか')
+param enableMicrosoftEntraAuthentication bool = true
+
 @description('AccessKey 認証を無効化するか')
 param disableAccessKeyAuthentication bool = false
 
@@ -138,6 +141,9 @@ var redisPropertiesBase = {
   minimumTlsVersion: minimumTlsVersion
   publicNetworkAccess: publicNetworkAccess
   disableAccessKeyAuthentication: disableAccessKeyAuthentication
+  redisConfiguration: {
+    'aad-enabled': enableMicrosoftEntraAuthentication ? 'true' : 'false'
+  }
 }
 
 var redisPropertiesPremium = isPremium

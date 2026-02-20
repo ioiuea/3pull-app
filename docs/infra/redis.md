@@ -63,9 +63,13 @@
 ## 認証・アクセス方針
 
 - 基本方針は Microsoft Entra 認証と Access Key 認証の併用です。
+- `infra/common.parameter.json` の `redis.enableMicrosoftEntraAuthentication` で Entra 認証の有効/無効を制御します。
+  - `true`（デフォルト）: Entra 認証有効
+  - `false`: Entra 認証無効
 - `infra/common.parameter.json` の `redis.disableAccessKeyAuthentication` で Access Key 認証の無効化を選択できます。
   - `false`（デフォルト）: Entra + Access Key 併用
   - `true`: Access Key 無効化（Entra のみ）
+- `redis.disableAccessKeyAuthentication=true` を指定する場合は、`redis.enableMicrosoftEntraAuthentication=true` が必要です。
 - アプリ接続は `6380/TLS` を前提とします（非 TLS ポートは無効）。
 - Entra の具体的なロール割り当て主体（Managed Identity / グループ）は、アプリ要件に依存するため IaC 対象外とし、構築後に Azure Portal で設定します。
 

@@ -486,12 +486,21 @@ Redis のスケール方針（運用設計上の補助パラメータ）です�
   - `redis.replicasPerMaster=1` を指定
 - `Basic` / `Standard` の場合、この値を `true` にしても無視されます。
 
+### redis.enableMicrosoftEntraAuthentication
+
+Microsoft Entra 認証を有効化するかどうかです。
+
+- デフォルト: `true`（有効）
+- `true`: Entra 認証を有効化
+- `false`: Entra 認証を無効化
+
 ### redis.disableAccessKeyAuthentication
 
 Access Key 認証（Primary/Secondary Key）を無効化するかどうかです。
 
 - デフォルト: `false`（Entra + Access Key の併用運用）
 - `true`: Access Key 認証を無効化（Entra 認証のみ）
+- 注意: `true` を指定する場合は `redis.enableMicrosoftEntraAuthentication=true` が必要です。
 
 ### redis.enableCustomMaintenanceWindow
 

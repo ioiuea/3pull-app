@@ -371,6 +371,11 @@ def main() -> int:
         "redis.enableGeoReplication",
         errors,
     )
+    redis_enable_microsoft_entra_authentication = as_bool(
+        redis_values.get("enableMicrosoftEntraAuthentication"),
+        "redis.enableMicrosoftEntraAuthentication",
+        errors,
+    )
     as_bool(
         redis_values.get("disableAccessKeyAuthentication"),
         "redis.disableAccessKeyAuthentication",
@@ -390,6 +395,15 @@ def main() -> int:
             errors.append("redis.enableGeoReplication=true は redis.skuName=Premium の場合のみ指定できます。")
         if redis_replicas_per_master is not None and redis_replicas_per_master != 1:
             errors.append("redis.enableGeoReplication=true の場合は redis.replicasPerMaster=1 を指定してください。")
+
+    if (
+        redis_values.get("disableAccessKeyAuthentication") is True
+        and redis_enable_microsoft_entra_authentication is False
+    ):
+        errors.append(
+            "redis.disableAccessKeyAuthentication=true の場合は "
+            "redis.enableMicrosoftEntraAuthentication=true を指定してください。"
+        )
 
     redis_enable_custom_mw = as_bool(
         redis_values.get("enableCustomMaintenanceWindow"),

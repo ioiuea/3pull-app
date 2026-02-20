@@ -105,6 +105,8 @@ lines = [
     f"param zones = {json.dumps(redis_values.get('zones', []), ensure_ascii=False)}",
     f"param replicasPerMaster = {int(redis_values.get('replicasPerMaster', 1))}",
     f"param enableGeoReplication = {'true' if bool(redis_values.get('enableGeoReplication', False)) else 'false'}",
+    "param enableMicrosoftEntraAuthentication = "
+    f"{'true' if bool(redis_values.get('enableMicrosoftEntraAuthentication', True)) else 'false'}",
     "param disableAccessKeyAuthentication = "
     f"{'true' if bool(redis_values.get('disableAccessKeyAuthentication', False)) else 'false'}",
     "param enableCustomMaintenanceWindow = "
