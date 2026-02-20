@@ -312,6 +312,14 @@ uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app \
 
 [`docs/infra/firewall.md`](docs/infra/firewall.md)
 
+### Log Analytics
+
+[`docs/infra/log-analytics.md`](docs/infra/log-analytics.md)
+
+### Application Insights
+
+[`docs/infra/application-insights.md`](docs/infra/application-insights.md)
+
 ### Azure Container Registry
 
 [`docs/infra/acr.md`](docs/infra/acr.md)
@@ -323,3 +331,19 @@ uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app \
 ### Key Vault
 
 [`docs/infra/kv.md`](docs/infra/kv.md)
+
+### Azure Database for PostgreSQL Flexible Server
+
+[`docs/infra/postgres-database.md`](docs/infra/postgres-database.md)
+
+### Azure Cosmos DB (NoSQL)
+
+[`docs/infra/cosmos-database.md`](docs/infra/cosmos-database.md)
+
+### Azure Cache for Redis
+
+[`docs/infra/redis.md`](docs/infra/redis.md)
+
+### Maintenance VM
+
+[`docs/infra/maint-vm.md`](docs/infra/maint-vm.md)
