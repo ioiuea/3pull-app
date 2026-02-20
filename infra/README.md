@@ -11,7 +11,7 @@
   - エントリーポイント。パラメータ生成とデプロイを順序制御します。
 - `common.parameter.json`
   - 共通パラメータと、どのリソースをデプロイ対象にするか（実行可否）を管理します。
-  - `common` / `network` / `aks` / `postgres` / `cosno` / `resourceToggles` の親オブジェクトで分類しています。
+  - `common` / `network` / `aks` / `postgres` / `redis` / `cosno` / `resourceToggles` の親オブジェクトで分類しています。
 - `bicep/`
   - リソース単位の Bicep 本体。
 - `scripts/`
@@ -294,6 +294,133 @@ Azure Database for PostgreSQL Flexible Server のメンテナンスウィンド�
 - `startHour`: `0`〜`23`（UTC）
 - `startMinute`: `0`〜`59`（UTC）
 
+### redis.skuName
+
+Azure Cache for Redis の SKU レベルです。
+
+- デフォルト: `Basic`（Azure の最小構成例）
+- 選択肢: `Basic` / `Standard` / `Premium`
+- `family` は `skuName` に応じて自動決定します。
+  - `Basic` / `Standard` の場合: `C`
+  - `Premium` の場合: `P`
+
+### redis.capacity
+
+Azure Cache for Redis の容量サイズです。
+
+- デフォルト: `0`（`C0`）
+- 制約:
+  - `Basic` / `Standard`: `0`〜`6`
+  - `Premium`: `1`〜`6`
+
+### redis.shardCount
+
+Azure Cache for Redis のシャード数です（主に Premium のクラスタ用途）。
+
+- デフォルト: `1`
+- 設定値: `1` 以上
+- 補足: `redis.skuName` が `Basic` / `Standard` の場合、この値は指定しても無視されます。
+
+### redis.scaleStrategy
+
+Redis のスケール方針（運用設計上の補助パラメータ）です。
+
+- デフォルト: `vertical`
+- 選択肢: `vertical` / `horizontal`
+
+### redis.zonalAllocationPolicy
+
+ゾーン配置ポリシーです。
+
+- デフォルト: `Automatic`
+- 選択肢: `Automatic` / `NoZones` / `UserDefined`
+- 補足:
+  - `Basic` / `Standard` ではこの設定は実質利用されず、`Automatic` 固定で扱います。
+  - `NoZones` / `UserDefined` は Premium のみ指定可能です。
+  - `Basic` / `Standard` の場合、この値を指定しても無視されます。
+
+### redis.zones
+
+`redis.zonalAllocationPolicy=UserDefined` の場合に利用するゾーン指定です。
+
+- デフォルト: `[]`（未指定）
+- 指定値: `"1"` / `"2"` / `"3"` の配列
+- 注意: Premium のみ利用可能です。
+- `Basic` / `Standard` の場合、この値を指定しても無視されます。
+
+### redis.replicasPerMaster
+
+プライマリあたりのレプリカ数です（冗長度設定）。
+
+- デフォルト: `1`（Azure 既定値ベース）
+- 設定値: `0` 以上
+- 注意: Basic / Standard では `1` 固定で扱います。
+- `Basic` / `Standard` の場合、この値を指定しても無視されます。
+
+### redis.enableGeoReplication
+
+リージョン間レプリケーションを有効化するかどうかです。
+
+- デフォルト: `false`（Azure 既定）
+- `true` の場合:
+  - `redis.skuName=Premium` が必要
+  - `redis.replicasPerMaster=1` を指定
+- `Basic` / `Standard` の場合、この値を `true` にしても無視されます。
+
+### redis.disableAccessKeyAuthentication
+
+Access Key 認証（Primary/Secondary Key）を無効化するかどうかです。
+
+- デフォルト: `false`（Entra + Access Key の併用運用）
+- `true`: Access Key 認証を無効化（Entra 認証のみ）
+
+### redis.enableCustomMaintenanceWindow
+
+Azure Cache for Redis のメンテナンスウィンドウをカスタム指定するかどうかです。
+
+- `false`（デフォルト）: システム管理スケジュールを利用
+- `true`: `redis.maintenanceWindow` の値を利用して固定化
+
+### redis.maintenanceWindow
+
+`redis.enableCustomMaintenanceWindow=true` の場合に利用するメンテナンスウィンドウ設定です。
+
+- `dayOfWeek`: `0`〜`6`（曜日）
+- `startHour`: `0`〜`23`（UTC）
+- `duration`: ISO 8601 形式（例: `PT5H`）
+
+### redis.enableRdbBackup
+
+Azure Cache for Redis の RDB 永続化バックアップを有効化するかどうかです。
+
+- `false`（デフォルト）: バックアップ無効（Azure の既定状態）
+- `true`: RDB バックアップ有効
+- 注意: `redis.skuName=Premium` の場合のみ有効です。`Basic` / `Standard` では指定しても無視されます。
+
+### redis.rdbBackupFrequencyInMinutes
+
+`redis.enableRdbBackup=true` の場合に利用するバックアップ間隔（分）です。
+
+- デフォルト: `60`
+- 設定可能値: `15` / `30` / `60` / `360` / `720` / `1440`
+- `redis.skuName=Premium` かつ `redis.enableRdbBackup=true` の場合のみ利用されます。
+
+### redis.rdbBackupMaxSnapshotCount
+
+`redis.enableRdbBackup=true` の場合に保持するスナップショット数です。
+
+- デフォルト: `1`
+- 設定値: `1` 以上の整数
+- `redis.skuName=Premium` かつ `redis.enableRdbBackup=true` の場合のみ利用されます。
+
+### redis.rdbStorageConnectionString
+
+`redis.enableRdbBackup=true` の場合に利用する保存先ストレージの接続文字列です。
+
+- デフォルト: 空文字（未設定）
+- `redis.enableRdbBackup=true` の場合は必須
+- `redis.skuName=Premium` かつ `redis.enableRdbBackup=true` の場合のみ利用されます。
+
 ### cosno.backupPolicyType
 
 Cosmos DB のバックアップ方式を指定します。
@@ -405,6 +532,7 @@ Cosmos DB のキーによるメタデータ書き込みを無効化するかど�
 - `applicationGateway`
 - `acr`
 - `storage`
+- `redis`
 - `cosmosDatabase`
 - `postgresDatabase`
 - `keyVault`
@@ -456,6 +584,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - service
   - ACR
   - Storage Account
+  - Redis
   - PostgreSQL Flexible Server
   - Cosmos DB (NoSQL)
   - Key Vault
@@ -475,6 +604,7 @@ MAINT_VM_ADMIN_PASSWORD='YourStrongPassword!' ./main.sh
 - `application-gateway.bicepparam`
 - `acr.bicepparam`
 - `storage.bicepparam`
+- `redis.bicepparam`
 - `cosmos-database.bicepparam`
 - `postgres-database.bicepparam`
 - `key-vault.bicepparam`

@@ -44,6 +44,27 @@
       "startMinute": 0
     }
   },
+  "redis": {
+    "skuName": "Basic",
+    "capacity": 0,
+    "shardCount": 1,
+    "scaleStrategy": "vertical",
+    "zonalAllocationPolicy": "Automatic",
+    "zones": [],
+    "replicasPerMaster": 1,
+    "enableGeoReplication": false,
+    "disableAccessKeyAuthentication": false,
+    "enableCustomMaintenanceWindow": false,
+    "maintenanceWindow": {
+      "dayOfWeek": 0,
+      "startHour": 3,
+      "duration": "PT5H"
+    },
+    "enableRdbBackup": false,
+    "rdbBackupFrequencyInMinutes": 60,
+    "rdbBackupMaxSnapshotCount": 1,
+    "rdbStorageConnectionString": ""
+  },
   "cosno": {
     "throughputMode": "Serverless",
     "manualThroughputRu": 400,
@@ -69,7 +90,8 @@
     "applicationGateway": false,
     "acr": false,
     "storage": false,
-    "cosmosDatabase": true,
+    "redis": true,
+    "cosmosDatabase": false,
     "postgresDatabase": false,
     "keyVault": false,
     "aks": false,

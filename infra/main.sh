@@ -48,6 +48,10 @@ storage_config_file="$infra_root/config/storage.json"
 storage_script="$infra_root/scripts/generate-storage-params.py"
 storage_meta_file="$params_dir/storage-meta.json"
 
+redis_config_file="$infra_root/config/redis.json"
+redis_script="$infra_root/scripts/generate-redis-params.py"
+redis_meta_file="$params_dir/redis-meta.json"
+
 postgres_config_file="$infra_root/config/postgres-database.json"
 postgres_script="$infra_root/scripts/generate-postgres-database-params.py"
 postgres_meta_file="$params_dir/postgres-database-meta.json"
@@ -154,6 +158,11 @@ fi
 
 if [[ ! -f "$storage_config_file" ]]; then
   echo "storage config file が見つかりません: $storage_config_file" >&2
+  exit 1
+fi
+
+if [[ ! -f "$redis_config_file" ]]; then
+  echo "redis config file が見つかりません: $redis_config_file" >&2
   exit 1
 fi
 
@@ -265,6 +274,13 @@ PARAMS_DIR="$params_dir" \
 OUT_META_FILE="$storage_meta_file" \
 TIMESTAMP="$timestamp" \
 "$storage_script"
+
+COMMON_FILE="$common_file" \
+RESOURCE_CONFIG_FILE="$redis_config_file" \
+PARAMS_DIR="$params_dir" \
+OUT_META_FILE="$redis_meta_file" \
+TIMESTAMP="$timestamp" \
+"$redis_script"
 
 COMMON_FILE="$common_file" \
 RESOURCE_CONFIG_FILE="$postgres_config_file" \
@@ -417,6 +433,16 @@ print(meta.get("resourceGroupName", ""))
 PY
 )"
 
+redis_resource_group_name="$(META_FILE="$redis_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("resourceGroupName", ""))
+PY
+)"
+
 postgres_resource_group_name="$(META_FILE="$postgres_meta_file" python - <<'PY'
 import json
 import os
@@ -533,6 +559,11 @@ if [[ -z "$storage_resource_group_name" ]]; then
   exit 1
 fi
 
+if [[ -z "$redis_resource_group_name" ]]; then
+  echo "redis resourceGroupName が取得できませんでした。config を確認してください。" >&2
+  exit 1
+fi
+
 if [[ -z "$postgres_resource_group_name" ]]; then
   echo "postgres resourceGroupName が取得できませんでした。config を確認してください。" >&2
   exit 1
@@ -631,21 +662,28 @@ if [[ "$storage_resource_group_name" != "$vnet_resource_group_name" && "$storage
     --location "$location" >/dev/null
 fi
 
-if [[ "$postgres_resource_group_name" != "$vnet_resource_group_name" && "$postgres_resource_group_name" != "$subnets_resource_group_name" && "$postgres_resource_group_name" != "$firewall_resource_group_name" && "$postgres_resource_group_name" != "$application_gateway_resource_group_name" && "$postgres_resource_group_name" != "$key_vault_resource_group_name" && "$postgres_resource_group_name" != "$acr_resource_group_name" && "$postgres_resource_group_name" != "$storage_resource_group_name" ]]; then
+if [[ "$redis_resource_group_name" != "$vnet_resource_group_name" && "$redis_resource_group_name" != "$subnets_resource_group_name" && "$redis_resource_group_name" != "$firewall_resource_group_name" && "$redis_resource_group_name" != "$application_gateway_resource_group_name" && "$redis_resource_group_name" != "$key_vault_resource_group_name" && "$redis_resource_group_name" != "$acr_resource_group_name" && "$redis_resource_group_name" != "$storage_resource_group_name" ]]; then
+  echo "==> Ensure Resource Group: $redis_resource_group_name"
+  az group create \
+    --name "$redis_resource_group_name" \
+    --location "$location" >/dev/null
+fi
+
+if [[ "$postgres_resource_group_name" != "$vnet_resource_group_name" && "$postgres_resource_group_name" != "$subnets_resource_group_name" && "$postgres_resource_group_name" != "$firewall_resource_group_name" && "$postgres_resource_group_name" != "$application_gateway_resource_group_name" && "$postgres_resource_group_name" != "$key_vault_resource_group_name" && "$postgres_resource_group_name" != "$acr_resource_group_name" && "$postgres_resource_group_name" != "$storage_resource_group_name" && "$postgres_resource_group_name" != "$redis_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $postgres_resource_group_name"
   az group create \
     --name "$postgres_resource_group_name" \
     --location "$location" >/dev/null
 fi
 
-if [[ "$cosmos_resource_group_name" != "$vnet_resource_group_name" && "$cosmos_resource_group_name" != "$subnets_resource_group_name" && "$cosmos_resource_group_name" != "$firewall_resource_group_name" && "$cosmos_resource_group_name" != "$application_gateway_resource_group_name" && "$cosmos_resource_group_name" != "$key_vault_resource_group_name" && "$cosmos_resource_group_name" != "$acr_resource_group_name" && "$cosmos_resource_group_name" != "$storage_resource_group_name" && "$cosmos_resource_group_name" != "$postgres_resource_group_name" ]]; then
+if [[ "$cosmos_resource_group_name" != "$vnet_resource_group_name" && "$cosmos_resource_group_name" != "$subnets_resource_group_name" && "$cosmos_resource_group_name" != "$firewall_resource_group_name" && "$cosmos_resource_group_name" != "$application_gateway_resource_group_name" && "$cosmos_resource_group_name" != "$key_vault_resource_group_name" && "$cosmos_resource_group_name" != "$acr_resource_group_name" && "$cosmos_resource_group_name" != "$storage_resource_group_name" && "$cosmos_resource_group_name" != "$redis_resource_group_name" && "$cosmos_resource_group_name" != "$postgres_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $cosmos_resource_group_name"
   az group create \
     --name "$cosmos_resource_group_name" \
     --location "$location" >/dev/null
 fi
 
-if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" && "$aks_resource_group_name" != "$acr_resource_group_name" && "$aks_resource_group_name" != "$storage_resource_group_name" && "$aks_resource_group_name" != "$postgres_resource_group_name" && "$aks_resource_group_name" != "$cosmos_resource_group_name" ]]; then
+if [[ "$aks_resource_group_name" != "$vnet_resource_group_name" && "$aks_resource_group_name" != "$subnets_resource_group_name" && "$aks_resource_group_name" != "$firewall_resource_group_name" && "$aks_resource_group_name" != "$application_gateway_resource_group_name" && "$aks_resource_group_name" != "$key_vault_resource_group_name" && "$aks_resource_group_name" != "$acr_resource_group_name" && "$aks_resource_group_name" != "$storage_resource_group_name" && "$aks_resource_group_name" != "$redis_resource_group_name" && "$aks_resource_group_name" != "$postgres_resource_group_name" && "$aks_resource_group_name" != "$cosmos_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $aks_resource_group_name"
   az group create \
     --name "$aks_resource_group_name" \
@@ -673,7 +711,7 @@ if [[ "$subnet_attachments_resource_group_name" != "$vnet_resource_group_name" &
     --location "$location" >/dev/null
 fi
 
-if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$acr_resource_group_name" && "$maintenance_vm_resource_group_name" != "$storage_resource_group_name" && "$maintenance_vm_resource_group_name" != "$postgres_resource_group_name" && "$maintenance_vm_resource_group_name" != "$cosmos_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
+if [[ "$maintenance_vm_resource_group_name" != "$vnet_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnets_resource_group_name" && "$maintenance_vm_resource_group_name" != "$firewall_resource_group_name" && "$maintenance_vm_resource_group_name" != "$application_gateway_resource_group_name" && "$maintenance_vm_resource_group_name" != "$key_vault_resource_group_name" && "$maintenance_vm_resource_group_name" != "$acr_resource_group_name" && "$maintenance_vm_resource_group_name" != "$storage_resource_group_name" && "$maintenance_vm_resource_group_name" != "$redis_resource_group_name" && "$maintenance_vm_resource_group_name" != "$postgres_resource_group_name" && "$maintenance_vm_resource_group_name" != "$cosmos_resource_group_name" && "$maintenance_vm_resource_group_name" != "$aks_resource_group_name" && "$maintenance_vm_resource_group_name" != "$route_tables_resource_group_name" && "$maintenance_vm_resource_group_name" != "$nsgs_resource_group_name" && "$maintenance_vm_resource_group_name" != "$subnet_attachments_resource_group_name" ]]; then
   echo "==> Ensure Resource Group: $maintenance_vm_resource_group_name"
   az group create \
     --name "$maintenance_vm_resource_group_name" \
@@ -1269,17 +1307,18 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# ACR / Storage / PostgreSQL / Cosmos DB / Key Vault / Application Gateway / AKS / Maintenance VM
+# ACR / Storage / Redis / PostgreSQL / Cosmos DB / Key Vault / Application Gateway / AKS / Maintenance VM
 # -----------------------------------------------------------------------------
 # 依存順:
 # 1) ACR (Private Endpoint 用サブネットが先に必要)
 # 2) Storage Account (Private Endpoint 用サブネットが先に必要)
-# 3) PostgreSQL Flexible Server (Private Endpoint 用サブネットが先に必要)
-# 4) Cosmos DB (Private Endpoint 用サブネットが先に必要)
-# 5) Key Vault (Private Endpoint 用サブネットが先に必要)
-# 6) Application Gateway
-# 7) AKS (AGIC 連携先が先に必要)
-# 8) Maintenance VM
+# 3) Redis (Private Endpoint 用サブネットが先に必要)
+# 4) PostgreSQL Flexible Server (Private Endpoint 用サブネットが先に必要)
+# 5) Cosmos DB (Private Endpoint 用サブネットが先に必要)
+# 6) Key Vault (Private Endpoint 用サブネットが先に必要)
+# 7) Application Gateway
+# 8) AKS (AGIC 連携先が先に必要)
+# 9) Maintenance VM
 acr_deploy="$(META_FILE="$acr_meta_file" python - <<'PY'
 import json
 import os
@@ -1340,6 +1379,37 @@ if [[ "$storage_deploy" == "true" ]]; then
     ${what_if:+$what_if}
 else
   echo "==> Skip Storage Account (resourceToggles.storage=false)"
+fi
+
+redis_deploy="$(META_FILE="$redis_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(str(bool(meta.get("deploy", True))).lower())
+PY
+)"
+
+redis_params_file="$(META_FILE="$redis_meta_file" python - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta = json.loads(Path(os.environ["META_FILE"]).read_text(encoding="utf-8"))
+print(meta.get("paramsFile", ""))
+PY
+)"
+
+if [[ "$redis_deploy" == "true" ]]; then
+  echo "==> Deploy Redis"
+  az deployment group create \
+    --name "main-service-redis-${timestamp}" \
+    --resource-group "$redis_resource_group_name" \
+    --parameters "$redis_params_file" \
+    ${what_if:+$what_if}
+else
+  echo "==> Skip Redis (resourceToggles.redis=false)"
 fi
 
 postgres_deploy="$(META_FILE="$postgres_meta_file" python - <<'PY'

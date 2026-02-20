@@ -6,17 +6,44 @@
 | --- | --- | --- |
 | 名前 | redis-[common.environmentName]-[common.systemName] | name |
 | 場所 | [common.location] | location |
-| SKU | Premium (例) | sku.name |
-| SKU Family | P (例) | sku.family |
-| 容量 | 1 (例) | sku.capacity |
+| SKU | [redis.skuName]（デフォルト: Basic） | sku.name |
+| SKU Family | `redis.skuName` に応じて自動設定（Basic/Standard: C, Premium: P） | sku.family |
+| 容量 | [redis.capacity]（デフォルト: 0） | sku.capacity |
+| シャード数 | [redis.shardCount]（デフォルト: 1） | properties.shardCount |
+| スケール方針 | [redis.scaleStrategy]（デフォルト: vertical） | 運用設計パラメータ |
+| ゾーン配置ポリシー | [redis.zonalAllocationPolicy]（デフォルト: Automatic） | properties.zonalAllocationPolicy（Premium のみ） |
+| ゾーン指定 | [redis.zones]（デフォルト: `[]`） | zones |
+| レプリカ数 | [redis.replicasPerMaster]（デフォルト: 1） | properties.replicasPerMaster（Premium のみ） |
+| Geo レプリケーション | [redis.enableGeoReplication]（デフォルト: false） | 将来拡張パラメータ（現時点は情報保持のみ） |
 | TLS 最小バージョン | 1.2 | properties.minimumTlsVersion |
 | 非 TLS ポート | false | properties.enableNonSslPort |
 | パブリックアクセス | Disabled | properties.publicNetworkAccess |
 
+- `redis.skuName` の選択肢: `Basic` / `Standard` / `Premium`
+- `sku.family` は `redis.skuName` から自動決定
+  - `Basic` / `Standard`: `C`
+  - `Premium`: `P`
+- `redis.capacity` の範囲:
+  - `Basic` / `Standard`: `0`〜`6`
+  - `Premium`: `1`〜`6`
+- `redis.zonalAllocationPolicy`:
+  - `Automatic`（Basic / Standard はこの値で固定運用）
+  - `NoZones`
+  - `UserDefined`（Premium のみ）
+- `redis.zones`:
+  - `redis.zonalAllocationPolicy=UserDefined` の場合のみ指定
+  - `"1"` / `"2"` / `"3"` の配列
+  - Premium のみ利用可能
+- `redis.skuName` が `Basic` / `Standard` の場合、Premium 専用パラメータ（`shardCount` / `replicasPerMaster` / `zonalAllocationPolicy` / `zones` / `enableRdbBackup` 系）は指定しても無視されます。
+- `redis.enableGeoReplication=true` の場合:
+  - `redis.skuName=Premium` が必要
+  - `redis.replicasPerMaster=1` を前提
+
 ## 診断設定
 
-- 診断設定は有効化します（`allLogs` / `AllMetrics`）。
-- 実装時は、利用するリソースプロバイダーでサポートされるカテゴリに合わせて設定します。
+- 診断設定は有効化します。
+  - ログ: `allLogs`, `audit`
+  - メトリック: `AllMetrics`
 
 ## 削除ロック
 
@@ -35,15 +62,22 @@
 
 ## 認証・アクセス方針
 
-- 認証キー（Primary/Secondary Key）または Microsoft Entra 認証を利用します。
+- 基本方針は Microsoft Entra 認証と Access Key 認証の併用です。
+- `infra/common.parameter.json` の `redis.disableAccessKeyAuthentication` で Access Key 認証の無効化を選択できます。
+  - `false`（デフォルト）: Entra + Access Key 併用
+  - `true`: Access Key 無効化（Entra のみ）
 - アプリ接続は `6380/TLS` を前提とします（非 TLS ポートは無効）。
-- 詳細な権限設計（ロール・ID 付与）は、要件確定後に追記します。
+- Entra の具体的なロール割り当て主体（Managed Identity / グループ）は、アプリ要件に依存するため IaC 対象外とし、構築後に Azure Portal で設定します。
 
 ## データ構成作成方針
 
 - 本設計では、Azure Cache for Redis 本体までを IaC 対象とします。
 - キー設計、TTL 設計、名前空間設計、アプリ側キャッシュ戦略は **IaC 対象外** とし、
   デプロイ後にアプリ実装・運用設計で管理します。
+
+## デプロイ対象制御
+
+- `infra/common.parameter.json` の `resourceToggles.redis=true` の場合のみデプロイします。
 
 ## ネットワーク方針
 
@@ -68,6 +102,16 @@
 - 許可ソースは `UserNodeSubnet` と `AgentNodeSubnet` の両方です。
 - 宛先ポートは `6380/TCP` を許可対象とします。
 - 受信規則は `docs/infra/network.md` の `nsg-[common.environmentName]-[common.systemName]-pep` に従います。
+
+## 運用時の接続元方針
+
+- 接続元制御は `PrivateEndpointSubnet` に適用する NSG で実施します。
+- デフォルト方針として、Redis Private Endpoint への接続元は以下を許可します。
+  - `UserNodeSubnet`
+  - `AgentNodeSubnet`
+  - `MaintenanceSubnet`
+- 受信規則は `docs/infra/network.md` の `nsg-[common.environmentName]-[common.systemName]-pep` を正として管理します。
+- 追加の接続元要件がある場合は、同 NSG の受信規則を拡張して対応します。
 
 ## Private DNS ゾーン
 
@@ -108,14 +152,22 @@ PEP と Private DNS ゾーンを紐づけるリソース。
 | 自動登録 | false | properties.registrationEnabled |
 | 仮想ネットワークID | id(vnet-[common.environmentName]-[common.systemName]) | properties.virtualNetwork.id |
 
-## 運用保護項目（要件に応じて選択）
+## 可用性設定
 
-- メンテナンスウィンドウの固定化
-- バックアップ/復旧方針（必要な場合）
+### メンテナンスウィンドウ設定
 
-## 未確定項目（実装前に決定）
+- デフォルト: 未設定（Azure システム管理スケジュール）
+- `infra/common.parameter.json` の `redis.enableCustomMaintenanceWindow=false` でシステム管理を利用
+- `redis.enableCustomMaintenanceWindow=true` の場合は、`redis.maintenanceWindow` を使って固定化
+  - `dayOfWeek`: `0`〜`6`（曜日）
+  - `startHour`: `0`〜`23`（UTC）
+  - `duration`: ISO 8601 形式（例: `PT5H`）
 
-- SKU/性能（レベル、容量、スケール方針）
-- 可用性要件（ゾーン冗長・冗長構成の要否）
-- 認証方式（Access Key / Entra）
-- 運用時の接続元（AKS のみ / メンテVM含む）
+### バックアップ設定
+
+- デフォルト: RDB バックアップ無効（Azure 既定）
+- `redis.enableRdbBackup=false` でバックアップ無効のまま利用
+- `redis.enableRdbBackup=true` の場合は、以下を設定
+  - `redis.rdbBackupFrequencyInMinutes`: `15/30/60/360/720/1440`
+  - `redis.rdbBackupMaxSnapshotCount`: `1` 以上
+  - `redis.rdbStorageConnectionString`: バックアップ保存先のストレージ接続文字列（必須）
