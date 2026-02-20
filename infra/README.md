@@ -3,6 +3,125 @@
 このディレクトリは、Azure インフラを Bicep でデプロイする実行基盤です。  
 `main.sh` が `common.parameter.json` を読み込み、前処理で `.bicepparam` を動的生成して各リソースをデプロイします。
 
+## ネットワーク構成図とフロー
+
+### 構成図（基本構成）
+
+![基本構成図](../docs/assets/basic-pattern.png)
+
+### 通信経路フロー（UDR）
+
+```mermaid
+flowchart LR
+  AG["ApplicationGatewaySubnet<br/>10.189.129.0/25"]
+  U["UserNodeSubnet<br/>10.189.128.0/24"]
+  N["AgentNodeSubnet<br/>10.189.130.64/26"]
+  M["MaintenanceSubnet<br/>10.189.130.128/29"]
+  FW["Azure Firewall<br/>10.189.129.196"]
+  NET["0.0.0.0/0 (Internet)"]
+
+  RTFW["rt-dev-3pull-firewall<br/>udr-usernode-inbound<br/>udr-agentnode-inbound"]
+  RTAKS["rt-dev-3pull-outbound-aks<br/>udr-appgw-return<br/>udr-internet-outbound"]
+  RTM["rt-dev-3pull-outbound-maint<br/>udr-internet-outbound"]
+
+  AG ---|"紐づけ"| RTFW
+  U ---|"紐づけ"| RTAKS
+  N ---|"紐づけ"| RTAKS
+  M ---|"紐づけ"| RTM
+
+  RTFW -->|"UserNodeSubnet 宛 / AgentNodeSubnet 宛<br/>next hop: 10.189.129.196"| FW
+  RTAKS -->|"ApplicationGatewaySubnet 宛<br/>next hop: 10.189.129.196"| FW
+  RTAKS -->|"0.0.0.0/0<br/>next hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  RTM -->|"0.0.0.0/0<br/>next hop: 10.189.129.196 または network.egressNextHopIp"| FW
+  FW --> NET
+```
+
+### 通信制御フロー（NSG）
+
+```mermaid
+flowchart LR
+  AG["ApplicationGatewaySubnet<br/>10.189.129.0/25"]
+  U["UserNodeSubnet<br/>10.189.128.0/24<br/>NSG: usernode"]
+  N["AgentNodeSubnet<br/>10.189.130.64/26<br/>NSG: agentnode"]
+  P["PrivateEndpointSubnet<br/>10.189.130.0/26<br/>NSG: pep"]
+  M["MaintenanceSubnet<br/>10.189.130.128/29<br/>NSG: maint"]
+  B["AzureBastionSubnet<br/>10.189.129.128/26"]
+  ACT["ActionGroup"]
+
+  AG -->|"TCP 8080,3000,3080 許可"| U
+  AG -->|"TCP 8080,3000,3080 許可"| N
+  U -->|"TCP 443,4443 許可"| U
+  U -->|"TCP 443,4443 許可"| N
+  N -->|"TCP 443,4443 許可"| U
+  N -->|"TCP 443,4443 許可"| N
+  M -->|"Any 許可"| U
+  M -->|"Any 許可"| N
+  U -->|"Any 許可"| P
+  N -->|"Any 許可"| P
+  M -->|"Any 許可"| P
+  ACT -->|"TCP 8080 許可"| U
+  ACT -->|"TCP 8080 許可"| N
+  B -->|"TCP 22,3389 許可"| M
+```
+
+### 構成図（ハブ&スポーク構成）
+
+![ハブ&スポーク構成図](../docs/assets/habspo-pattern.png)
+
+### 通信経路フロー（UDR / hubspo 実出力）
+
+```mermaid
+flowchart LR
+  AG["ApplicationGatewaySubnet<br/>10.189.129.0/25"]
+  U["UserNodeSubnet<br/>10.189.128.0/24"]
+  N["AgentNodeSubnet<br/>10.189.130.0/26"]
+  M["MaintenanceSubnet<br/>10.189.130.64/29"]
+  FW["Azure Firewall (Spoke)<br/>10.189.129.129"]
+  HUB["Hub Egress Firewall<br/>10.47.80.10"]
+
+  RTFW["rt-hubspo-3pull-firewall<br/>udr-usernode-inbound<br/>udr-agentnode-inbound"]
+  RTAKS["rt-hubspo-3pull-outbound-aks<br/>udr-appgw-return<br/>udr-internet-outbound"]
+  RTM["rt-hubspo-3pull-outbound-maint<br/>udr-internet-outbound"]
+
+  AG ---|"紐づけ"| RTFW
+  U ---|"紐づけ"| RTAKS
+  N ---|"紐づけ"| RTAKS
+  M ---|"紐づけ"| RTM
+
+  RTFW -->|"UserNodeSubnet / AgentNodeSubnet 宛<br/>next hop: 10.189.129.129"| FW
+  RTAKS -->|"ApplicationGatewaySubnet 宛 (udr-appgw-return)<br/>next hop: 10.189.129.129"| FW
+  RTAKS -->|"0.0.0.0/0 (udr-internet-outbound)<br/>next hop: 10.47.80.10"| HUB
+  RTM -->|"0.0.0.0/0 (udr-internet-outbound)<br/>next hop: 10.47.80.10"| HUB
+```
+
+### 通信制御フロー（NSG / hubspo 実出力）
+
+```mermaid
+flowchart LR
+  AG["ApplicationGatewaySubnet<br/>10.189.129.0/25"]
+  U["UserNodeSubnet<br/>10.189.128.0/24<br/>NSG: nsg-hubspo-3pull-usernode"]
+  N["AgentNodeSubnet<br/>10.189.130.0/26<br/>NSG: nsg-hubspo-3pull-agentnode"]
+  P["PrivateEndpointSubnet<br/>10.189.129.192/26<br/>NSG: nsg-hubspo-3pull-pep"]
+  M["MaintenanceSubnet<br/>10.189.130.64/29<br/>NSG: nsg-hubspo-3pull-maint"]
+  B["Hub Bastion / Jump Source<br/>10.47.80.20"]
+  ACT["ActionGroup"]
+
+  AG -->|"TCP 8080,3000,3080 許可"| U
+  AG -->|"TCP 8080,3000,3080 許可"| N
+  U -->|"TCP 443,4443 許可"| U
+  U -->|"TCP 443,4443 許可"| N
+  N -->|"TCP 443,4443 許可"| U
+  N -->|"TCP 443,4443 許可"| N
+  M -->|"Any 許可"| U
+  M -->|"Any 許可"| N
+  U -->|"Any 許可"| P
+  N -->|"Any 許可"| P
+  M -->|"Any 許可"| P
+  ACT -->|"TCP 8080 許可"| U
+  ACT -->|"TCP 8080 許可"| N
+  B -->|"TCP 22,3389 許可"| M
+```
+
 ネットワーク構成の設計は [docs/infra/network.md](../docs/infra/network.md) を参照してください。
 
 ## このフォルダ配下の説明

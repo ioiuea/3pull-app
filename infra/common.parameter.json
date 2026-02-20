@@ -1,14 +1,14 @@
 {
   "common": {
     "location": "japaneast",
-    "environmentName": "basic",
+    "environmentName": "hubspo",
     "systemName": "3pull",
     "enableResourceLock": false
   },
   "network": {
     "enableFirewallIdps": false,
     "enableGatewayRoutePropagation": false,
-    "enableCentralizedPrivateDns": false,
+    "enableCentralizedPrivateDns": true,
     "enableDdosProtection": false,
     "ddosProtectionPlanId": "",
     "vnetAddressPrefixes": [
@@ -16,9 +16,9 @@
       "10.189.129.0/24",
       "10.189.130.0/24"
     ],
-    "vnetDnsServers": [],
-    "sharedBastionIp": "",
-    "egressNextHopIp": ""
+    "vnetDnsServers": ["10.47.80.10"],
+    "sharedBastionIp": "10.47.80.20",
+    "egressNextHopIp": "10.47.80.10"
   },
   "aks": {
     "userPoolVmSize": "standard_d4s_v4",
@@ -46,7 +46,7 @@
   },
   "redis": {
     "skuName": "Basic",
-    "capacity": 0,
+    "capacity": 1,
     "shardCount": 1,
     "scaleStrategy": "vertical",
     "zonalAllocationPolicy": "Automatic",
@@ -82,19 +82,19 @@
     "disableKeyBasedMetadataWriteAccess": false
   },
   "resourceToggles": {
-    "logAnalytics": false,
-    "applicationInsights": false,
-    "virtualNetwork": false,
-    "subnets": false,
-    "firewall": false,
-    "applicationGateway": false,
-    "acr": false,
-    "storage": false,
+    "logAnalytics": true,
+    "applicationInsights": true,
+    "virtualNetwork": true,
+    "subnets": true,
+    "firewall": true,
+    "applicationGateway": true,
+    "acr": true,
+    "storage": true,
     "redis": true,
-    "cosmosDatabase": false,
-    "postgresDatabase": false,
-    "keyVault": false,
-    "aks": false,
-    "maintenanceVm": false
+    "cosmosDatabase": true,
+    "postgresDatabase": true,
+    "keyVault": true,
+    "aks": true,
+    "maintenanceVm": true
   }
 }
