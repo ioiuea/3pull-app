@@ -68,7 +68,7 @@ flowchart LR
 
 ![ハブ&スポーク構成図](../docs/assets/habspo-pattern.png)
 
-### 通信経路フロー（UDR / hubspo 実出力）
+### 通信経路フロー（UDR）
 
 ```mermaid
 flowchart LR
@@ -94,7 +94,7 @@ flowchart LR
   RTM -->|"0.0.0.0/0 (udr-internet-outbound)<br/>next hop: 10.47.80.10"| HUB
 ```
 
-### 通信制御フロー（NSG / hubspo 実出力）
+### 通信制御フロー（NSG）
 
 ```mermaid
 flowchart LR
